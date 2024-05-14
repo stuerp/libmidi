@@ -1,0 +1,63 @@
+
+/** $VER: Support.cpp (2024.05.11) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+
+#include "framework.h"
+
+#include "Support.h"
+
+/// <summary>
+/// 
+/// </summary>
+uint16_t GetTrimmedLength(const char * data, uint16_t size, char trimChar, bool leaveLast)
+{
+    uint16_t i;
+
+    for (i = size; i > 0; --i)
+    {
+        if (data[i - 1] != trimChar)
+            break;
+    }
+
+    if (leaveLast && (i < size))
+        i++;
+
+    return i;
+}
+
+/// <summary>
+/// Converts RCP BPM to MIDI ticks.
+/// </summary>
+uint32_t BPM2Ticks(uint16_t bpm, uint8_t scale)
+{
+//  formula: (60 000 000.0 / bpm) * (scale / 64.0)
+    const uint32_t div = (uint32_t) (bpm * scale);
+
+    return 60000000U * 64U / div;
+}
+
+/// <summary>
+/// Gets the address of the file name in the specified file path.
+/// </summary>
+const wchar_t * GetFileName(const wchar_t * filePath)
+{
+    const wchar_t * Sep1 = ::wcsrchr(filePath, '/');
+    const wchar_t * Sep2 = ::wcsrchr(filePath, '\\');
+
+    if (Sep1 == nullptr)
+        Sep1 = Sep2;
+    else
+    if ((Sep2 != nullptr) && (Sep2 > Sep1))
+        Sep1 = Sep2;
+
+    return (Sep1 != nullptr) ? (Sep1 + 1) : filePath;
+}
+
+/// <summary>
+/// Gets the address of the file extension in the specified file name.
+/// </summary>
+const wchar_t * GetFileExtension(const wchar_t * fileName)
+{
+    const wchar_t * Dot = ::wcsrchr(GetFileName(fileName), '.');
+
+    return (Dot != nullptr) ? (Dot + 1) : L"";
+}
