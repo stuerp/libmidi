@@ -1,5 +1,5 @@
 ﻿
-/** $VER: RCP.cpp (2024.05.11) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.cpp (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -13,8 +13,8 @@ extern running_notes_t RunningNotes;
 #define MCMD_RET_CMDCOUNT	0x00 // return number of commands
 #define MCMD_RET_DATASIZE	0x02 // return number of data bytes
 
-static uint16_t ConvertRCPSysExToMIDISysEx(const uint8_t * srcData, uint16_t srcSize, uint8_t * dstData, uint8_t param1, uint8_t param2, uint8_t channel);
 static uint8_t DetermineShift(uint32_t value);
+static uint16_t ConvertRCPSysExToMIDISysEx(const uint8_t * srcData, uint16_t srcSize, uint8_t * dstData, uint8_t param1, uint8_t param2, uint8_t channel);
 
 /// <summary>
 /// 
@@ -22,7 +22,7 @@ static uint8_t DetermineShift(uint32_t value);
 void rcp_file_t::ReadTrack(const uint8_t * data, uint32_t size, uint32_t offset, rcp_track_t * rcpTrack) const
 {
     if (offset >= size)
-        throw std::runtime_error("Invalid start of track position.");
+        throw std::runtime_error("Insufficient data to read track.");
 
     uint32_t Offset = offset;
 
@@ -926,14 +926,14 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         break;
                     }
 
-                    case 0xE7: // Tempo Modifier
+                    case 0xE7: // Tempo Modifier, P1 = multiplicator (20h = 50%, 40h = 100%, 80h = 200%) + P2 = 0 / Else: Just set tempo, 01..FF - interpolate tempo over P2 ticks.
                     {
                     #ifdef _RCP_VERBOSE
                         if (CmdP2 != 0)
-                            ::printf("Warning: Track %2u, 0x%04X: Gradual Tempo Change. Speed 0x40, P2 = %u.\n", TrackId, CmdOffset, CmdP2);
+                            ::printf("Warning: Track %2u, 0x%04X: Gradual tempo change. Speed 0x40, P2 = 0x%02X.\n", TrackId, CmdOffset, CmdP2);
                     #endif
 
-                        if (CmdP1 == 0)
+                        if (CmdP1 == 0x00)
                             CmdP1 = 0x40;
 
                         uint32_t Ticks = BPM2Ticks(_Tempo, CmdP1);
@@ -1056,7 +1056,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         Size = GetTrimmedLength((char *) Text.Data, Size, ' ', false);
 
                         #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%.*s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), Size, Text.Data);
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), TextToUTF8((const char *) Text.Data, Size).c_str());
                         #endif
 
                         midiStream.WriteMetaEvent(MetaDataTypes::Text, Text.Data, Size);

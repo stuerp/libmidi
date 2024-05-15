@@ -68,7 +68,7 @@ struct buffer_t
         }
     }
 
-    bool ReadFile(const wchar_t * filePath)
+    void ReadFile(const wchar_t * filePath)
     {
         FILE * fp = nullptr;
 
@@ -90,11 +90,9 @@ struct buffer_t
 
             ::fclose(fp);
         }
-
-        return true;
     }
 
-    bool WriteFile(const wchar_t * filePath) const
+    void WriteFile(const wchar_t * filePath) const
     {
         FILE * fp = nullptr;
 
@@ -107,8 +105,6 @@ struct buffer_t
 
             ::fclose(fp);
         }
-
-        return true;
     }
 
  private:

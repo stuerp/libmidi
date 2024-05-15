@@ -3,6 +3,8 @@
 
 [libmidi]() is a library to read and write MIDI sequences. It is heavily based on [kode54](https://gitlab.com/kode54)'s [midiprocessing]() library.
 
+WARNING: This is very tightly coupled with foo_midi. The API will change several times before it becomes stable.
+
 ## Features
 
 ## Requirements
@@ -19,7 +21,7 @@ To build the code you need:
 
 ## Change Log
 
-v1.0.0.0, 2024-05-xx
+v0.1.0.0, 2024-xx-xx
 
 * Initial release.
 
@@ -28,6 +30,9 @@ v1.0.0.0, 2024-05-xx
 * [kode54](https://gitlab.com/kode54) for the original [midiprocessing]() library.
 
 ## Reference Material
+
+* [The Wonderfully Terrible World of C and C++ Encoding APIs (with Some Rust)](https://thephd.dev/the-c-c++-rust-string-text-encoding-api-landscape)
+* [cuneicode, and the Future of Text in C](https://thephd.dev/cuneicode-and-the-future-of-text-in-c)
 
 ## Test Material
 

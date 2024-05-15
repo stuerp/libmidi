@@ -1,5 +1,5 @@
 
-/** $VER: RCP.h (2024.05.12) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.h (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -221,7 +221,7 @@ public:
     static uint8_t GetFileType(const buffer_t & rcpData) noexcept;
 
 private:
-    static uint16_t BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint16_t trackCount, uint32_t minLoopTicks, uint8_t verbose);
+    static uint16_t BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint32_t minLoopTicks, uint8_t verbose);
     static uint8_t HandleTimestamp(midi_stream_t * fileInfo, uint32_t * timestamp);
 
 public:

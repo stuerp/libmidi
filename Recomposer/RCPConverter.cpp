@@ -1,5 +1,5 @@
 
-/** $VER: RCPConverter.cpp (2024.05.12) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCPConverter.cpp (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -138,26 +138,38 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
     if ((RCPFile._GlobalTransposition < -36) || (RCPFile._GlobalTransposition > 36))
         RCPFile._GlobalTransposition = 0;
 
-    std::vector<rcp_track_t> RCPTrack(RCPFile._TrackCount);
+    std::vector<rcp_track_t> RCPTracks(RCPFile._TrackCount);
 
     {
         uint32_t Curr = Offset;
+        uint16_t n = 0;
 
         Curr += 0x30 * 8; // Skip User SysEx data
 
-        for (uint16_t TrackIndex = 0; TrackIndex < RCPFile._TrackCount; ++TrackIndex)
+        for (auto & Track : RCPTracks)
         {
-            rcp_track_t * t = &RCPTrack[TrackIndex];
+            if (Curr >= rcpData.Size)
+            {
+            #ifdef _RCP_VERBOSE
+                ::printf("%04X: Warning: Insufficient track data.\n", Curr);
+            #endif
 
-            RCPFile.ReadTrack(rcpData.Data, rcpData.Size, Curr, t);
+                RCPFile._TrackCount = n;
+                RCPTracks.resize(n);
+                break;
+            }
 
-            t->LoopCount = (uint16_t) ((t->LoopStartOffs != 0) ? _Options._RCPLoopCount : 0);
-            Curr += t->Size;
+            RCPFile.ReadTrack(rcpData.Data, rcpData.Size, Curr, &Track);
+
+            Track.LoopCount = (uint16_t) ((Track.LoopStartOffs != 0) ? _Options._RCPLoopCount : 0);
+            Curr += Track.Size;
+
+            ++n;
         }
     }
 
     if (!_Options._NoLoopExtension)
-        BalanceTrackTimes(RCPTrack, RCPFile._TrackCount, (uint32_t) (RCPFile._TicksPerQuarter / 4), 0xFF);
+        BalanceTrackTimes(RCPTracks, (uint32_t) (RCPFile._TicksPerQuarter / 4), 0xFF);
 
     uint8_t ControlTrackCount = 0; // Number of tracks that contain control sequences.
 
@@ -184,21 +196,21 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             buffer_t CM6Data;
 
-            if (CM6Data.ReadFile(FilePath))
+            try
             {
+                CM6Data.ReadFile(FilePath);
+
                 CM6File.Read(CM6Data);
 
-            #ifdef _RCP_VERBOSE
-                ::wprintf(L"Using CM6 control file \"%.*hs\", %s mode.\n", RCPFile._CM6FileName.Len, RCPFile._CM6FileName.Data, CM6File.DeviceType ? L"CM-64" : L"MT-32");
-            #endif
+                #ifdef _RCP_VERBOSE
+                ::wprintf(L"Using CM6 %s control file \"%.*hs\".\n", (CM6File.DeviceType ? L"CM-64" : L"MT-32"), RCPFile._CM6FileName.Len, RCPFile._CM6FileName.Data);
+                #endif
                 ControlTrackCount++;
             }
-            else
-        #ifdef _RCP_VERBOSE
-                ::printf("Warning: CM6 control file \"%.*hs\" not found.\n", RCPFile._CM6FileName.Len, RCPFile._CM6FileName.Data);
-        #else
-                throw std::runtime_error(std::format("CM6 control file \"{}\" not found.", WideToUTF8(FilePath).c_str()));
-        #endif
+            catch (std::exception & e)
+            {
+                throw std::runtime_error(std::format("Failed to load CM6 control file: {}", e.what()));
+            }
         }
 
         // Roland SC-55
@@ -210,21 +222,21 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             buffer_t GSDData;
 
-            if (GSDData.ReadFile(FilePath))
+            try
             {
+                GSDData.ReadFile(FilePath);
+
                 GSD1File.Read(GSDData);
 
-            #ifdef _RCP_VERBOSE
+                #ifdef _RCP_VERBOSE
                 ::printf("Using GSD control file \"%.*hs\".\n", RCPFile._GSD1FileName.Len, RCPFile._GSD1FileName.Data);
-            #endif
+                #endif
                 ControlTrackCount++;
             }
-            else
-        #ifdef _RCP_VERBOSE
-                printf("Warning: GSD control file \"%.*hs\" not found.\n", RCPFile._GSD1FileName.Len, RCPFile._GSD1FileName.Data);
-        #else
-                throw std::runtime_error(std::format("GSD control file \"{}\" not found.", WideToUTF8(FilePath).c_str()));
-        #endif
+            catch (std::exception & e)
+            {
+                throw std::runtime_error(std::format("Failed to load GSD control file: {}", e.what()));
+            }
         }
 
         // Roland SC-55
@@ -236,23 +248,27 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             buffer_t GSDData;
 
-            if (GSDData.ReadFile(FilePath))
+            try
             {
+                GSDData.ReadFile(FilePath);
+
                 GSD2File.Read(GSDData);
 
-            #ifdef _RCP_VERBOSE
+                #ifdef _RCP_VERBOSE
                 ::printf("Using GSD control file \"%.*hs\" for port B.\n", RCPFile._GSD2FileName.Len, RCPFile._GSD2FileName.Data);
-            #endif
+                #endif
                 ControlTrackCount++;
             }
-            else
-        #ifdef _RCP_VERBOSE
-                printf("Warning: GSD control file \"%.*hs\" for port B not found.\n", RCPFile._GSD2FileName.Len, RCPFile._GSD2FileName.Data);
-        #else
-                throw std::runtime_error(std::format("GSD control file \"{}\" for port B not found.", WideToUTF8(FilePath).c_str()));
-        #endif
+            catch (std::exception & e)
+            {
+                throw std::runtime_error(std::format("Failed to load GSD control file: {}", e.what()));
+            }
         }
     }
+
+    #ifdef _RCP_VERBOSE
+    ::puts("Converting...");
+    #endif
 
     midi_stream_t MIDIStream(0x20000);
 
@@ -441,7 +457,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         ::printf("Initial timestamp: %u ticks\n", MIDITimestamp);
     #endif
 
-    for (uint16_t TrackIndex = 0; TrackIndex < RCPFile._TrackCount; ++TrackIndex)
+    for (auto & RCPTrack : RCPTracks)
     {
         _MIDITickCount = 0;
 
@@ -451,7 +467,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
         try
         {
-            RCPFile.ConvertTrack(rcpData.Data, rcpData.Size, &Offset, &RCPTrack[TrackIndex], MIDIStream);
+            RCPFile.ConvertTrack(rcpData.Data, rcpData.Size, &Offset, &RCPTrack, MIDIStream);
         }
         catch (std::exception &)
         {
@@ -470,6 +486,8 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
     MIDIStream.Reset();
     MIDIStream.WriteMIDIHeader(1, (uint16_t) (1 + ControlTrackCount + RCPFile._TrackCount), RCPFile._TicksPerQuarter);
+
+    ::puts("Done.");
 }
 
 /// <summary>
@@ -535,63 +553,62 @@ void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiD
 /// When a track's loop has less ticks than minLoopTicks, then it is ignored.
 /// Returns the number of adjusted tracks.
 /// </summary>
-uint16_t rcp_converter_t::BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint16_t trackCount, uint32_t minLoopTicks, uint8_t verbose)
+uint16_t rcp_converter_t::BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint32_t minLoopTicks, uint8_t verbose)
 {
     uint32_t maxTicks = 0;
 
-    for (uint16_t i = 0; i < trackCount; ++i)
+    for (auto & RCPTrack : rcpTracks)
     {
-        rcp_track_t * RCPTrack = &rcpTracks[i];
-
         uint32_t Duration = 0;
 
-        if (RCPTrack->LoopCount != 0)
+        if (RCPTrack.LoopCount != 0)
         {
-            uint32_t LoopTicks = (RCPTrack->Duration - RCPTrack->LoopStartTick);
+            uint32_t LoopTicks = (RCPTrack.Duration - RCPTrack.LoopStartTick);
 
-            Duration = RCPTrack->Duration + LoopTicks * (RCPTrack->LoopCount - 1);
+            Duration = RCPTrack.Duration + LoopTicks * (RCPTrack.LoopCount - 1);
         }
         else
-            Duration = RCPTrack->Duration;
+            Duration = RCPTrack.Duration;
 
         if (maxTicks < Duration)
             maxTicks = Duration;
     }
 
     uint16_t adjustCnt = 0;
+    uint32_t i = 0;
 
-    for (uint16_t i = 0; i < trackCount; ++i)
+    for (auto & RCPTrack : rcpTracks)
     {
-        rcp_track_t * RCPTrack = &rcpTracks[i];
-
         uint32_t Duration = 0;
 
-        uint32_t LoopTicks = RCPTrack->LoopCount ? (RCPTrack->Duration - RCPTrack->LoopStartTick) : 0;
+        uint32_t LoopTicks = RCPTrack.LoopCount ? (RCPTrack.Duration - RCPTrack.LoopStartTick) : 0;
 
         // Ignore tracks with very short loops.
         if (LoopTicks < minLoopTicks)
         {
-        #ifdef _RCP_VERBOSE
+            #ifdef _RCP_VERBOSE
             if (LoopTicks > 0 && (verbose & 0x02))
                 ::printf("Track %u: Ignoring micro-loop (%u ticks).\n", i, LoopTicks);
-        #endif
+            #endif
             continue;
         }
 
         // Heuristic: The track needs additional loops, if the longest track is longer than the current track + 1/4 loop.
-        Duration = RCPTrack->Duration + LoopTicks * (RCPTrack->LoopCount - 1);
+        Duration = RCPTrack.Duration + LoopTicks * (RCPTrack.LoopCount - 1);
 
         if (Duration + LoopTicks / 4 < maxTicks)
         {
-            Duration = maxTicks - RCPTrack->LoopStartTick; // desired length of the loop
-            RCPTrack->LoopCount = (uint16_t)((Duration + LoopTicks / 3) / LoopTicks);
+            Duration = maxTicks - RCPTrack.LoopStartTick; // desired length of the loop
+            RCPTrack.LoopCount = (uint16_t)((Duration + LoopTicks / 3) / LoopTicks);
             adjustCnt++;
 
-        #ifdef _RCP_VERBOSE
+            #ifdef _RCP_VERBOSE
             if (verbose & 0x01)
-                ::printf("Track %u: Extended loop to %u times.\n", i, RCPTrack->LoopCount);
-        #endif
+                ::printf("Track %u: Extended loop to %u times.\n", i, RCPTrack.LoopCount);
+            #endif
         }
+
+        ++i;
     }
 
     return adjustCnt;

@@ -1,5 +1,5 @@
 
-/** $VER: Support.cpp (2024.05.11) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: Support.cpp (2024.05.14) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -30,9 +30,9 @@ uint16_t GetTrimmedLength(const char * data, uint16_t size, char trimChar, bool 
 uint32_t BPM2Ticks(uint16_t bpm, uint8_t scale)
 {
 //  formula: (60 000 000.0 / bpm) * (scale / 64.0)
-    const uint32_t div = (uint32_t) (bpm * scale);
+    const uint32_t Denominator = (uint32_t) (bpm * scale);
 
-    return 60000000U * 64U / div;
+    return 60000000U * 64U / Denominator;
 }
 
 /// <summary>
