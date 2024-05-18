@@ -5,7 +5,7 @@
 
 #include "MIDIProcessor.h"
 
-bool MIDIProcessor::IsMUS(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsMUS(std::vector<uint8_t> const & data)
 {
     if (data.size() < 0x20)
         return false;
@@ -23,7 +23,7 @@ bool MIDIProcessor::IsMUS(std::vector<uint8_t> const & data)
     return false;
 }
 
-bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer & container)
+bool midi_processor_t::ProcessMUS(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     uint16_t Length = (uint16_t) (data[ 4] | (data[ 5] << 8)); // Song length in bytes
     uint16_t Offset = (uint16_t) (data[ 6] | (data[ 7] << 8)); // Offset to song data
@@ -31,10 +31,10 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
     container.Initialize(0, 0x59);
 
     {
-        MIDITrack Track;
+        midi_track_t Track;
 
-        Track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, DefaultTempoMUS, _countof(DefaultTempoMUS)));
-        Track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, DefaultTempoMUS, _countof(DefaultTempoMUS)));
+        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
         container.AddTrack(Track);
     }
@@ -42,7 +42,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
     if ((size_t) Offset >= data.size() || (size_t) (Offset + Length) > data.size())
         return false;
 
-    MIDITrack Track;
+    midi_track_t Track;
 
     uint32_t Timestamp = 0;
 
@@ -59,7 +59,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
         if (Data[0] == 0x60)
             break;
 
-        MIDIEvent::MIDIEventType EventType;
+        midi_event_t::MIDIEventType EventType;
         uint32_t EventSize;
 
         uint32_t Channel = (uint32_t) (Data[0] & 0x0F);
@@ -74,7 +74,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
         {
             // Release Note
             case 0x00:
-                EventType = MIDIEvent::NoteOff;
+                EventType = midi_event_t::NoteOff;
 
                 if (it == end)
                     return false;
@@ -86,7 +86,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
 
             // PLay Note
             case 0x10:
-                EventType = MIDIEvent::NoteOn;
+                EventType = midi_event_t::NoteOn;
 
                 if (it == end)
                     return false;
@@ -110,7 +110,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
 
             // Pitch Bend
             case 0x20:
-                EventType = MIDIEvent::PitchBendChange;
+                EventType = midi_event_t::PitchBendChange;
 
                 if (it == end)
                     return false;
@@ -123,7 +123,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
 
             // System Event
             case 0x30:
-                EventType = MIDIEvent::ControlChange;
+                EventType = midi_event_t::ControlChange;
 
                 if (it == end)
                     return false;
@@ -151,7 +151,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
                 {
                     if (Data[1] < 10)
                     {
-                        EventType = MIDIEvent::ControlChange;
+                        EventType = midi_event_t::ControlChange;
 
                         Data[1] = MusControllers[Data[1]];
 
@@ -166,7 +166,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
                 }
                 else
                 {
-                    EventType = MIDIEvent::ProgramChange;
+                    EventType = midi_event_t::ProgramChange;
 
                     if (it == end)
                         return false;
@@ -189,7 +189,7 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
                 return false; /*throw exception_io_data( "Invalid MUS status code" );*/
         }
 
-        Track.AddEvent(MIDIEvent(Timestamp, EventType, Channel, Data + 1, EventSize));
+        Track.AddEvent(midi_event_t(Timestamp, EventType, Channel, Data + 1, EventSize));
 
         if (Data[0] & 0x80)
         {
@@ -202,12 +202,12 @@ bool MIDIProcessor::ProcessMUS(std::vector<uint8_t> const & data, MIDIContainer 
         }
     }
 
-    Track.AddEvent(MIDIEvent(Timestamp, MIDIEvent::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+    Track.AddEvent(midi_event_t(Timestamp, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
     container.AddTrack(Track);
 
     return true;
 }
 
-const uint8_t MIDIProcessor::DefaultTempoMUS[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x09, 0xA3, 0x1A };
-const uint8_t MIDIProcessor::MusControllers[15] = { 0, 0, 1, 7, 10, 11, 91, 93, 64, 67, 120, 123, 126, 127, 121 };
+const uint8_t midi_processor_t::DefaultTempoMUS[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x09, 0xA3, 0x1A };
+const uint8_t midi_processor_t::MusControllers[15] = { 0, 0, 1, 7, 10, 11, 91, 93, 64, 67, 120, 123, 126, 127, 121 };

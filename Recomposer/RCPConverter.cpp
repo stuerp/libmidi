@@ -1,5 +1,5 @@
 
-/** $VER: RCPConverter.cpp (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCPConverter.cpp (2024.05.16) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -24,9 +24,7 @@ void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, cons
         }
         catch (std::exception & e)
         {
-            std::string Text = std::string("Sequence file conversion failed: ") + e.what();
-
-            throw std::runtime_error(Text);
+            throw std::runtime_error(std::string("Recomposer sequence file conversion failed: ") + e.what());
         }
     }
     else
@@ -40,22 +38,19 @@ void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, cons
         if (::_wcsicmp(dstType, L"mid") == 0)
             Mode = 0x01;
         else
-            Mode = 0xFF;
-
-        if (Mode == 0xFF)
-            throw std::runtime_error(std::format("Unknown output format: {}.", WideToUTF8(dstType).c_str()));
+            throw std::runtime_error(std::string("Unknown output format: ") + WideToUTF8(dstType));
 
         try
         {
             ConvertControl(srcData, dstData, FileType, Mode);
         }
-        catch (std::exception &)
+        catch (std::exception & e)
         {
-            throw std::runtime_error("Control file conversion failed.");
+            throw std::runtime_error(std::string("Recomposer control file conversion failed: ") + e.what());
         }
     }
     else
-        throw std::runtime_error("Unknown file type.");
+        throw std::runtime_error("Unknown file type");
 }
 
 /// <summary>
@@ -68,7 +63,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
     RCPFile._Version = GetFileType(rcpData);
 
     if (RCPFile._Version >= 0x10)
-        throw std::runtime_error("Unknown file type.");
+        throw std::runtime_error("Unknown file type");
 
 #ifdef _RCP_VERBOSE
     ::printf("RCP version %u\n\n", RCPFile._Version);
@@ -209,7 +204,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             }
             catch (std::exception & e)
             {
-                throw std::runtime_error(std::format("Failed to load CM6 control file: {}", e.what()));
+                throw std::runtime_error(std::string("Failed to load CM6 control file: ") + e.what());
             }
         }
 
@@ -235,7 +230,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             }
             catch (std::exception & e)
             {
-                throw std::runtime_error(std::format("Failed to load GSD control file: {}", e.what()));
+                throw std::runtime_error(std::string("Failed to load GSD control file: ") + e.what());
             }
         }
 
@@ -261,7 +256,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             }
             catch (std::exception & e)
             {
-                throw std::runtime_error(std::format("Failed to load GSD control file: {}", e.what()));
+                throw std::runtime_error(std::string("Failed to load GSD control file: ") + e.what());
             }
         }
     }
@@ -516,7 +511,7 @@ void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiD
     #endif
     }
     else
-        throw std::runtime_error("Unknown file type.");
+        throw std::runtime_error("Unknown file type");
 
     midi_stream_t MIDIFile(0x10000);
 

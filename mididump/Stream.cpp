@@ -19,12 +19,12 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-uint32_t ProcessEvent(const MIDIStreamEvent & event, uint32_t timestamp, size_t index, const SysExTable & sysExMap);
+uint32_t ProcessEvent(const midi_stream_event_t & event, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap);
 
 /// <summary>
 /// 
 /// </summary>
-void ProcessStream(const std::vector<MIDIStreamEvent> & stream, const SysExTable & sysExMap, bool skipNormalEvents)
+void ProcessStream(const std::vector<midi_stream_event_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents)
 {
     ::printf("%u messages, %u unique SysEx messages\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size());
 
@@ -44,7 +44,7 @@ void ProcessStream(const std::vector<MIDIStreamEvent> & stream, const SysExTable
 /// <summary>
 /// Processes MIDI stream events.
 /// </summary>
-uint32_t ProcessEvent(const MIDIStreamEvent & me, uint32_t timestamp, size_t index, const SysExTable & sysExMap)
+uint32_t ProcessEvent(const midi_stream_event_t & me, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
 {
     char Timestamp[16];
     char Time[16];

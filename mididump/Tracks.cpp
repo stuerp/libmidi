@@ -19,7 +19,7 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-uint32_t ProcessEvent(const MIDIEvent & event, uint32_t timestamp, size_t index);
+uint32_t ProcessEvent(const midi_event_t & event, uint32_t timestamp, size_t index);
 
 /// <summary>
 /// Returns true of the input value is in the interval between min and max.
@@ -33,7 +33,7 @@ inline static T InRange(T value, T minValue, T maxValue)
 /// <summary>
 /// Processes a metadata message.
 /// </summary>
-void ProcessMetaData(const MIDIEvent & me)
+void ProcessMetaData(const midi_event_t & me)
 {
     switch (me.Data[1])
     {
@@ -154,7 +154,7 @@ void ProcessMetaData(const MIDIEvent & me)
 /// <summary>
 /// Processes a SysEx message.
 /// </summary>
-void ProcessSysEx(const MIDIEvent & me)
+void ProcessSysEx(const midi_event_t & me)
 {
     for (const uint8_t b : me.Data)
         ::printf(" %02X", b);
@@ -169,7 +169,7 @@ void ProcessSysEx(const MIDIEvent & me)
 /// <summary>
 /// Processes a Control Change message.
 /// </summary>
-void ProcessControlChange(const MIDIEvent & me)
+void ProcessControlChange(const midi_event_t & me)
 {
     int Status = (int) (StatusCodes::ControlChange | me.ChannelNumber);
 
@@ -264,7 +264,7 @@ void ProcessControlChange(const MIDIEvent & me)
 /// <summary>
 /// Processes a Control Change message.
 /// </summary>
-void ProcessProgramChange(const MIDIEvent & me)
+void ProcessProgramChange(const midi_event_t & me)
 {
     int Status = (int) (StatusCodes::ProgramChange | me.ChannelNumber);
 
@@ -285,7 +285,7 @@ void ProcessProgramChange(const MIDIEvent & me)
 /// <summary>
 /// Processes all tracks.
 /// </summary>
-void ProcessTracks(const MIDIContainer & container)
+void ProcessTracks(const midi_container_t & container)
 {
     const uint32_t SubsongIndex = 0;
 
@@ -314,7 +314,7 @@ void ProcessTracks(const MIDIContainer & container)
 /// <summary>
 /// Processes MIDI events.
 /// </summary>
-uint32_t ProcessEvent(const MIDIEvent & me, uint32_t timestamp, size_t index)
+uint32_t ProcessEvent(const midi_event_t & me, uint32_t timestamp, size_t index)
 {
     char Timestamp[16];
     char Time[16];
@@ -334,48 +334,48 @@ uint32_t ProcessEvent(const MIDIEvent & me, uint32_t timestamp, size_t index)
 
     switch (me.Type)
     {
-        case MIDIEvent::MIDIEventType::NoteOff:
+        case midi_event_t::MIDIEventType::NoteOff:
         {
             ::printf("Note Off                      80");
             break;
         }
 
-        case MIDIEvent::MIDIEventType::NoteOn:
+        case midi_event_t::MIDIEventType::NoteOn:
         {
             ::printf("Note On                       90");
             break;
         }
 
-        case MIDIEvent::MIDIEventType::KeyPressure:
+        case midi_event_t::MIDIEventType::KeyPressure:
         {
             ::printf("Key Pressure                  A0");
             break;
         }
 
-        case MIDIEvent::MIDIEventType::ControlChange:
+        case midi_event_t::MIDIEventType::ControlChange:
         {
             ::printf("Control Change               "); ProcessControlChange(me); break;
         }
 
-        case MIDIEvent::MIDIEventType::ProgramChange:
+        case midi_event_t::MIDIEventType::ProgramChange:
         {
             ::printf("Program Change               "); ProcessProgramChange(me); break;
             break;
         }
 
-        case MIDIEvent::MIDIEventType::ChannelPressure:
+        case midi_event_t::MIDIEventType::ChannelPressure:
         {
             ::printf("Channel Pressure              D0");
             break;
         }
 
-        case MIDIEvent::MIDIEventType::PitchBendChange:
+        case midi_event_t::MIDIEventType::PitchBendChange:
         {
             ::printf("Pitch Bend Change             E0");
             break;
         }
 
-        case MIDIEvent::MIDIEventType::Extended:
+        case midi_event_t::MIDIEventType::Extended:
         {
             switch (me.Data[0])
             {

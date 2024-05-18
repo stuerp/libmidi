@@ -36,6 +36,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="Encoding.h" />
     <ClInclude Include="Exception.h" />
+    <ClInclude Include="IFF.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

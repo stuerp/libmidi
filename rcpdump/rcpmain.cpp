@@ -140,11 +140,11 @@ int rcpmain(int argc, wchar_t * argv[])
 
                 ::wcscpy_s(RefFilePath, _countof(RefFilePath), FilePath);
 
-                wchar_t * FileExtension = (wchar_t *) GetFileExtension(RefFilePath);
+                wchar_t * fe = (wchar_t *) GetFileExtension(RefFilePath);
 
-                if (FileExtension != nullptr)
+                if (fe != nullptr)
                 {
-                    ::wcscpy_s(FileExtension, _countof(RefFilePath) - 3, L"mid");
+                    ::wcscpy_s(fe, _countof(RefFilePath) - 3, L"mid");
 
                     buffer_t RefFile;
 
@@ -166,13 +166,13 @@ int rcpmain(int argc, wchar_t * argv[])
                         throw std::runtime_error(std::format("Conversion error in \"{}\". File content mismatch.", WideToUTF8(FilePath).c_str()));
                 }
 
-                MIDIContainer Container;
+                midi_container_t Container;
 
                 std::vector<uint8_t> Data;
 
                 Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
-                if (!MIDIProcessor::Process(Data, FilePath, Container))
+                if (!midi_processor_t::Process(Data, FilePath, Container))
                     throw std::runtime_error(std::format("MIDIProcesser failed: \"{}\".", WideToUTF8(FilePath).c_str()));
             }
             #endif

@@ -50,6 +50,7 @@
   <ItemGroup>
     <ClInclude Include="Exception.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IFF.h" />
     <ClInclude Include="MIDI.h" />
     <ClInclude Include="MIDIContainer.h" />
     <ClInclude Include="Range.h" />

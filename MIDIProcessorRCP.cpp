@@ -12,7 +12,7 @@
 /// <summary>
 /// Returns true if data points to RCP data.
 /// </summary>
-bool MIDIProcessor::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension)
+bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension)
 {
     if (fileExtension == nullptr)
         return false;
@@ -51,7 +51,7 @@ bool MIDIProcessor::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fil
 /// <summary>
 /// Processes the data.
 /// </summary>
-bool MIDIProcessor::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, MIDIContainer & container)
+bool midi_processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container)
 {
     rcp_converter_t RCPConverter;
 
@@ -73,7 +73,7 @@ bool MIDIProcessor::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t 
 
     Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
-    MIDIProcessor::Process(Data, filePath, container);
+    midi_processor_t::Process(Data, filePath, container);
 
     return true;
 }

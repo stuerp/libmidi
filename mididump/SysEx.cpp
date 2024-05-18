@@ -1,5 +1,5 @@
 
-/** $VER: Stream.cpp (2024.05.15) P. Stuer **/
+/** $VER: SysEx.cpp (2024.05.15) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -259,7 +259,7 @@ void sysex_t::Identify()
         {
             for (const auto & Message : SysExMessages)
             {
-                if ((Message.KeySize <= _Data.size()) && (::memcmp(Message.KeyData + 3, _Data.data() + 3, Message.KeySize - 3) == 0))
+                if ((Message.KeySize <= _Data.size()) && (::memcmp(Message.KeyData + 3, _Data.data() + 3, (size_t) Message.KeySize - 3) == 0))
                 {
                     _Description = Message.Description;
                     break;

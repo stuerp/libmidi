@@ -5,7 +5,7 @@
 
 #include "MIDIProcessor.h"
 
-bool MIDIProcessor::IsMDS(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsMDS(std::vector<uint8_t> const & data)
 {
     if (data.size() < 8)
         return false;
@@ -24,7 +24,7 @@ bool MIDIProcessor::IsMDS(std::vector<uint8_t> const & data)
     return true;
 }
 
-bool MIDIProcessor::ProcessMDS(std::vector<uint8_t> const & data, MIDIContainer & container)
+bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     if (data.size() < 20)
         return false;
@@ -87,9 +87,9 @@ bool MIDIProcessor::ProcessMDS(std::vector<uint8_t> const & data, MIDIContainer 
     it += 4;
 
     {
-        MIDITrack Track;
+        midi_track_t Track;
 
-        Track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
         container.AddTrack(Track);
     }
 
@@ -107,7 +107,7 @@ bool MIDIProcessor::ProcessMDS(std::vector<uint8_t> const & data, MIDIContainer 
 
     bool IsEightByte = !!(Flags & 1);
 
-    MIDITrack Track;
+    midi_track_t Track;
 
     uint32_t Timestamp = 0;
 
@@ -152,7 +152,7 @@ bool MIDIProcessor::ProcessMDS(std::vector<uint8_t> const & data, MIDIContainer 
                 Data[3] = (uint8_t) (Event >> 8);
                 Data[4] = (uint8_t)  Event;
 
-                container.AddEventToTrack(0, MIDIEvent(Timestamp, MIDIEvent::Extended, 0, Data, sizeof(Data)));
+                container.AddEventToTrack(0, midi_event_t(Timestamp, midi_event_t::Extended, 0, Data, sizeof(Data)));
             }
             else
             if ((Event >> 24) == 0x00)
@@ -170,13 +170,13 @@ bool MIDIProcessor::ProcessMDS(std::vector<uint8_t> const & data, MIDIContainer 
                         Size = 2;
                     }
 
-                    Track.AddEvent(MIDIEvent(Timestamp, (MIDIEvent::MIDIEventType) (StatusCode - 8), Event & 0x0F, Data, Size));
+                    Track.AddEvent(midi_event_t(Timestamp, (midi_event_t::MIDIEventType) (StatusCode - 8), Event & 0x0F, Data, Size));
                 }
             }
         }
     }
 
-    Track.AddEvent(MIDIEvent(Timestamp, MIDIEvent::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+    Track.AddEvent(midi_event_t(Timestamp, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
     container.AddTrack(Track);
 

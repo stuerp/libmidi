@@ -28,9 +28,9 @@ using namespace std;
 #include "Tables.h"
 #include "SysEx.h"
 
-void ProcessContainer(MIDIContainer & container, bool asStream);
-void ProcessStream(const std::vector<MIDIStreamEvent> & stream, const SysExTable & sysExMap, bool skipNormalEvents = false);
-void ProcessTracks(const MIDIContainer & container);
+void ProcessContainer(midi_container_t & container, bool asStream);
+void ProcessStream(const std::vector<midi_stream_event_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents = false);
+void ProcessTracks(const midi_container_t & container);
 
 std::vector<uint8_t> ReadFile(std::wstring & filePath);
 
@@ -48,9 +48,9 @@ int midmain(int argc, wchar_t * argv[])
     {
         std::vector<uint8_t> Data = ReadFile(FilePath);
 
-        MIDIContainer Container;
+        midi_container_t Container;
 
-        MIDIProcessor::Process(Data, FilePath.c_str(), Container);
+        midi_processor_t::Process(Data, FilePath.c_str(), Container);
 
         ProcessContainer(Container, false);
     }
@@ -65,7 +65,7 @@ int midmain(int argc, wchar_t * argv[])
 /// <summary>
 /// 
 /// </summary>
-void ProcessContainer(MIDIContainer & Container, bool asStream)
+void ProcessContainer(midi_container_t & Container, bool asStream)
 {
     if (asStream)
     {
@@ -85,13 +85,13 @@ void ProcessContainer(MIDIContainer & Container, bool asStream)
 
             ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", i, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
 
-            MIDIMetaData MetaData;
+            midi_metadata_t MetaData;
 
             Container.GetMetaData(SubsongIndex, MetaData);
 
             for (size_t j = 0; j < MetaData.GetCount(); ++j)
             {
-                const MIDIMetaDataItem & Item = MetaData[j];
+                const midi_metadata_item_t & Item = MetaData[j];
 
                 ::printf("- %8d %s: %s\n", Item.Timestamp, Item.Name.c_str(), Item.Value.c_str());
             }
@@ -103,8 +103,8 @@ void ProcessContainer(MIDIContainer & Container, bool asStream)
         ::printf("Loop Begin: %d ticks\n", LoopBegin);
         ::printf("Loop End  : %d ticks\n", LoopEnd);
 
-        std::vector<MIDIStreamEvent> Stream;
-        SysExTable SysExMap;
+        std::vector<midi_stream_event_t> Stream;
+        sysex_table_t SysExMap;
 
         Container.SerializeAsStream(0, Stream, SysExMap, LoopBegin, LoopEnd, 0);
 

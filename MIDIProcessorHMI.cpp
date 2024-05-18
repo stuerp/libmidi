@@ -5,7 +5,7 @@
 
 #include "MIDIProcessor.h"
 
-bool MIDIProcessor::IsHMI(std::vector<uint8_t> const & p_file)
+bool midi_processor_t::IsHMI(std::vector<uint8_t> const & p_file)
 {
     if (p_file.size() < 12)
         return false;
@@ -17,7 +17,7 @@ bool MIDIProcessor::IsHMI(std::vector<uint8_t> const & p_file)
     return true;
 }
 
-bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer & container)
+bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     auto it = data.begin() + 0xE4;
 
@@ -40,10 +40,10 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
     container.Initialize(1, 0xC0);
 
     {
-        MIDITrack track;
+        midi_track_t track;
 
-        track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, DefaultTempoHMP, _countof(DefaultTempoHMP)));
-        track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+        track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, DefaultTempoHMP, _countof(DefaultTempoHMP)));
+        track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
         container.AddTrack(track);
     }
@@ -75,7 +75,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
             TrackData[8] != 'T' || TrackData[9] != 'R' || TrackData[10] != 'A' || TrackData[11] != 'C' || TrackData[12] != 'K')
             return false;
 
-        MIDITrack Track;
+        midi_track_t Track;
 
         uint32_t Timestamp = 0;
 
@@ -108,7 +108,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                 Temp[0] = StatusCodes::MetaData;
                 Temp[1] = MetaDataTypes::Text;
 
-                Track.AddEvent(MIDIEvent(0, MIDIEvent::Extended, 0, Temp.data(), MetadataSize + 2));
+                Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Temp.data(), MetadataSize + 2));
             }
         }
 
@@ -167,7 +167,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                 if ((Temp[1] == MetaDataTypes::EndOfTrack) && (LastStatusTimestamp > Timestamp))
                     Timestamp = LastStatusTimestamp;
 
-                Track.AddEvent(MIDIEvent(Timestamp, MIDIEvent::Extended, 0, &Temp[0], (size_t) (MetadataSize + 2)));
+                Track.AddEvent(midi_event_t(Timestamp, midi_event_t::Extended, 0, &Temp[0], (size_t) (MetadataSize + 2)));
 
                 if (Temp[1] == MetaDataTypes::EndOfTrack)
                     break;
@@ -189,7 +189,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                 std::copy(it, it + SysExSize, Temp.begin() + 1);
 
                 it += SysExSize;
-                Track.AddEvent(MIDIEvent(Timestamp, MIDIEvent::Extended, 0, &Temp[0], (size_t) (SysExSize + 1)));
+                Track.AddEvent(midi_event_t(Timestamp, midi_event_t::Extended, 0, &Temp[0], (size_t) (SysExSize + 1)));
             }
             else
             if (Temp[0] == StatusCodes::ActiveSensing)
@@ -237,7 +237,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                         return false;
 
                     it += 2;
-                    container.AddEventToTrack(0, MIDIEvent(Timestamp, MIDIEvent::Extended, 0, LoopBeginMarker, _countof(LoopBeginMarker)));
+                    container.AddEventToTrack(0, midi_event_t(Timestamp, midi_event_t::Extended, 0, LoopBeginMarker, _countof(LoopBeginMarker)));
                 }
                 else
                 if (Temp[1] == 0x15)
@@ -246,7 +246,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                         return false;
 
                     it += 6;
-                    container.AddEventToTrack(0, MIDIEvent(Timestamp, MIDIEvent::Extended, 0, LoopEndMarker, _countof(LoopEndMarker)));
+                    container.AddEventToTrack(0, midi_event_t(Timestamp, midi_event_t::Extended, 0, LoopEndMarker, _countof(LoopEndMarker)));
                 }
                 else
                     return false; /*throw exception_io_data( "Unexpected HMI meta event" );*/
@@ -273,11 +273,11 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                     Temp[0] = LastStatusCode;
                 }
 
-                MIDIEvent::MIDIEventType Type = (MIDIEvent::MIDIEventType) ((Temp[0] >> 4) - 8);
+                midi_event_t::MIDIEventType Type = (midi_event_t::MIDIEventType) ((Temp[0] >> 4) - 8);
 
                 uint32_t Channel = (uint32_t) (Temp[0] & 0x0F);
 
-                if ((Type != MIDIEvent::ProgramChange) && (Type != MIDIEvent::ChannelPressure))
+                if ((Type != midi_event_t::ProgramChange) && (Type != midi_event_t::ChannelPressure))
                 {
                     if (it == TrackDataEnd)
                         return false;
@@ -286,9 +286,9 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                     BytesRead = 2;
                 }
 
-                Track.AddEvent(MIDIEvent(Timestamp, Type, Channel, &Temp[1], BytesRead));
+                Track.AddEvent(midi_event_t(Timestamp, Type, Channel, &Temp[1], BytesRead));
 
-                if (Type == MIDIEvent::NoteOn)
+                if (Type == midi_event_t::NoteOn)
                 {
                     Temp[2] = 0x00;
 
@@ -302,7 +302,7 @@ bool MIDIProcessor::ProcessHMI(std::vector<uint8_t> const & data, MIDIContainer 
                     if (note_end_timestamp > LastStatusTimestamp)
                         LastStatusTimestamp = note_end_timestamp;
 
-                    Track.AddEvent(MIDIEvent(note_end_timestamp, MIDIEvent::NoteOn, Channel, Temp.data() + 1, BytesRead));
+                    Track.AddEvent(midi_event_t(note_end_timestamp, midi_event_t::NoteOn, Channel, Temp.data() + 1, BytesRead));
                 }
             }
             else
