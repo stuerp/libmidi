@@ -1,5 +1,5 @@
 ﻿
-/** $VER: Encoding.cpp (2024.05.15) P. Stuer **/
+/** $VER: Encoding.cpp (2024.05.18) P. Stuer **/
 
 #include "framework.h"
 
@@ -8,8 +8,11 @@
 /// <summary>
 /// Converts an UTF-16 string of UTF-8.
 /// </summary>
-std::string WideToUTF8(const wchar_t * wide, size_t size)
+std::string WideToUTF8(const wchar_t * wide, size_t size = 0)
 {
+    if (size == 0)
+        size = ::wcslen(wide);
+
     int Size = ::WideCharToMultiByte(CP_UTF8, 0, wide, (int) size, nullptr, 0, nullptr, nullptr);
 
     std::string UTF8;
@@ -220,6 +223,9 @@ bool IsASCII(const char * text, size_t size)
 /// </summary>
 std::wstring TextToWide(const char * text, size_t size)
 {
+    if (size == 0)
+        size = ::strlen(text);
+
     if (IsASCII(text))
         return UTF8ToWide(text);
 
@@ -240,6 +246,9 @@ std::wstring TextToWide(const char * text, size_t size)
 /// </summary>
 std::string TextToUTF8(const char * text, size_t size)
 {
+    if (size == 0)
+        size = ::strlen(text);
+
     if (IsASCII(text, size) || IsUTF8(text, size))
     {
         std::string Text;

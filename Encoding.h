@@ -1,17 +1,17 @@
 
-/** $VER: Encoding.h (2024.05.15) P. Stuer **/
+/** $VER: Encoding.h (2024.05.18) P. Stuer **/
 
 #pragma once
 
 #include "framework.h"
 
 std::string WideToUTF8(const wchar_t * wide, size_t size);
-std::wstring TextToWide(const char * text, size_t size);
+std::wstring TextToWide(const char * text, size_t size = 0);
 
 std::wstring CodePageToWide(uint32_t codePage, const char * text, size_t size);
 std::string CodePageToUTF8(uint32_t codePage, const char * text, size_t size);
 
-std::string TextToUTF8(const char * text, size_t size);
+std::string TextToUTF8(const char * text, size_t size = 0);
 
 inline std::wstring UTF8ToWide(const char * text, size_t size)
 {
