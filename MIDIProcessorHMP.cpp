@@ -46,6 +46,7 @@ bool midi_processor_t::ProcessHMP(std::vector<uint8_t> const & data, midi_contai
 
     container.Initialize(1, dtx);
 
+    // Add a conductor track.
     {
         midi_track_t Track;
 
@@ -231,4 +232,5 @@ uint32_t midi_processor_t::DecodeVariableLengthQuantityHMP(std::vector<uint8_t>:
     return Quantity;
 }
 
-const uint8_t midi_processor_t::DefaultTempoHMP[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x18, 0x80, 0x00 };
+//const uint8_t midi_processor_t::DefaultTempoHMP[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x18, 0x80, 0x00 };
+const uint8_t midi_processor_t::DefaultTempoHMP[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x30, 0x80, 0x00 };
