@@ -10,7 +10,7 @@
 #include <filesystem>
 
 /// <summary>
-/// Returns true if data points to RCP data.
+/// Returns true if data points to an RCP sequence.
 /// </summary>
 bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension)
 {
@@ -49,7 +49,7 @@ bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * 
 }
 
 /// <summary>
-/// Processes the data.
+/// Processes the sequence data.
 /// </summary>
 bool midi_processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container)
 {
@@ -59,7 +59,14 @@ bool midi_processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar
 
     rcp_converter_options_t & Options = RCPConverter._Options;
 
-    Options._RCPLoopCount = 0;
+    Options._RCPLoopCount       = _Options._LoopExpansion;
+
+    Options._WriteBarMarkers    = _Options._WriteBarMarkers;
+    Options._WriteSysExNames    = _Options._WriteSysExNames;
+    Options._ExtendLoops        = _Options._ExtendLoops;
+    Options._WolfteamLoopMode   = _Options._WolfteamLoopMode;
+    Options._KeepDummyChannels  = _Options._KeepDummyChannels;
+    Options._IncludeControlData = _Options._IncludeControlData;
 
     buffer_t SrcData;
 

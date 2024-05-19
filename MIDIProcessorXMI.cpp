@@ -162,7 +162,7 @@ bool midi_processor_t::ProcessXMI(std::vector<uint8_t> const & data, midi_contai
                     Temp[1] = *it++;
                     uint32_t BytesRead = 1;
 
-                    midi_event_t::MIDIEventType Type = (midi_event_t::MIDIEventType) ((Temp[0] >> 4) - 8);
+                    midi_event_t::event_type_t Type = (midi_event_t::event_type_t) ((Temp[0] >> 4) - 8);
                     uint32_t Channel = (uint32_t) (Temp[0] & 0x0F);
 
                     if ((Type != midi_event_t::ProgramChange) && (Type != midi_event_t::ChannelPressure))

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2024.05.16) **/
+/** $VER: MIDIProcessor.cpp (2024.05.19) **/
 
 #include "framework.h"
 
@@ -8,6 +8,8 @@
 
 #include <filesystem>
 
+midi_processor_options_t midi_processor_t::_Options;
+
 const uint8_t midi_processor_t::MIDIEventEndOfTrack[2] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
 const uint8_t midi_processor_t::LoopBeginMarker[11]    = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'S', 't', 'a', 'r', 't' };
 const uint8_t midi_processor_t::LoopEndMarker[9]       = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'E', 'n', 'd' };
@@ -15,8 +17,10 @@ const uint8_t midi_processor_t::LoopEndMarker[9]       = { StatusCodes::MetaData
 /// <summary>
 /// Processes a stream of bytes.
 /// </summary>
-bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container)
+bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container, const midi_processor_options_t & options)
 {
+    _Options = options;
+
     const wchar_t * FileExtension = (filePath != nullptr) ? (const wchar_t *) GetFileExtension(filePath) : L"";
 
     if (IsSMF(data))

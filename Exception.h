@@ -9,6 +9,12 @@ std::string GetErrorMessage(DWORD errorCode, const std::string & errorMessage);
 
 #pragma warning(disable: 4820) // 'x' bytes padding added after data member 'y'
 
+class MIDIException : public std::runtime_error
+{
+public:
+    MIDIException(const std::string & errorMessage) : std::runtime_error(errorMessage) { }
+};
+
 class Win32Exception : public std::runtime_error
 {
 public:
@@ -18,10 +24,4 @@ public:
 
 private:
     DWORD _ErrorCode;
-};
-
-class MIDIException : public std::runtime_error
-{
-public:
-    MIDIException(const std::string & errorMessage) : std::runtime_error(errorMessage) { }
 };

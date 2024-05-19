@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2024.05.16) **/
+/** $VER: MIDIProcessor.h (2024.05.19) **/
 
 #pragma once
 
@@ -9,10 +9,27 @@
 #include "Exception.h"
 #include "IFF.h"
 
+struct midi_processor_options_t
+{
+    // RCP
+    uint16_t _LoopExpansion = 0;
+    bool _WriteBarMarkers = false;
+    bool _WriteSysExNames = false;
+    bool _ExtendLoops = true;
+    bool _WolfteamLoopMode = false;
+    bool _KeepDummyChannels = false;
+    bool _IncludeControlData = true;
+
+    // HMI / HMP
+    uint16_t _DefaultTempo = 160; // in bpm
+};
+
+const midi_processor_options_t DefaultOptions(0, false, 0);
+
 class midi_processor_t
 {
 public:
-    static bool Process(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container);
+    static bool Process(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container, const midi_processor_options_t & options = DefaultOptions);
 
 private:
     static bool IsSMF(std::vector<uint8_t> const & data);
@@ -55,10 +72,10 @@ private:
 
     static const uint8_t DefaultTempoXMI[5];
 
-    static const uint8_t DefaultTempoHMP[5];
-
     static const uint8_t DefaultTempoMUS[5];
     static const uint8_t MusControllers[15];
 
     static const uint8_t DefaultTempoLDS[5];
+
+    static midi_processor_options_t _Options;
 };

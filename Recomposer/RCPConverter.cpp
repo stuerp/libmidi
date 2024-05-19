@@ -12,6 +12,9 @@ uint32_t _MIDITickCount = 0;
 
 running_notes_t RunningNotes;
 
+/// <summary>
+/// 
+/// </summary>
 void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, const wchar_t * dstType)
 {
     uint8_t FileType = rcp_converter_t::GetFileType(srcData);
@@ -163,7 +166,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         }
     }
 
-    if (!_Options._NoLoopExtension)
+    if (_Options._ExtendLoops)
         BalanceTrackTimes(RCPTracks, (uint32_t) (RCPFile._TicksPerQuarter / 4), 0xFF);
 
     uint8_t ControlTrackCount = 0; // Number of tracks that contain control sequences.

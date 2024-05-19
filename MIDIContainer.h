@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.05.18) **/
+/** $VER: MIDIContainer.h (2024.05.19) **/
 
 #pragma once
 
@@ -12,7 +12,7 @@
 
 struct midi_event_t
 {
-    enum MIDIEventType
+    enum event_type_t
     {
         NoteOff = 0,        // x080
         NoteOn,             // x090
@@ -24,24 +24,26 @@ struct midi_event_t
         Extended            // x0F0
     };
 
-    uint32_t Timestamp;
-    MIDIEventType Type;
+    uint32_t Time;              // Absolute time
+    event_type_t Type;
     uint32_t ChannelNumber;
     std::vector<uint8_t> Data;
 
-    midi_event_t() noexcept : Timestamp(0), Type(MIDIEventType::NoteOff), ChannelNumber(0) { }
-
-    midi_event_t(const midi_event_t & other)
+    midi_event_t() noexcept : Time(), Type(event_type_t::NoteOff), ChannelNumber()
     {
-        Timestamp = other.Timestamp;
+    }
+
+    midi_event_t(const midi_event_t & other) noexcept
+    {
+        Time = other.Time;
         Type = other.Type;
         ChannelNumber = other.ChannelNumber;
         Data = other.Data;
     }
 
-    midi_event_t & operator =(const midi_event_t & other)
+    midi_event_t & operator =(const midi_event_t & other) noexcept
     {
-        Timestamp = other.Timestamp;
+        Time = other.Time;
         Type = other.Type;
         ChannelNumber = other.ChannelNumber;
         Data = other.Data;
@@ -49,9 +51,9 @@ struct midi_event_t
         return *this;
     }
 
-    midi_event_t(uint32_t timestamp, MIDIEventType eventType, uint32_t channelNumber, const uint8_t * data, size_t size)
+    midi_event_t(uint32_t time, event_type_t eventType, uint32_t channelNumber, const uint8_t * data, size_t size) noexcept
     {
-        Timestamp = timestamp;
+        Time = time;
         Type = eventType;
         ChannelNumber = channelNumber;
         Data.assign(data, data + size);
@@ -179,22 +181,6 @@ private:
     std::vector<uint8_t> _Data;
 };
 
-struct midi_stream_event_t
-{
-    uint32_t Timestamp; // in ms
-    uint32_t Data;
-
-    midi_stream_event_t() noexcept : Timestamp(0), Data(0)
-    {
-    }
-
-    midi_stream_event_t(uint32_t timestamp, uint32_t data)
-    {
-        Timestamp = timestamp;
-        Data = data;
-    }
-};
-
 struct midi_metadata_item_t
 {
     uint32_t Timestamp;
@@ -233,13 +219,13 @@ struct midi_metadata_item_t
     }
 };
 
-class midi_metadata_t
+class midi_metadata_table_t
 {
 public:
-    midi_metadata_t() noexcept { }
+    midi_metadata_table_t() noexcept { }
 
     void AddItem(const midi_metadata_item_t & item);
-    void Append(const midi_metadata_t & data);
+    void Append(const midi_metadata_table_t & data);
     bool GetItem(const char * name, midi_metadata_item_t & item) const;
     bool GetBitmap(std::vector<uint8_t> & bitmap) const;
     void AssignBitmap(std::vector<uint8_t>::const_iterator const & begin, std::vector<uint8_t>::const_iterator const & end);
@@ -252,10 +238,26 @@ private:
     std::vector<uint8_t> _Bitmap;
 };
 
+struct midi_item_t
+{
+    uint32_t Time; // in ms
+    uint32_t Data;
+
+    midi_item_t() noexcept : Time(), Data()
+    {
+    }
+
+    midi_item_t(uint32_t time, uint32_t data) noexcept
+    {
+        Time = time;
+        Data = data;
+    }
+};
+
 class midi_container_t
 {
 public:
-    midi_container_t() : _Format(0), _TimeDivision(0), _ExtraPercussionChannel(~0u)
+    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u)
     {
         _DeviceNames.resize(16);
     }
@@ -268,11 +270,11 @@ public:
     // These functions are really only designed to merge and later remove System Exclusive message dumps.
     void MergeTracks(const midi_container_t & source);
     void SetTrackCount(uint32_t count);
-    void SetExtraMetaData(const midi_metadata_t & data);
+    void SetExtraMetaData(const midi_metadata_table_t & data);
 
     void ApplyHack(uint32_t hack);
 
-    void SerializeAsStream(size_t subSongIndex, std::vector<midi_stream_event_t> & stream, sysex_table_t & sysExTable, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const;
+    void SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & stream, sysex_table_t & sysExTable, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const;
     void SerializeAsSMF(std::vector<uint8_t> & data) const;
 
     void PromoteToType1();
@@ -297,7 +299,7 @@ public:
 
     std::vector<midi_track_t> & GetTracks() { return _Tracks; }
 
-    void GetMetaData(size_t subSongIndex, midi_metadata_t & data);
+    void GetMetaData(size_t subSongIndex, midi_metadata_table_t & data);
 
     void SetExtraPercussionChannel(uint32_t channelNumber) noexcept { _ExtraPercussionChannel = channelNumber; }
     uint32_t GetExtraPercussionChannel() const noexcept { return _ExtraPercussionChannel; }
@@ -384,7 +386,7 @@ private:
 
     std::vector<std::vector<std::string>> _DeviceNames;
 
-    midi_metadata_t _ExtraMetaData;
+    midi_metadata_table_t _ExtraMetaData;
 
     std::vector<uint32_t> _EndTimestamps;
 

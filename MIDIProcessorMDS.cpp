@@ -170,7 +170,7 @@ bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_contai
                         Size = 2;
                     }
 
-                    Track.AddEvent(midi_event_t(Timestamp, (midi_event_t::MIDIEventType) (StatusCode - 8), Event & 0x0F, Data, Size));
+                    Track.AddEvent(midi_event_t(Timestamp, (midi_event_t::event_type_t) (StatusCode - 8), Event & 0x0F, Data, Size));
                 }
             }
         }

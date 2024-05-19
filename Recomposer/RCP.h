@@ -15,7 +15,7 @@ public:
 
     bool _WriteBarMarkers = false;
     bool _WriteSysExNames = false;
-    bool _NoLoopExtension = false;
+    bool _ExtendLoops = true;
     bool _WolfteamLoopMode = false;
     bool _KeepDummyChannels = false;
     bool _IncludeControlData = true;

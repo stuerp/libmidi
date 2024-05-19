@@ -59,7 +59,7 @@ bool midi_processor_t::ProcessMUS(std::vector<uint8_t> const & data, midi_contai
         if (Data[0] == 0x60)
             break;
 
-        midi_event_t::MIDIEventType EventType;
+        midi_event_t::event_type_t EventType;
         uint32_t EventSize;
 
         uint32_t Channel = (uint32_t) (Data[0] & 0x0F);
