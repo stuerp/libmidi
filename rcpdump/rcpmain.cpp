@@ -80,7 +80,7 @@ int rcpmain(int argc, wchar_t * argv[])
             }
             else
             if (!::_wcsicmp(argv[argbase] + 1, L"NoLoopExtension"))
-                Options._NoLoopExtension = true;
+                Options._ExtendLoops = true;
             else
             if (!::_wcsicmp(argv[argbase] + 1, L"WolfteamLoop"))
                 Options._WolfteamLoopMode = true;

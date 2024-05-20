@@ -29,7 +29,7 @@ using namespace std;
 #include "SysEx.h"
 
 void ProcessContainer(midi_container_t & container, bool asStream);
-void ProcessStream(const std::vector<midi_stream_event_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents = false);
+void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents = false);
 void ProcessTracks(const midi_container_t & container);
 
 std::vector<uint8_t> ReadFile(std::wstring & filePath);
@@ -85,7 +85,7 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
 
             ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", i, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
 
-            midi_metadata_t MetaData;
+            midi_metadata_table_t MetaData;
 
             Container.GetMetaData(SubsongIndex, MetaData);
 
@@ -103,7 +103,7 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
         ::printf("Loop Begin: %d ticks\n", LoopBegin);
         ::printf("Loop End  : %d ticks\n", LoopEnd);
 
-        std::vector<midi_stream_event_t> Stream;
+        std::vector<midi_item_t> Stream;
         sysex_table_t SysExMap;
 
         Container.SerializeAsStream(0, Stream, SysExMap, LoopBegin, LoopEnd, 0);

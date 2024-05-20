@@ -1,5 +1,5 @@
 ﻿
-/** $VER: main.cpp (2024.05.15) P. Stuer **/
+/** $VER: main.cpp (2024.05.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -28,8 +28,8 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\Tst\RCP\Various\yuno_157_1.mid)";
-const WCHAR * Filters[] = { L".mid" };
+const WCHAR * Argument = LR"(f:\Tst\HMP\Battledrome\BATTLE.HMP)";
+const WCHAR * Filters[] = { L".hmp" };
 
 int wmain()
 {

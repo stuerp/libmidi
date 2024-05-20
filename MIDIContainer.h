@@ -119,10 +119,10 @@ private:
 
 struct tempo_item_t
 {
-    uint32_t Timestamp;
+    uint32_t Time;
     uint32_t Tempo;
 
-    tempo_item_t() noexcept : Timestamp(0), Tempo(0)
+    tempo_item_t() noexcept : Time(0), Tempo(0)
     {
     }
 
@@ -242,16 +242,6 @@ struct midi_item_t
 {
     uint32_t Time; // in ms
     uint32_t Data;
-
-    midi_item_t() noexcept : Time(), Data()
-    {
-    }
-
-    midi_item_t(uint32_t time, uint32_t data) noexcept
-    {
-        Time = time;
-        Data = data;
-    }
 };
 
 class midi_container_t

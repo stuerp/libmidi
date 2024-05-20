@@ -19,16 +19,16 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-uint32_t ProcessEvent(const midi_stream_event_t & event, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap);
+uint32_t ProcessEvent(const midi_item_t & event, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap);
 
 /// <summary>
 /// 
 /// </summary>
-void ProcessStream(const std::vector<midi_stream_event_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents)
+void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents)
 {
     ::printf("%u messages, %u unique SysEx messages\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size());
 
-    uint32_t TimeStamp = std::numeric_limits<uint32_t>::max();
+    uint32_t Time = std::numeric_limits<uint32_t>::max();
     size_t i = 0;
 
     for (const auto & me : stream)
@@ -37,22 +37,22 @@ void ProcessStream(const std::vector<midi_stream_event_t> & stream, const sysex_
         if (skipNormalEvents && ((me.Data & 0x80000000u) == 0))
             continue;
 
-        TimeStamp = ProcessEvent(me, TimeStamp, i++, sysExMap);
+        Time = ProcessEvent(me, Time, i++, sysExMap);
     }
 }
 
 /// <summary>
 /// Processes MIDI stream events.
 /// </summary>
-uint32_t ProcessEvent(const midi_stream_event_t & me, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
+uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
 {
     char Timestamp[16];
     char Time[16];
 
-    if (me.Timestamp != timestamp)
+    if (me.Time != timestamp)
     {
-        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u",  me.Timestamp);
-        ::_snprintf_s(Time, _countof(Time), "%8.2f", (double) me.Timestamp / 1000.);
+        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u",  me.Time);
+        ::_snprintf_s(Time, _countof(Time), "%8.2f", (double) me.Time / 1000.);
     }
     else
     {
@@ -209,5 +209,5 @@ uint32_t ProcessEvent(const midi_stream_event_t & me, uint32_t timestamp, size_t
         ::putchar('\n');
     }
 
-    return me.Timestamp;
+    return me.Time;
 }

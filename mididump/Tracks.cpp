@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2024.05.15) P. Stuer **/
+/** $VER: Tracks.cpp (2024.05.20) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -19,7 +19,7 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-uint32_t ProcessEvent(const midi_event_t & event, uint32_t timestamp, size_t index);
+uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index);
 
 /// <summary>
 /// Returns true of the input value is in the interval between min and max.
@@ -35,6 +35,8 @@ inline static T InRange(T value, T minValue, T maxValue)
 /// </summary>
 void ProcessMetaData(const midi_event_t & me)
 {
+    ::printf("Meta Data                    ");
+
     switch (me.Data[1])
     {
         case MetaDataTypes::SequenceNumber:
@@ -111,7 +113,12 @@ void ProcessMetaData(const midi_event_t & me)
 
         case MetaDataTypes::SetTempo:
         {
-            ::printf(" Set Tempo");
+            uint32_t Tempo = (uint32_t) (me.Data[2] & 0x7F); Tempo <<= 7;
+
+            Tempo |= me.Data[3] & 0x7F; Tempo <<= 7;
+            Tempo |= me.Data[4] & 0x7F;
+
+            ::printf(" Set Tempo (%d us/quarter note, %d bpm)", Tempo, (int) ((uint64_t) (60 * 1000 * 1000) / Tempo));
             break;
         }
 
@@ -136,18 +143,11 @@ void ProcessMetaData(const midi_event_t & me)
         case MetaDataTypes::SequencerSpecific:
         {
             ::printf(" Sequencer Specific");
-
-            for (const auto & d : me.Data)
-                ::printf(" %02X", d);
-
             break;
         }
 
         default:
-        {
-            for (const auto & d : me.Data)
-                ::printf(" %02X", d);
-        }
+            break;
     }
 }
 
@@ -156,9 +156,6 @@ void ProcessMetaData(const midi_event_t & me)
 /// </summary>
 void ProcessSysEx(const midi_event_t & me)
 {
-    for (const uint8_t b : me.Data)
-        ::printf(" %02X", b);
-
     sysex_t SysEx(me.Data);
 
     SysEx.Identify();
@@ -171,10 +168,6 @@ void ProcessSysEx(const midi_event_t & me)
 /// </summary>
 void ProcessControlChange(const midi_event_t & me)
 {
-    int Status = (int) (StatusCodes::ControlChange | me.ChannelNumber);
-
-    ::printf(" %02X %02X %02X", Status, me.Data[0], me.Data[1]);
-
     int Value = (int) me.Data[1];
 
     switch (me.Data[0])
@@ -266,17 +259,13 @@ void ProcessControlChange(const midi_event_t & me)
 /// </summary>
 void ProcessProgramChange(const midi_event_t & me)
 {
-    int Status = (int) (StatusCodes::ProgramChange | me.ChannelNumber);
+    int Value = (int) me.Data[0] + 1;
 
-    ::printf(" %02X %02X", Status, me.Data[0]);
-
-    int Value = (int) me.Data[0];
-
-    for (const auto & Ins : Instruments)
+    for (const auto & it : Instruments)
     {
-        if (Ins.Id == Value)
+        if (it.Id == Value)
         {
-            ::printf(" %s", WideToUTF8(Ins.Name).c_str());
+            ::printf(" %s", WideToUTF8(it.Name).c_str());
             break;
         }
     }
@@ -297,15 +286,13 @@ void ProcessTracks(const midi_container_t & container)
         uint32_t Duration = container.GetDuration(SubsongIndex, false);
         uint32_t DurationInMS = container.GetDuration(SubsongIndex, true);
 
-        ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
+        ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
 
-        uint32_t TimeStamp = std::numeric_limits<uint32_t>::max();
+        uint32_t Time = std::numeric_limits<uint32_t>::max();
         size_t i = 0;
 
-        for (const auto & me : Track)
-        {
-            TimeStamp = ProcessEvent(me, TimeStamp, i++);
-        }
+        for (const auto & Event : Track)
+            Time = ProcessEvent(Event, Time, i++);
 
         ++TrackIndex;
     }
@@ -314,72 +301,74 @@ void ProcessTracks(const midi_container_t & container)
 /// <summary>
 /// Processes MIDI events.
 /// </summary>
-uint32_t ProcessEvent(const midi_event_t & me, uint32_t timestamp, size_t index)
+uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 {
-    char Timestamp[16];
-    char Time[16];
+    char TimeInTicks[16];
+    char TimeInMs[16];
 
-    if (me.Timestamp != timestamp)
+    if (event.Time!= time)
     {
-        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u",  me.Timestamp);
-        ::_snprintf_s(Time, _countof(Time), "%8.2f", (double) me.Timestamp / 1000.);
+        ::_snprintf_s(TimeInTicks, _countof(TimeInTicks), "%8u",  event.Time);
+        ::_snprintf_s(TimeInMs, _countof(TimeInMs), "%8f", (double) event.Time / 1000.);
     }
     else
-    {
-        ::strncpy_s(Timestamp, "", _countof(Timestamp));
-        ::strncpy_s(Time, "", _countof(Time));
-    }
+        TimeInTicks[0] = TimeInMs[0] = '\0';
 
-    ::printf("%8d %-8s %-8s (%2d) ", (int) index, Timestamp, Time, me.ChannelNumber);
+    ::printf("%8d %-8s %-8s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
 
-    switch (me.Type)
+    for (const auto & d : event.Data)
+        ::printf(" %02X", d);
+
+    ::printf("%*.s", std::max(0, (6 - (int) event.Data.size()) * 3), "");
+
+    switch (event.Type)
     {
-        case midi_event_t::MIDIEventType::NoteOff:
+        case midi_event_t::event_type_t::NoteOff:
         {
             ::printf("Note Off                      80");
             break;
         }
 
-        case midi_event_t::MIDIEventType::NoteOn:
+        case midi_event_t::event_type_t::NoteOn:
         {
             ::printf("Note On                       90");
             break;
         }
 
-        case midi_event_t::MIDIEventType::KeyPressure:
+        case midi_event_t::event_type_t::KeyPressure:
         {
             ::printf("Key Pressure                  A0");
             break;
         }
 
-        case midi_event_t::MIDIEventType::ControlChange:
+        case midi_event_t::event_type_t::ControlChange:
         {
-            ::printf("Control Change               "); ProcessControlChange(me); break;
+            ::printf("Control Change               "); ProcessControlChange(event); break;
         }
 
-        case midi_event_t::MIDIEventType::ProgramChange:
+        case midi_event_t::event_type_t::ProgramChange:
         {
-            ::printf("Program Change               "); ProcessProgramChange(me); break;
+            ::printf("Program Change               "); ProcessProgramChange(event); break;
             break;
         }
 
-        case midi_event_t::MIDIEventType::ChannelPressure:
+        case midi_event_t::event_type_t::ChannelPressure:
         {
             ::printf("Channel Pressure              D0");
             break;
         }
 
-        case midi_event_t::MIDIEventType::PitchBendChange:
+        case midi_event_t::event_type_t::PitchBendChange:
         {
             ::printf("Pitch Bend Change             E0");
             break;
         }
 
-        case midi_event_t::MIDIEventType::Extended:
+        case midi_event_t::event_type_t::Extended:
         {
-            switch (me.Data[0])
+            switch (event.Data[0])
             {
-                case SysEx:                ::printf("SysEx                        "); ProcessSysEx(me); break;
+                case SysEx:                ::printf("SysEx                        "); ProcessSysEx(event); break;
 
                 case MIDITimeCodeQtrFrame: ::printf("MIDI Time Code Qtr Frame     "); break;
                 case SongPositionPointer:  ::printf("Song PositionPointer         "); break;
@@ -394,9 +383,9 @@ uint32_t ProcessEvent(const midi_event_t & me, uint32_t timestamp, size_t index)
                 case Stop:                 ::printf("Stop                         "); break;
 
                 case ActiveSensing:        ::printf("Active Sensing               "); break;
-                case MetaData:             ::printf("Meta Data                    "); ProcessMetaData(me); break;
+                case MetaData:             ProcessMetaData(event); break;
 
-                default:                   ::printf("Unknown event type %02X      ", me.Data[0]); break;
+                default:                   ::printf("Unknown event type %02X      ", event.Data[0]); break;
             }
 
             break;
@@ -405,5 +394,5 @@ uint32_t ProcessEvent(const midi_event_t & me, uint32_t timestamp, size_t index)
 
     ::putchar('\n');
 
-    return me.Timestamp;
+    return event.Time;
 }

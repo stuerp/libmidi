@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2024.05.18) **/
+/** $VER: MIDIContainer.cpp (2024.05.19) **/
 
 #include "framework.h"
 
@@ -37,73 +37,71 @@ void midi_track_t::AddEvent(const midi_event_t & newEvent)
 
 void midi_track_t::RemoveEvent(size_t index)
 {
-    _Events.erase(_Events.begin() + (int)index);
+    _Events.erase(_Events.begin() + (int) index);
 }
 
 #pragma endregion
 
-#pragma region("Tempo Map")
+#pragma region Tempo Map
 
-tempo_item_t::tempo_item_t(uint32_t timestamp, uint32_t tempo)
+tempo_item_t::tempo_item_t(uint32_t time, uint32_t tempo)
 {
-    Timestamp = timestamp;
+    Time = time;
     Tempo = tempo;
 }
 
-void tempo_map_t::Add(uint32_t tempo, uint32_t timestamp)
+void tempo_map_t::Add(uint32_t tempo, uint32_t time)
 {
     auto it = _Items.end();
 
     while (it > _Items.begin())
     {
-        if ((*(it - 1)).Timestamp <= timestamp)
+        if ((*(it - 1)).Time <= time)
             break;
+
         --it;
     }
 
-    if (it > _Items.begin() && (*(it - 1)).Timestamp == timestamp)
-    {
+    if (it > _Items.begin() && (*(it - 1)).Time == time)
         (*(it - 1)).Tempo = tempo;
-    }
     else
-    {
-        _Items.insert(it, tempo_item_t(timestamp, tempo));
-    }
+        _Items.insert(it, tempo_item_t(time, tempo));
 }
 
-uint32_t tempo_map_t::TimestampToMS(uint32_t p_timestamp, uint32_t division) const
+uint32_t tempo_map_t::TimestampToMS(uint32_t time, uint32_t division) const
 {
     uint32_t TimestampInMS = 0;
 
-    auto Iterator = _Items.begin();
-
+    uint32_t Time = 0;
     uint32_t Tempo = 500000;
 
-    uint32_t Timestamp = 0;
-    uint32_t HalfDivision = division * 500;
+    const uint32_t HalfDivision = division * 500;
+
     division = HalfDivision * 2;
 
-    while ((Iterator < _Items.end()) && (Timestamp + p_timestamp >= (*Iterator).Timestamp))
+    auto it = _Items.begin();
+
+    while ((it < _Items.end()) && (Time + time >= (*it).Time))
     {
-        uint32_t Delta = (*Iterator).Timestamp - Timestamp;
+        uint32_t Delta = (*it).Time - Time;
 
         TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + HalfDivision) / division;
 
-        Tempo = (*Iterator).Tempo;
-        ++Iterator;
+        Tempo = (*it).Tempo;
+        ++it;
 
-        Timestamp += Delta;
-        p_timestamp -= Delta;
+        Time += Delta;
+        time -= Delta;
     }
 
-    TimestampInMS += ((uint64_t) Tempo * (uint64_t) p_timestamp + HalfDivision) / division;
+    TimestampInMS += ((uint64_t) Tempo * (uint64_t) time + HalfDivision) / division;
 
     return TimestampInMS;
 }
 
 #pragma endregion
 
-#pragma region("System Exclusive Table")
+#pragma region System Exclusive Table
 
 sysex_item_t::sysex_item_t(const sysex_item_t & src)
 {
@@ -153,7 +151,7 @@ bool sysex_table_t::GetItem(size_t index, const uint8_t * & data, std::size_t & 
 
 #pragma endregion
 
-#pragma region("MIDI Meta Data")
+#pragma region MIDI Meta Data
 
 void midi_metadata_table_t::AddItem(const midi_metadata_item_t & item)
 {
@@ -206,7 +204,7 @@ const midi_metadata_item_t & midi_metadata_table_t::operator [] (std::size_t p_i
 
 #pragma endregion
 
-#pragma region("MIDI Container")
+#pragma region MIDI Container
 
 void midi_container_t::Initialize(uint32_t format, uint32_t timeDivision)
 {
@@ -243,7 +241,7 @@ void midi_container_t::AddTrack(const midi_track_t & track)
         {
             if ((Event.Data.size() >= 5) && (Event.Data[0] == StatusCodes::MetaData) && (Event.Data[1] == MetaDataTypes::SetTempo))
             {
-                uint32_t Tempo = (uint32_t)((Event.Data[2] << 16) | (Event.Data[3] << 8) | Event.Data[4]);
+                uint32_t Tempo = (uint32_t) ((Event.Data[2] << 16) | (Event.Data[3] << 8) | Event.Data[4]);
 
                 if (_Format != 2)
                 {
@@ -1287,10 +1285,10 @@ void midi_container_t::TrimTempoMap(size_t index, uint32_t base_timestamp)
     {
         tempo_item_t & Entry = Map[i];
 
-        if (Entry.Timestamp >= base_timestamp)
-            Entry.Timestamp -= base_timestamp;
+        if (Entry.Time >= base_timestamp)
+            Entry.Time -= base_timestamp;
         else
-            Entry.Timestamp = 0;
+            Entry.Time = 0;
     }
 }
 
@@ -1619,9 +1617,9 @@ uint32_t midi_container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex
         size_t Index = 0;
         size_t Count = TempoEntries.Size();
 
-        while ((Index < Count) && (Timestamp + timestamp >= TempoEntries[Index].Timestamp))
+        while ((Index < Count) && (Timestamp + timestamp >= TempoEntries[Index].Time))
         {
-            uint32_t Delta = TempoEntries[Index].Timestamp - Timestamp;
+            uint32_t Delta = TempoEntries[Index].Time - Timestamp;
 
             TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + HalfDivision) / Division;
 
