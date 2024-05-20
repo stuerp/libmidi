@@ -233,6 +233,23 @@ public:
 
     const midi_metadata_item_t & operator[](size_t index) const;
 
+    using midi_metadata_items_t = std::vector<midi_metadata_item_t>;
+
+    using iterator       = midi_metadata_items_t::iterator;
+    using const_iterator = midi_metadata_items_t::const_iterator;
+
+    iterator begin() { return _Items.begin(); }
+    iterator end() { return _Items.end(); }
+
+    const_iterator begin() const { return _Items.begin(); }
+    const_iterator end() const { return _Items.end(); }
+
+    const_iterator cbegin() const { return _Items.cbegin(); }
+    const_iterator cend() const { return _Items.cend(); }
+
+    const midi_metadata_item_t & front() const noexcept { return _Items.front(); }
+    const midi_metadata_item_t & back() const noexcept { return _Items.back(); }
+
 private:
     std::vector<midi_metadata_item_t> _Items;
     std::vector<uint8_t> _Bitmap;
