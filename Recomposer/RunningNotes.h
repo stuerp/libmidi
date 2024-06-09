@@ -1,5 +1,5 @@
 
-/** $VER: RunningNotes.h (2024.05.10) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.h (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -43,8 +43,8 @@ public:
             _Notes.push_back(running_note_t());
     }
 
-    running_note_t * Add(uint8_t channel, uint8_t note, uint8_t velOff, uint32_t length);
-    size_t Check(midi_stream_t & midiStream, uint32_t * timestamp);
+    void Add(uint8_t channel, uint8_t note, uint8_t velOff, uint32_t length);
+    size_t Check(midi_stream_t & midiStream, uint32_t & timestamp);
     uint32_t Flush(midi_stream_t & midiStream, bool shorten);
 
 public:

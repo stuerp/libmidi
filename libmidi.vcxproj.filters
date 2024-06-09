@@ -37,6 +37,7 @@
     <ClInclude Include="Encoding.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="IFF.h" />
+    <ClInclude Include="Support.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

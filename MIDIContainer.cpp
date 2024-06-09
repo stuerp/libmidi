@@ -1,9 +1,10 @@
 
-/** $VER: MIDIContainer.cpp (2024.05.19) **/
+/** $VER: MIDIContainer.cpp (2024.06.09) **/
 
 #include "framework.h"
 
 #include "MIDIContainer.h"
+#include "Support.h"
 
 #pragma region MIDI Track
 
@@ -1371,7 +1372,7 @@ void midi_container_t::SplitByInstrumentChanges(SplitCallback callback)
     }
 }
 
-void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool detectRPGMakerLoops, bool detectTouhouLoops)
+void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool detectRPGMakerLoops, bool detectTouhouLoops, bool detectLeapFrogLoops)
 {
     size_t SubSongCount = (_Format == 2) ? _Tracks.size() : 1;
 
@@ -1429,8 +1430,6 @@ void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, 
     // RPG Maker
     if (detectRPGMakerLoops)
     {
-        bool HasEMIDIControlChanges = false;
-
         for (size_t i = 0; i < _Tracks.size(); ++i)
         {
             size_t SubSongIndex = (_Format != 2) ? 0 : i;
@@ -1443,24 +1442,51 @@ void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, 
 
                 if (Event.Type == midi_event_t::ControlChange)
                 {
-                    // Ignore for now.
-                    if (Event.Data[0] == 110 /* 0x6E */)
-                    {
-                        HasEMIDIControlChanges = true;
-                        break;
-                    }
-
                     // Mark the beginning of an RPG Maker loop. The end of the loop is always the end of the song.
                     if ((Event.Data[0] == 111 /* 0x6F */) && (!_Loop[SubSongIndex].HasBegin() || (Event.Time < _Loop[SubSongIndex].Begin())))
                         _Loop[SubSongIndex].SetBegin(Event.Time);
+                    else
+                    // Any EMIDI control change (besides 111) terminates the search for RPGMaker loops.
+                    if ((Event.Data[0] == 110) || InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119))
+                    {
+                        _Loop[SubSongIndex].Clear();
+                        break;
+                    }
                 }
             }
+        }
+    }
 
-            // Delete the loop of E-MIDI control changes were detected.
-            if (HasEMIDIControlChanges)
+    // LeapFrog
+    if (detectLeapFrogLoops)
+    {
+        for (size_t i = 0; i < _Tracks.size(); ++i)
+        {
+            size_t SubSongIndex = (_Format != 2) ? 0 : i;
+
+            const midi_track_t & Track = _Tracks[i];
+
+            for (size_t j = 0; j < Track.GetLength(); ++j)
             {
-                _Loop[SubSongIndex].Clear();
-                break;
+                const midi_event_t & Event = Track[j];
+
+                if (Event.Type == midi_event_t::ControlChange)
+                {
+                    // Mark the beginning of a LeapFrog loop.
+                    if ((Event.Data[0] == 110 /* 0x6E */) && (!_Loop[SubSongIndex].HasBegin() || (Event.Time < _Loop[SubSongIndex].Begin())))
+                        _Loop[SubSongIndex].SetBegin(Event.Time);
+                    else
+                    // Mark the end of a LeapFrog loop.
+                    if ((Event.Data[0] == 111 /* 0x6F */) && (!_Loop[SubSongIndex].HasEnd() || (Event.Time > _Loop[SubSongIndex].End())))
+                        _Loop[SubSongIndex].SetEnd(Event.Time);
+                    else
+                    // Any EMIDI control change (besides 110 and 111) terminates the search for LeapFrog loops.
+                    if (InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119))
+                    {
+                        _Loop[SubSongIndex].Clear();
+                        break;
+                    }
+                }
             }
         }
     }
@@ -1478,7 +1504,7 @@ void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, 
             {
                 const midi_event_t & Event = Track[j];
 
-                if ((Event.Type == midi_event_t::ControlChange) && (Event.Data[0] >= 116 /* 0x74 */) && (Event.Data[0] <= 119 /* 0x77 */))
+                if ((Event.Type == midi_event_t::ControlChange) && InRange(Event.Data[0], (uint8_t) 116 /* 0x74 */, (uint8_t) 119 /* 0x77 */))
                 {
                 #ifdef _DEBUG
                     wchar_t Line[256]; ::swprintf_s(Line, _countof(Line), L"EMIDI: %08X %3d %3d\n", Event.Time, Event.Data[0], Event.Data[1]); ::OutputDebugStringW(Line);
@@ -1492,7 +1518,7 @@ void midi_container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, 
                     // 117 / 0x75, AIL loop: NEXT/BREAK, 119 / 0x77, AIL callback trigger
                     else
                     {
-                        if (!_Loop[SubSongIndex].HasEnd() || (Event.Time < _Loop[SubSongIndex].End()))
+                        if (!_Loop[SubSongIndex].HasEnd() || (Event.Time > _Loop[SubSongIndex].End()))
                             _Loop[SubSongIndex].SetEnd(Event.Time); // Event.Data[1] should be 127.
                     }
                 }

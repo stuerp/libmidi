@@ -85,9 +85,9 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         RCPFile._Comments.Assign(&SrcData[Offset + 0x060], 0x150); // 12 lines, 28 characters
 
         RCPFile._TicksPerQuarter     = (uint16_t) ((SrcData[Offset + 0x1E7] << 8) | SrcData[Offset + 0x1C0]); // Hi- and lo-byte.
-        RCPFile._Tempo               = SrcData[Offset + 0x1C1]; // Temp in BPM
-        RCPFile._BPMNumerator        = SrcData[Offset + 0x1C2]; // Time signature
-        RCPFile._BPMDenominator      = SrcData[Offset + 0x1C3]; // Time signature
+        RCPFile._Tempo               = SrcData[Offset + 0x1C1]; // In BPM
+        RCPFile._BPMNumerator        = SrcData[Offset + 0x1C2]; // Time signature numerator (in bpm)
+        RCPFile._BPMDenominator      = SrcData[Offset + 0x1C3]; // Time signature denominator (in bpm)
         RCPFile._KeySignature        = SrcData[Offset + 0x1C4];
         RCPFile._GlobalTransposition = (int8_t) SrcData[Offset + 0x1C5];
 
@@ -110,9 +110,9 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
         RCPFile._TrackCount          = ReadLE16(&SrcData[Offset + 0x0208]);
         RCPFile._TicksPerQuarter     = ReadLE16(&SrcData[Offset + 0x020A]);
-        RCPFile._Tempo               = ReadLE16(&SrcData[Offset + 0x020C]);
-        RCPFile._BPMNumerator        = SrcData[Offset + 0x020E]; // Time signature
-        RCPFile._BPMDenominator      = SrcData[Offset + 0x020F]; // Time signature
+        RCPFile._Tempo               = ReadLE16(&SrcData[Offset + 0x020C]); // In BPM
+        RCPFile._BPMNumerator        = SrcData[Offset + 0x020E];            // Time signature numerator (in bpm)
+        RCPFile._BPMDenominator      = SrcData[Offset + 0x020F];            // Time signature denominator (in bpm)
         RCPFile._KeySignature        = SrcData[Offset + 0x0210];
         RCPFile._GlobalTransposition = (int8_t) SrcData[Offset + 0x0211];
 
@@ -270,7 +270,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
     midi_stream_t MIDIStream(0x20000);
 
-    MIDIStream.SetTimestampHandler(HandleTimestamp);
+    MIDIStream.SetDurationHandler(HandleDuration);
 
     // Write the MIDI header.
     MIDIStream.WriteMIDIHeader(1, (uint16_t) (1 + ControlTrackCount + RCPFile._TrackCount), RCPFile._TicksPerQuarter);
@@ -279,6 +279,8 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
     // Write the conductor track.
     {
+        ::puts("Creating conductor track...");
+
         _MIDITickCount = 0;
 
         MIDIStream.BeginWriteMIDITrack();
@@ -308,23 +310,39 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.SetTempo(Tempo);
             MIDIStream.WriteMetaEvent(MetaDataTypes::SetTempo, Tempo, 3);
+
+            #ifdef _RCP_VERBOSE
+            ::printf("Tempo: %u bpm, %u ticks.\n", RCPFile._Tempo, Tempo);
+            #endif
         }
 
         if (RCPFile._BPMNumerator > 0) // time signature being 0/0 happened in AB_AFT32.RCP
         {
             RCP2MIDITimeSignature(RCPFile._BPMNumerator, RCPFile._BPMDenominator, Temp);
+
             MIDIStream.WriteMetaEvent(MetaDataTypes::TimeSignature, Temp, 4);
+
+            #ifdef _RCP_VERBOSE
+            ::printf("Time signature: %u/%u.\n", RCPFile._BPMNumerator, RCPFile._BPMDenominator);
+            #endif
         }
 
-        RCP2MIDIKeySignature(RCPFile._KeySignature, Temp);
+        {
+            RCP2MIDIKeySignature(RCPFile._KeySignature, Temp);
 
-        MIDIStream.WriteMetaEvent(MetaDataTypes::KeySignature, Temp, 2);
+            MIDIStream.WriteMetaEvent(MetaDataTypes::KeySignature, Temp, 2);
+
+            #ifdef _RCP_VERBOSE
+            ::printf("Key signature: %u.\n", RCPFile._KeySignature);
+            #endif
+        }
+
         MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
 
         MIDIStream.EndWriteMIDITrack();
     }
 
-    uint32_t MIDITimestamp = 0;
+    uint32_t RunningTime = 0;
 
     if (ControlTrackCount > 0)
     {
@@ -342,14 +360,14 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             {
                 uint32_t Delay = MulDivRound(400, MIDIStream.GetTicksPerQuarter() * 1000, MIDIStream.GetTempo()); // (N ms / 1000 ms) / (tempoInTicks / 1 000 000)
 
-                uint32_t Timestamp = MIDIStream.GetTimestamp() + Delay;
+                uint32_t Timestamp = MIDIStream.GetDuration() + Delay;
 
-                MIDIStream.SetTimestamp(Timestamp);
+                MIDIStream.SetDuration(Timestamp);
             }
 
             Convert(CM6File, MIDIStream, 0x11);
 
-            MIDITimestamp += _MIDITickCount;
+            RunningTime += _MIDITickCount;
 
             MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
 
@@ -372,7 +390,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             Convert(GSD1File, MIDIStream, 0x11);
 
-            MIDITimestamp += _MIDITickCount;
+            RunningTime += _MIDITickCount;
 
             MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
 
@@ -392,7 +410,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             Convert(GSD2File, MIDIStream, 0x11);
 
-            MIDITimestamp += _MIDITickCount;
+            RunningTime += _MIDITickCount;
 
             MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
 
@@ -419,7 +437,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             Offset += DataSize;
 
         #ifdef _RCP_VERBOSE
-            ::printf("%04X: User SysEx \"%.*s\",", SyxOffset, syx.Name.Len, syx.Name.Data);
+            ::printf("%04X: User SysEx \"%s\",", SyxOffset, TextToUTF8(syx.Name.Data, syx.Name.Len).c_str());
 
             if (syx.Size != 0)
             {
@@ -434,7 +452,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         }
     }
 
-    if (MIDITimestamp > 0)
+    if (RunningTime > 0)
     {
         uint32_t TicksPerBar;
 
@@ -444,15 +462,15 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             TicksPerBar = RCPFile._BPMNumerator * (MIDIStream.GetTicksPerQuarter() * 4) / RCPFile._BPMDenominator;
 
         // Round the initial timestamp up to a full bar.
-        MIDITimestamp = (MIDITimestamp + TicksPerBar - 1) / TicksPerBar * TicksPerBar;
+        RunningTime = (RunningTime + TicksPerBar - 1) / TicksPerBar * TicksPerBar;
 
     #ifdef _RCP_VERBOSE
-        ::printf("Initial timestamp: %u ticks (%u bars)\n", MIDITimestamp, MIDITimestamp / TicksPerBar);
+        ::printf("Initial timestamp: %u ticks (%u bars)\n", RunningTime, RunningTime / TicksPerBar);
     #endif
     }
     #ifdef _RCP_VERBOSE
     else
-        ::printf("Initial timestamp: %u ticks\n", MIDITimestamp);
+        ::printf("Initial timestamp: %u ticks\n", RunningTime);
     #endif
 
     for (auto & RCPTrack : RCPTracks)
@@ -461,7 +479,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
         MIDIStream.BeginWriteMIDITrack();
 
-        MIDIStream.SetTimestamp(MIDITimestamp);
+        MIDIStream.SetDuration(RunningTime);
 
         try
         {
@@ -643,19 +661,19 @@ uint8_t rcp_converter_t::GetFileType(const buffer_t & rcpData) noexcept
 /// <summary>
 /// 
 /// </summary>
-uint8_t rcp_converter_t::HandleTimestamp(midi_stream_t * midiStream, uint32_t * duration)
+uint8_t rcp_converter_t::HandleDuration(midi_stream_t * midiStream, uint32_t & duration)
 {
-    _MIDITickCount += *duration;
+    _MIDITickCount += duration;
 
     RunningNotes.Check(*midiStream, duration);
 
-    if (*duration != 0)
+    if (duration != 0)
     {
         for (uint16_t i = 0; i < RunningNotes._Count; ++i)
         {
-            assert(RunningNotes._Notes[i].Duration > *duration);
+            assert(RunningNotes._Notes[i].Duration > duration);
 
-            RunningNotes._Notes[i].Duration -= *duration;
+            RunningNotes._Notes[i].Duration -= duration;
         }
     }
 

@@ -1,5 +1,5 @@
 ﻿
-/** $VER: RCP.cpp (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.cpp (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -360,16 +360,16 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
     Offset += 0x2A; // Skip the track header.
 
-    #ifdef _RCP_VERBOSE
+#ifdef _RCP_VERBOSE
     ::printf("Track %02X, \"%.*s\"\n", TrackId, TrackName.Len, TrackName.Data);
     ::printf("    Rhythm Mode: %02X, Src Channel: %02X, Dst Channel: %02X, Transposition: %4d, Start Tick: %6d, Mute Mode: %02X \n", RhythmMode, SrcChannel, DstChannel, Transposition, StartTick, TrackMute);
-    #endif
+#endif
 
     // Write a conductor track with the initial setup.
     {
-        uint32_t OldTimestamp = midiStream.GetTimestamp();
+        uint32_t OldDuration = midiStream.GetDuration();
 
-        midiStream.SetTimestamp(0); // Make sure all events on the conductor track have timestamp 0.
+        midiStream.SetDuration(0); // Make sure all events on the conductor track have timestamp 0.
 
         if (TrackName.Len > 0)
             midiStream.WriteMetaEvent(MetaDataTypes::TrackName, TrackName.Data, TrackName.Len);
@@ -407,7 +407,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
             Transposition += _GlobalTransposition;
         }
 
-        midiStream.SetTimestamp(OldTimestamp);
+        midiStream.SetDuration(OldDuration);
 
         RunningNotes.Reset();
     }
@@ -416,7 +416,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
     // Add "StartTick" offset to the initial timestamp.
     {
-        uint32_t Timestamp = midiStream.GetTimestamp();
+        uint32_t Timestamp = midiStream.GetDuration();
 
         if ((StartTick >= 0) || (-StartTick <= (int32_t) Timestamp))
         {
@@ -429,7 +429,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
             Timestamp = 0;
         }
 
-        midiStream.SetTimestamp(Timestamp);
+        midiStream.SetDuration(Timestamp);
     }
 
     {
@@ -491,44 +491,50 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
             if (CmdType < 0x80)
             {
-                uint32_t Timestamp = midiStream.GetTimestamp();
-
-                RunningNotes.Check(midiStream, &Timestamp);
-
-                midiStream.SetTimestamp(Timestamp);
-
+                // It's a note.
                 uint8_t Note = (uint8_t) ((CmdType + Transposition) & 0x7F);
 
-                for (uint16_t i = 0; i < RunningNotes._Count; ++i)
                 {
-                    if (RunningNotes._Notes[i].Note == Note)
                     {
-                        // The note is already playing. Remember its new length.
-                        RunningNotes._Notes[i].Duration = midiStream.GetTimestamp() + CmdDuration;
+                        uint32_t Duration = midiStream.GetDuration();
 
-                        CmdDuration = 0; // Prevens the note from being added.
-                        break;
+                        RunningNotes.Check(midiStream, Duration);
+
+                        midiStream.SetDuration(Duration);
+                    }
+
+                    for (uint16_t i = 0; i < RunningNotes._Count; ++i)
+                    {
+                        if (RunningNotes._Notes[i].Note == Note)
+                        {
+                            // The note is already playing. Remember its new duration.
+                            RunningNotes._Notes[i].Duration = midiStream.GetDuration() + CmdDuration;
+
+                            CmdDuration = 0; // Prevents the note from being added.
+                            break;
+                        }
                     }
                 }
 
                 // Duration == 0 means "no note".
                 if ((CmdDuration > 0) && (DstChannel != 0xFF))
                 {
-                    #ifdef _RCP_VERBOSE
-                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), Note);
-                    #endif
+                #ifdef _RCP_VERBOSE
+                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Note, CmdP2);
+                #endif
 
                     midiStream.WriteEvent(StatusCodes::NoteOn, Note, CmdP2);
 
                     RunningNotes.Add(midiStream.GetChannel(), Note, 0x80, CmdDuration);
                 }
-                #ifdef _RCP_VERBOSE
+            #ifdef _RCP_VERBOSE
                 else
-                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X (Skipped)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), Note);
-                #endif
+                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X (Skipped)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Note, CmdP2);
+            #endif
             }
             else
             {
+                // It's a command.
                 switch (CmdType)
                 {
                     case 0x90: case 0x91: case 0x92: case 0x93: // send User SysEx (defined via header)
@@ -547,7 +553,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Send User SysEx \"%.*s\",", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), us.Name.Len, us.Name.Data);
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Send User SysEx \"%.*s\",", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), us.Name.Len, us.Name.Data);
 
                             for (uint16_t i = 0; i < Size; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -584,7 +590,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Send SysEx,", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Send SysEx,", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < Size; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -626,7 +632,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 6; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -654,7 +660,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 6; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -683,7 +689,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 6; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -701,9 +707,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         XGParameters[2] = CmdP1;
                         XGParameters[3] = CmdP2;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG base address %02X %02X", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG base address %02X %02X", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
                         break;
                     }
 
@@ -712,9 +718,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         XGParameters[0] = CmdP1;
                         XGParameters[1] = CmdP2;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG device data %02X %02X", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG device data %02X %02X", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
                         break;
                     }
 
@@ -732,7 +738,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 8; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -761,7 +767,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Yamaha XG SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 8; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -788,7 +794,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland MKS-7 SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland MKS-7 SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 6; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -806,9 +812,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         GSParameters[2] = CmdP1;
                         GSParameters[3] = CmdP2;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS base address %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS base address %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
                         break;
                     }
 
@@ -838,7 +844,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         #ifdef _RCP_VERBOSE
                         {
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS SysEx", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
 
                             for (uint16_t i = 0; i < 10; ++i)
                                 ::printf(" %02X", Temp[i]);
@@ -856,9 +862,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         GSParameters[0] = CmdP1;
                         GSParameters[1] = CmdP2;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS device %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Roland GS device %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
                         break;
                     }
 
@@ -867,9 +873,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set XG instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP2, CmdP1);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set XG instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP2, CmdP1);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::ControlChange, 0x20, CmdP2);
                         midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0x00);
@@ -881,9 +887,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set GS instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP2, CmdP1);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set GS instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP2, CmdP1);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::ControlChange, 0x00, CmdP2);
                         midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0x00);
@@ -914,9 +920,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             DstChannel = (uint8_t) (CmdP1 >> 4); // port ID
                             SrcChannel = (uint8_t) (CmdP1 & 0x0F); // channel ID
 
-                            #ifdef _RCP_VERBOSE
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set MIDI channel (MIDI Port %02X, Channel Prefix %02X)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), DstChannel, SrcChannel);
-                            #endif
+                        #ifdef _RCP_VERBOSE
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set MIDI channel (MIDI Port %02X, Channel Prefix %02X)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), DstChannel, SrcChannel);
+                        #endif
 
                             midiStream.WriteMetaEvent(MetaDataTypes::MIDIPort,      &DstChannel, 1);
                             midiStream.WriteMetaEvent(MetaDataTypes::ChannelPrefix, &SrcChannel, 1);
@@ -930,17 +936,17 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     {
                     #ifdef _RCP_VERBOSE
                         if (CmdP2 != 0)
-                            ::printf("Warning: Track %2u, 0x%04X: Gradual tempo change. Speed 0x40, P2 = 0x%02X.\n", TrackId, CmdOffset, CmdP2);
+                            ::printf("Warning: Track %2u, 0x%04X: Ignoring gradual tempo change. Speed 0x40, P2 = 0x%02X.\n", TrackId, CmdOffset, CmdP2);
                     #endif
 
-                        if (CmdP1 == 0x00)
-                            CmdP1 = 0x40;
+                        if (CmdP1 == 0)
+                            CmdP1 = 64;
 
                         uint32_t Ticks = BPM2Ticks(_Tempo, CmdP1);
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set tempo to %u ticks.\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), _Tempo);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set tempo to %u bpm / %u ticks.\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), _Tempo, Ticks);
+                    #endif
 
                         midiStream.WriteMetaEvent(MetaDataTypes::SetTempo, Ticks, 3u);
                         break;
@@ -951,9 +957,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Channel Pressure %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Channel Pressure %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::ChannelPressure, CmdP1, 0);
                         break;
@@ -964,9 +970,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Control Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Control Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::ControlChange, CmdP1, CmdP2);
                         break;
@@ -980,7 +986,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (CmdP1 < 0x80)
                         {
                         #ifdef _RCP_VERBOSE
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Program Change %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1);
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Program Change %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1);
                         #endif
 
                             midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0);
@@ -989,7 +995,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if ((CmdP1 < 0xC0) && (SrcChannel >= 1 && SrcChannel < 9))
                         {
                         #ifdef _RCP_VERBOSE
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: MT-32 instrument change\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: MT-32 instrument change\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                         #endif
 
                             // Set MT-32 instrument from user bank used by RCP files from Granada X68000.
@@ -1010,9 +1016,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Pressure %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Pressure %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::KeyPressure, CmdP1, CmdP2);
                         break;
@@ -1023,9 +1029,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (DstChannel == 0xFF)
                             break;
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Pitch Bend Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), CmdP1, CmdP2);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Pitch Bend Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
+                    #endif
 
                         midiStream.WriteEvent(StatusCodes::PitchBendChange, CmdP1, CmdP2);
                         break;
@@ -1035,9 +1041,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     {
                         RCP2MIDIKeySignature((uint8_t) CmdP0, Temp);
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Signature %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), Temp[0], Temp[1]);
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Signature %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Temp[0], Temp[1]);
+                    #endif
 
                         midiStream.WriteMetaEvent(MetaDataTypes::KeySignature, Temp, 2);
 
@@ -1055,9 +1061,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         Size = ReadMultiCmdData(data, size, &Offset, Text.Data, Text.Size, MCMD_INI_INCLUDE);
                         Size = GetTrimmedLength((char *) Text.Data, Size, ' ', false);
 
-                        #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp(), TextToUTF8((const char *) Text.Data, Size).c_str());
-                        #endif
+                    #ifdef _RCP_VERBOSE
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), TextToUTF8((const char *) Text.Data, Size).c_str());
+                    #endif
 
                         midiStream.WriteMetaEvent(MetaDataTypes::Text, Text.Data, Size);
 
@@ -1089,9 +1095,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                 // Infinite loop
                                 if (LoopCounter[LoopCount] < 0x80 && (DstChannel != 0xFF))
                                 {
-                                    #ifdef _RCP_VERBOSE
-                                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
-                                    #endif
+                                #ifdef _RCP_VERBOSE
+                                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
+                                #endif
 
                                     midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
                                 }
@@ -1147,9 +1153,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         {
                             if (Offset == track->LoopStartOffs && DstChannel != 0xFF)
                             {
-                                #ifdef _RCP_VERBOSE
-                                ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
-                                #endif
+                            #ifdef _RCP_VERBOSE
+                                ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
+                            #endif
 
                                 midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, 0);
                             }
@@ -1319,9 +1325,9 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             {
                                 midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
 
-                                #ifdef _RCP_VERBOSE
-                                ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetTimestamp());
-                                #endif
+                            #ifdef _RCP_VERBOSE
+                                ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
+                            #endif
                             }
 
                             if (LoopCounter[LoopCount] < _Options._RCPLoopCount)
@@ -1336,15 +1342,15 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     }
 
                     default:
-                        #ifdef _RCP_VERBOSE
+                    #ifdef _RCP_VERBOSE
                         ::printf("    %04X: %02X %04X %02X %02X %04X Unknown command\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration);
-                        #endif
+                    #endif
                         break;
                 }
             }
 
             {
-                uint32_t Timestamp = midiStream.GetTimestamp() + CmdP0;
+                uint32_t Timestamp = midiStream.GetDuration() + CmdP0;
 
                 if ((StartTick < 0) && (Timestamp > 0))
                 {
@@ -1359,15 +1365,15 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         Timestamp = 0;
                 }
 
-                midiStream.SetTimestamp(Timestamp);
+                midiStream.SetDuration(Timestamp);
             }
         }
     }
 
     if (DstChannel == 0xFF)
-        midiStream.SetTimestamp(0);
+        midiStream.SetDuration(0);
 
-    midiStream.SetTimestamp(RunningNotes.Flush(midiStream, false));
+    midiStream.SetDuration(RunningNotes.Flush(midiStream, false));
 
     *offset = TrackHead + TrackSize;
 }

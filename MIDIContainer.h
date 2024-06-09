@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.05.19) **/
+/** $VER: MIDIContainer.h (2024.06.09) **/
 
 #pragma once
 
@@ -311,7 +311,7 @@ public:
     void SetExtraPercussionChannel(uint32_t channelNumber) noexcept { _ExtraPercussionChannel = channelNumber; }
     uint32_t GetExtraPercussionChannel() const noexcept { return _ExtraPercussionChannel; }
 
-    void DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool detectRPGMakerLoops, bool detectTouhouLoops);
+    void DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool detectRPGMakerLoops, bool detectTouhouLoops, bool detectLeapFrogLoops);
 
     static void EncodeVariableLengthQuantity(std::vector<uint8_t> & data, uint32_t delta);
 

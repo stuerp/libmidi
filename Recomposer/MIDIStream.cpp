@@ -8,7 +8,7 @@
 #include "Support.h"
 
 // Optional callback for injecting raw data before writing a MIDI timestamp. Returning non-zero makes it skip writing the timestamp.
-uint8_t (* midi_stream_t::_HandleTimestamp)(midi_stream_t * midiStream, uint32_t * timestamp);
+uint8_t (* midi_stream_t::_HandleDuration)(midi_stream_t * midiStream, uint32_t & duration);
 
 /// <summary>
 /// Writes a Roland SysEx message in chunks.
@@ -42,7 +42,7 @@ void midi_stream_t::WriteRolandSysEx(const uint8_t * syxHdr, uint32_t address, c
 
     _Data[_Offs++] = 0xF0;
 
-    EncodeVariableLengthQuantity(Size);
+    WriteVariableLengthQuantity(Size);
 
     _Data[_Offs + 0x00] = syxHdr[0];
     _Data[_Offs + 0x01] = syxHdr[1];
@@ -68,5 +68,5 @@ void midi_stream_t::WriteRolandSysEx(const uint8_t * syxHdr, uint32_t address, c
     _Offs += Size;
 
     if (opts & SYXOPT_DELAY)
-        _State.Timestamp += MulDivCeil(1 + Size, _TicksPerQuarter * 320, _Tempo); // F0 status code + data size
+        _State.Duration += MulDivCeil(1 + Size, _TicksPerQuarter * 320, _Tempo); // F0 status code + data size
 }

@@ -128,7 +128,7 @@ int rcpmain(int argc, wchar_t * argv[])
 
         RCPConverter.Convert(SrcData, DstData, FileExtension);
 
-        if (argc < argbase + 2)
+        if (argc >= argbase + 2)
         {
             DstData.WriteFile(argv[argbase + 1]);
 
@@ -144,7 +144,7 @@ int rcpmain(int argc, wchar_t * argv[])
 
                 if (fe != nullptr)
                 {
-                    ::wcscpy_s(fe, _countof(RefFilePath) - 3, L"mid");
+                    ::wcscpy_s(fe, 4, L"mid");
 
                     buffer_t RefFile;
 
@@ -154,16 +154,16 @@ int rcpmain(int argc, wchar_t * argv[])
                     }
                     catch (std::runtime_error & e)
                     {
-                        std::string Text(std::format("Reference file \"{}\" not found: ", WideToUTF8(RefFilePath).c_str()));
+                        std::string Text(FormatText("Reference file \"%s\" not found: ", WideToUTF8(RefFilePath).c_str()));
 
                         throw std::runtime_error(Text + e.what());
                     }
     
                     if (RefFile.Size != DstData.Size)
-                        throw std::runtime_error(std::format("Conversion error in \"{}\". File size mismatch.", WideToUTF8(FilePath).c_str()));
+                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File size mismatch (%u != %u).", WideToUTF8(FilePath).c_str(), RefFile.Size, DstData.Size));
 
                     if (::memcmp(RefFile.Data, DstData.Data, RefFile.Size) != 0)
-                        throw std::runtime_error(std::format("Conversion error in \"{}\". File content mismatch.", WideToUTF8(FilePath).c_str()));
+                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File content mismatch.", WideToUTF8(FilePath).c_str()));
                 }
 
                 midi_container_t Container;
@@ -173,7 +173,7 @@ int rcpmain(int argc, wchar_t * argv[])
                 Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
                 if (!midi_processor_t::Process(Data, FilePath, Container))
-                    throw std::runtime_error(std::format("MIDIProcesser failed: \"{}\".", WideToUTF8(FilePath).c_str()));
+                    throw std::runtime_error(FormatText("MIDIProcesser failed: \"%s\".", WideToUTF8(FilePath).c_str()));
             }
             #endif
         }

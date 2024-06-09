@@ -1,5 +1,5 @@
 
-/** $VER: MIDIStream.h (2024.05.11) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIStream.h (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -16,11 +16,11 @@
 class midi_stream_t
 {
 public:
-    typedef uint8_t (* timestamp_handler_t)(midi_stream_t * fileInfo, uint32_t * delay);
+    typedef uint8_t (* duration_handler_t)(midi_stream_t * fileInfo, uint32_t & duration);
 
     midi_stream_t() : _Data(), _Size(), _Offs(), _TicksPerQuarter(), _Tempo(500000)
     {
-        SetTimestampHandler(nullptr);
+        SetDurationHandler(nullptr);
     }
 
     midi_stream_t(uint32_t size) : _Size(size), _Offs(), _TicksPerQuarter(), _Tempo(500000)
@@ -42,15 +42,15 @@ public:
 
     void Reset() { _Offs = 0; }
 
-    void SetTimestampHandler(timestamp_handler_t timeStampHandler) { _HandleTimestamp = timeStampHandler; }
+    void SetDurationHandler(duration_handler_t durationHandler) { _HandleDuration = durationHandler; }
 
     uint32_t GetTicksPerQuarter() const noexcept { return _TicksPerQuarter; }
 
     uint32_t GetTempo() const noexcept { return _Tempo; }
     void SetTempo(uint32_t tempo) noexcept { _Tempo = tempo; }
 
-    uint32_t GetTimestamp() const noexcept { return _State.Timestamp; }
-    void SetTimestamp(uint32_t timestamp) noexcept { _State.Timestamp = timestamp; }
+    uint32_t GetDuration() const noexcept { return _State.Duration; }
+    void SetDuration(uint32_t duration) noexcept { _State.Duration = duration; }
 
     uint8_t GetChannel() const noexcept { return _State.Channel; }
     void SetChannel(uint8_t channel) noexcept { _State.Channel = channel; }
@@ -77,8 +77,8 @@ public:
         WriteBE32(0x00000000); // The correct timestamp will be written later.
 
         _State.Offs      = _Offs;
-        _State.Timestamp = 0;
-        _State.Status    = 0x00;
+        _State.Duration = 0;
+        _State.RunningStatus    = 0x00;
     }
 
     void EndWriteMIDITrack()
@@ -95,7 +95,7 @@ public:
 
     void WriteEvent(StatusCodes statusCode, uint8_t value1, uint8_t value2)
     {
-        _State.Status = 0;
+        _State.RunningStatus = 0;
 
         WriteEventInternal(statusCode, value1, value2);
     }
@@ -106,11 +106,11 @@ public:
 
         Ensure(1 + 4 + size); // Worst case: 4 bytes of data length
 
-        _State.Status = 0x00;
+        _State.RunningStatus = 0x00;
 
         Add((uint8_t) statusCode);
 
-        EncodeVariableLengthQuantity(size);
+        WriteVariableLengthQuantity(size);
 
         Add(data, size);
     }
@@ -134,12 +134,12 @@ public:
 
         Ensure(2 + 5 + size); // Worst case: 5 bytes of data length.
 
-        _State.Status = 0x00;
+        _State.RunningStatus = 0x00;
 
         Add(StatusCodes::MetaData);
         Add((uint8_t) type);
 
-        EncodeVariableLengthQuantity(size);
+        WriteVariableLengthQuantity(size);
 
         Add((const uint8_t *) data, size);
     }
@@ -149,32 +149,34 @@ public:
         WriteMetaEvent(type, text, (uint32_t) ::strlen(text));
     }
 
-    void EncodeVariableLengthQuantity(uint32_t quantity)
+    void WriteVariableLengthQuantity(uint32_t quantity)
     {
         uint8_t Size = 0;
 
-        // Determine the number of required bytes.
         {
-            uint32_t t = quantity;
-
-            do
+            // Determine the number of required bytes.
             {
-                t >>= 7;
-                Size++;
+                uint32_t t = quantity;
+
+                do
+                {
+                    t >>= 7;
+                    Size++;
+                }
+                while (t != 0);
             }
-            while (t != 0);
+
+            assert(Size != 0);
+
+            Ensure(Size);
         }
-
-        assert(Size != 0);
-
-        Ensure(Size);
 
         _Offs += Size;
 
         {
             uint8_t * q = _Data + _Offs - 1;
-            uint8_t * p = q;
 
+            uint8_t * p = q;
             {
                 uint32_t t = quantity;
 
@@ -186,7 +188,7 @@ public:
                 while (t != 0);
             }
 
-            *q &= 0x7F;
+            *q &= 0x7F; // All bytes but the first one should have bit 7 set.
         }
     }
 
@@ -227,12 +229,12 @@ public:
 private:
     void WriteTimestamp()
     {
-        if ((_HandleTimestamp != nullptr) && _HandleTimestamp(this, &_State.Timestamp))
+        if ((_HandleDuration != nullptr) && _HandleDuration(this, _State.Duration))
             return;
 
-        EncodeVariableLengthQuantity(_State.Timestamp);
+        WriteVariableLengthQuantity(_State.Duration);
 
-        _State.Timestamp = 0;
+        _State.Duration = 0;
     }
 
     void WriteEventInternal(StatusCodes statusCode, uint8_t value1, uint8_t value2)
@@ -252,9 +254,9 @@ private:
             case StatusCodes::PitchBendChange:
             {
                 // Only add the status if it is different from the running status.
-                if (_State.Status != Status)
+                if (_State.RunningStatus != Status)
                 {
-                    _State.Status = Status;
+                    _State.RunningStatus = Status;
 
                     Add(Status);
                 }
@@ -268,9 +270,9 @@ private:
             case StatusCodes::ChannelPressure:
             {
                 // Only add the status if it is different from the running status.
-                if (_State.Status != Status)
+                if (_State.RunningStatus != Status)
                 {
-                    _State.Status = Status;
+                    _State.RunningStatus = Status;
 
                     Add(Status);
                 }
@@ -281,7 +283,7 @@ private:
 
             case StatusCodes::SysEx: // Meta Event: Track End
             {
-                _State.Status = 0;
+                _State.RunningStatus = 0;
 
                 Add((uint8_t) statusCode);
                 Add(value1);
@@ -325,14 +327,14 @@ private:
     struct midi_state_t
     {
         uint32_t Offs;      // Offset in the track data in the MIDI data
-        uint32_t Timestamp; // delay until next event
+        uint32_t Duration;  // Duration of the current note
         uint8_t  Channel;
-        uint8_t  Status;
+        uint8_t  RunningStatus;
 
-        midi_state_t() : Offs(), Timestamp(), Channel(), Status() { }
+        midi_state_t() : Offs(), Duration(), Channel(), RunningStatus() { }
     };
 
     midi_state_t _State;
 
-    static timestamp_handler_t _HandleTimestamp;
+    static duration_handler_t _HandleDuration;
 };

@@ -29,10 +29,10 @@ uint16_t GetTrimmedLength(const char * data, uint16_t size, char trimChar, bool 
 /// </summary>
 uint32_t BPM2Ticks(uint16_t bpm, uint8_t scale)
 {
-//  formula: (60 000 000.0 / bpm) * (scale / 64.0)
+//  formula: Ticks = (60 000 000.0 / bpm) * (scale / 64.0)
     const uint32_t Denominator = (uint32_t) (bpm * scale);
 
-    return 60000000U * 64U / Denominator;
+    return ((uint64_t) (60u * 1000u * 1000u) * 64u) / Denominator;
 }
 
 /// <summary>

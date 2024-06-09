@@ -222,7 +222,7 @@ public:
 
 private:
     static uint16_t BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint32_t minLoopTicks, uint8_t verbose);
-    static uint8_t HandleTimestamp(midi_stream_t * fileInfo, uint32_t * timestamp);
+    static uint8_t HandleDuration(midi_stream_t * fileInfo, uint32_t & duration);
 
 public:
     rcp_converter_options_t _Options;

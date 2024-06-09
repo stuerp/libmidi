@@ -113,12 +113,15 @@ void ProcessMetaData(const midi_event_t & me)
 
         case MetaDataTypes::SetTempo:
         {
+/*
             uint32_t Tempo = (uint32_t) (me.Data[2] & 0x7F); Tempo <<= 7;
 
             Tempo |= me.Data[3] & 0x7F; Tempo <<= 7;
             Tempo |= me.Data[4] & 0x7F;
+*/
+            uint32_t Tempo = ((uint32_t) me.Data[2] << 16) | ((uint32_t) me.Data[3] << 8) | (uint32_t) me.Data[4];
 
-            ::printf(" Set Tempo (%d us/quarter note, %d bpm)", Tempo, (int) ((uint64_t) (60 * 1000 * 1000) / Tempo));
+            ::printf(" Set Tempo (%d us/quarter note, %d bpm)", Tempo, (int) ((60 * 1000 * 1000) / Tempo));
             break;
         }
 
@@ -224,6 +227,9 @@ void ProcessControlChange(const midi_event_t & me)
         case 0x5E: ::printf(" Effect 4 Depth (Detune) Send Level %d", Value); break;
         case 0x5F: ::printf(" Effect 5 Depth (Phaser) Send Level %d", Value); break;
 
+        case 0x6E: ::printf(" LeapFrog Start of Loop marker (%02X %02X)", (int) me.Data[0], Value); break;
+        case 0x6F: ::printf(" LeapFrog End of Loop marker (%02X %02X)", (int) me.Data[0], Value); break;
+
         // Channel Mode Messages
         case 0x78: ::printf(" All Sound Off"); break; // Mutes all sounding notes. It does so regardless of release time or sustain. (See MIDI CC 123)
         case 0x79: ::printf(" Reset All Controllers"); break; // It will reset all controllers to their default.
@@ -250,7 +256,7 @@ void ProcessControlChange(const midi_event_t & me)
             if (InRange((int) me.Data[0], 89, 90))
                 ::printf(" Undefined");
             else
-                ::printf(" Unknown");
+                ::printf(" Unknown %02X %02X (CC %d)", (int) me.Data[0], Value, (int) me.Data[0]); break;
     }
 }
 
@@ -309,17 +315,31 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     if (event.Time!= time)
     {
         ::_snprintf_s(TimeInTicks, _countof(TimeInTicks), "%8u",  event.Time);
-        ::_snprintf_s(TimeInMs, _countof(TimeInMs), "%8f", (double) event.Time / 1000.);
+        ::_snprintf_s(TimeInMs, _countof(TimeInMs), "%8.2f", (double) event.Time / 1000.);
     }
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
 
     ::printf("%8d %-8s %-8s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
 
-    for (const auto & d : event.Data)
-        ::printf(" %02X", d);
+    const int ByteCount = 16;
 
-    ::printf("%*.s", std::max(0, (6 - (int) event.Data.size()) * 3), "");
+    int i = 1;
+
+    for (const auto & d : event.Data)
+    {
+        if (i++ < ByteCount)
+            ::printf(" %02X", d);
+        else
+        {
+            ::printf(" ..");
+            break;
+        }
+    }
+
+    ::printf("%*.s", std::max(0, (ByteCount - (int) event.Data.size()) * 3), "");
+
+    ::putchar(' ');
 
     switch (event.Type)
     {

@@ -28,7 +28,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int rcpmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\Tst\RCP\Various\_mgc_819.rcp)";
+const WCHAR * Argument = LR"(f:\Tst\RCP\GitHub Issue 37\NIGHT.G36)";
 const WCHAR * Filters[] = { L".rcp", L".r36", L".g18", L".g36", L".cm6", L".gsd" };
 
 int wmain()
