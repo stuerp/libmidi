@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2024.06.09) **/
+/** $VER: MIDIContainer.cpp (2024.08.04) **/
 
 #include "framework.h"
 
@@ -385,6 +385,16 @@ void midi_container_t::SetTrackCount(uint32_t count)
 void midi_container_t::SetExtraMetaData(const midi_metadata_table_t & data)
 {
     _ExtraMetaData = data;
+}
+
+void midi_container_t::SetSoundFontData(const std::vector<uint8_t> & data) noexcept
+{
+    _SoundFontData = data;
+}
+
+const std::vector<uint8_t> & midi_container_t::GetSoundFontData() const noexcept
+{
+    return _SoundFontData;
 }
 
 void midi_container_t::ApplyHack(uint32_t hack)

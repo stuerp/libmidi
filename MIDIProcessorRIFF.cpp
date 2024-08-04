@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRIFF.cpp (2023.08.14) **/
+/** $VER: MIDIProcessorRIFF.cpp (2024.08.04) **/
 
 #include "framework.h"
 
@@ -20,7 +20,7 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
     if (data.size() < 20)
         return false;
 
-    if (::memcmp(&data[0], "RIFF", 4) != 0)
+    if (::memcmp(data.data(), "RIFF", 4) != 0)
         return false;
 
     uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
@@ -85,7 +85,7 @@ bool MIDIProcessor::GetTrackCountFromRIFF(std::vector<uint8_t> const & data, siz
     return false;
 }
 */
-static const char * riff_tag_mappings[][2] =
+static const char * RIFFToTagMap[][2] =
 {
     { "IALB", "album" },
     { "IARL", "archival_location" },
@@ -96,6 +96,7 @@ static const char * riff_tag_mappings[][2] =
     { "ICMT", "comment" },
     { "ICOP", "copyright" },
     { "ICRD", "creation_date" },
+    { "IENC", "encoding" },
     { "IENG", "engineer" },
     { "IGNR", "genre" },
     { "IKEY", "keywords" },
@@ -111,124 +112,161 @@ static const char * riff_tag_mappings[][2] =
 
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
+    bool FoundDataChunk = false;
+    bool FoundInfoChunk = false;
+
+    midi_metadata_table_t MetaData;
+    std::vector<uint8_t> Temp;
+
     uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+
+    const auto Tail = data.begin() + 8 + (int) Size;
 
     auto it = data.begin() + 12;
 
-    auto body_end = data.begin() + 8 + (int) Size;
-
-    bool found_data = false;
-    bool found_info = false;
-
-    midi_metadata_table_t MetaData;
-
-    std::vector<uint8_t> extra_buffer;
-
-    while (it != body_end)
+    while (it < Tail)
     {
-        if (body_end - it < 8)
+        if (Tail - it < 8)
             return false;
 
-        uint32_t chunk_size = toInt32LE(it + 4);
+        uint32_t ChunkSize = toInt32LE(it + 4);
 
-        if ((uint32_t) (body_end - it) < chunk_size)
+        if ((uint32_t) (Tail - it) < ChunkSize)
             return false;
 
+        // Is it a "data" chunk?
         if (::memcmp(&it[0], "data", 4) == 0)
         {
-            if (found_data)
-                return false; /*throw exception_io_data( "Multiple RIFF data chunks found" );*/
+            if (FoundDataChunk)
+                return false; // throw exception_io_data( "Multiple RIFF data chunks found" );
 
             std::vector<uint8_t> Data;
 
-            Data.assign(it + 8, it + 8 + (int) chunk_size);
+            Data.assign(it + 8, it + 8 + (int) ChunkSize);
 
             if (!ProcessSMF(Data, container))
                 return false;
 
-            found_data = true;
+            FoundDataChunk = true;
 
-            it += 8 + (int) chunk_size; if (chunk_size & 1 && it != body_end) ++it;
+            it += 8 + (int) ChunkSize;
+
+            if ((ChunkSize & 1) && (it < Tail))
+                ++it;
         }
         else
+        // Is it a "DISP" chunk?
         if (::memcmp(&it[0], "DISP", 4) == 0)
         {
             uint32_t type = toInt32LE(it + 8);
 
-            if (type == 1)
+            if (type == CF_TEXT)
             {
-                extra_buffer.resize(chunk_size - 4 + 1);
-                std::copy(it + 12, it + 8 + (int) chunk_size, extra_buffer.begin());
-                extra_buffer[chunk_size - 4] = '\0';
-                MetaData.AddItem(midi_metadata_item_t(0, "display_name", (const char *) &extra_buffer[0]));
+                Temp.resize(ChunkSize - 4 + 1);
+                std::copy(it + 12, it + 8 + (int) ChunkSize, Temp.begin());
+                Temp[ChunkSize - 4] = '\0';
+
+                MetaData.AddItem(midi_metadata_item_t(0, "display_name", (const char *) Temp.data()));
             }
 
-            it += 8 + (int) chunk_size; if (chunk_size & 1 && it != body_end) ++it;
+            it += (int) (8 + ChunkSize);
+
+            if ((ChunkSize & 1) && (it < Tail))
+                ++it;
         }
         else
+        // Is it a "LIST" chunk?
         if (::memcmp(&it[0], "LIST", 4) == 0)
         {
-            auto chunk_end = it + 8 + (int) chunk_size;
+            auto ChunkTail = it + (int) (8 + ChunkSize);
 
+            // Is it a "INFO" chunk?
             if (::memcmp(&it[8], "INFO", 4) == 0)
             {
-                if (found_info)
-                    return false; /*throw exception_io_data( "Multiple RIFF LIST INFO chunks found" );*/
+                if (FoundInfoChunk)
+                    return false; // throw exception_io_data( "Multiple RIFF LIST INFO chunks found" );
 
-                if (chunk_end - it < 12)
+                if (ChunkTail - it < 12)
                     return false;
 
                 it += 12;
 
-                while (it != chunk_end)
+                while (it != ChunkTail)
                 {
-                    if (chunk_end - it < 4)
+                    if (ChunkTail - it < 4)
                         return false;
 
-                    uint32_t field_size = toInt32LE(it + 4);
+                    uint32_t ValueSize = toInt32LE(it + 4);
 
-                    if ((uint32_t) (chunk_end - it) < 8 + field_size)
+                    if ((uint32_t) (ChunkTail - it) < 8 + ValueSize)
                         return false;
 
-                    std::string field;
+                    std::string ValueData;
 
-                    field.assign(it, it + 4);
+                    ValueData.assign(it, it + 4);
 
-                    for (size_t i = 0; i < _countof(riff_tag_mappings); ++i)
+                    for (size_t i = 0; i < _countof(RIFFToTagMap); ++i)
                     {
-                        if (!memcmp(&it[0], riff_tag_mappings[i][0], 4))
+                        if (::memcmp(&it[0], RIFFToTagMap[i][0], 4) == 0)
                         {
-                            field = riff_tag_mappings[i][1];
+                            ValueData = RIFFToTagMap[i][1];
                             break;
                         }
                     }
 
-                    extra_buffer.resize(field_size + 1);
-                    std::copy(it + 8, it + 8 + (int) field_size, extra_buffer.begin());
-                    extra_buffer[field_size] = '\0';
+                    Temp.resize(ValueSize + 1);
+                    std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
+                    Temp[ValueSize] = '\0';
 
-                    it += 8 + (int) field_size;
-                    MetaData.AddItem(midi_metadata_item_t(0, field.c_str(), (const char *) &extra_buffer[0]));
+                    MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), (const char *) Temp.data()));
 
-                    if (field_size & 1 && it != chunk_end) ++it;
+                    it += (int) (8 + ValueSize);
+
+                    if ((ValueSize & 1) && (it < ChunkTail))
+                        ++it;
                 }
 
-                found_info = true;
+                FoundInfoChunk = true;
             }
             else
-                return false; /* unknown LIST chunk */
+                return false; // Unknown LIST chunk.
 
-            it = chunk_end;
-            if (chunk_size & 1 && it != body_end) ++it;
+            it = ChunkTail;
+
+            if ((ChunkSize & 1) && (it < ChunkTail))
+                ++it;
+        }
+        else
+        // Is it a "RIFF" chunk? According to the standard this should not be possible it is how embedded SoundFonts are implemented... Sloppy programming...
+        if (::memcmp(&it[0], "RIFF", 4) == 0)
+        {
+            auto ChunkTail = it + (int) (8 + ChunkSize);
+
+            // Is it a "sfbk" chunk?
+            if (::memcmp(&it[8], "sfbk", 4) == 0)
+            {
+                Temp.resize(8 + ChunkSize);
+                std::copy(it, it + (int) (8 + ChunkSize), Temp.begin());
+
+                container.SetSoundFontData(Temp);
+            }
+
+            it = ChunkTail;
+
+            if ((ChunkSize & 1) && (it < ChunkTail))
+                ++it;
         }
         else
         {
-            it += (int) chunk_size;
-            if (chunk_size & 1 && it != body_end) ++it;
-        }
+            it += (int) ChunkSize;
 
-        if (found_data && found_info)
+            if ((ChunkSize & 1) && (it != Tail))
+                ++it;
+        }
+/*
+        if (FoundDataChunk && FoundInfoChunk)
             break;
+*/
     }
 
     container.SetExtraMetaData(MetaData);
