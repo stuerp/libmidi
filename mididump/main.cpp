@@ -28,8 +28,8 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\Tst\MID\LeapFrog\Shapes1.mid)";
-const WCHAR * Filters[] = { L".mid", L".g36" };
+const WCHAR * Argument = LR"(f:\Tst\RMI\EmbeddedSF2.rmi)";
+const WCHAR * Filters[] = { L".mid", L".g36", L".rmi" };
 
 int wmain()
 {

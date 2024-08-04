@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.06.09) **/
+/** $VER: MIDIContainer.h (2024.08.04) **/
 
 #pragma once
 
@@ -279,6 +279,9 @@ public:
     void SetTrackCount(uint32_t count);
     void SetExtraMetaData(const midi_metadata_table_t & data);
 
+    void SetSoundFontData(const std::vector<uint8_t> & data) noexcept;
+    const std::vector<uint8_t> & GetSoundFontData() const noexcept;
+
     void ApplyHack(uint32_t hack);
 
     void SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & stream, sysex_table_t & sysExTable, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const;
@@ -394,6 +397,7 @@ private:
     std::vector<std::vector<std::string>> _DeviceNames;
 
     midi_metadata_table_t _ExtraMetaData;
+    std::vector<uint8_t> _SoundFontData;
 
     std::vector<uint32_t> _EndTimestamps;
 
