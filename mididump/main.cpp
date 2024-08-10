@@ -28,7 +28,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\Tst\RMI\EmbeddedSF2.rmi)";
+const WCHAR * Argument = LR"(f:\MIDI\Examples\Demo\Passport Design\1991\Canyon Music.4.mid)";
 const WCHAR * Filters[] = { L".mid", L".g36", L".rmi" };
 
 int wmain()

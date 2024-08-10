@@ -277,7 +277,7 @@ void midi_container_t::AddTrack(const midi_track_t & track)
         {
             uint32_t ChannelNumber = Event.ChannelNumber;
 
-            if (DeviceName.length())
+            if (DeviceName.length() != 0)
             {
                 size_t j, k;
 
@@ -288,11 +288,11 @@ void midi_container_t::AddTrack(const midi_track_t & track)
                 }
 
                 if (j < k)
-                    PortNumber = (uint8_t)j;
+                    PortNumber = (uint8_t) j;
                 else
                 {
                     _DeviceNames[ChannelNumber].push_back(DeviceName);
-                    PortNumber = (uint8_t)k;
+                    PortNumber = (uint8_t) k;
                 }
 
                 LimitPortNumber(PortNumber);
@@ -562,6 +562,7 @@ void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_i
                     LimitPortNumber(PortNumbers[SelectedTrack]);
                 }
 
+                // Pack the event data into 32 bits.
                 uint32_t Message = ((Event.Type + 8) << 4) + Event.ChannelNumber;
 
                 if (Event.Data.size() >= 1)

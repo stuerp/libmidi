@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2024.05.19) **/
+/** $VER: MIDIProcessor.h (2024.08.10) **/
 
 #pragma once
 
@@ -24,7 +24,7 @@ struct midi_processor_options_t
     uint16_t _DefaultTempo = 160; // in bpm
 };
 
-const midi_processor_options_t DefaultOptions(0, false, 0);
+const midi_processor_options_t DefaultOptions(0, false, false, true, false, false, true, 160);
 
 class midi_processor_t
 {
