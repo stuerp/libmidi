@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.08.11) **/
+/** $VER: MIDIContainer.h (2024.08.12) **/
 
 #pragma once
 
@@ -286,7 +286,7 @@ public:
 
     void ApplyHack(uint32_t hack);
 
-    void SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & stream, sysex_table_t & sysExTable, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const;
+    void SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & stream, sysex_table_t & sysExTable, std::vector<uint8_t> & portNumbers, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const;
     void SerializeAsSMF(std::vector<uint8_t> & data) const;
 
     void PromoteToType1();
@@ -368,7 +368,7 @@ private:
 
     template <typename T> void LimitPortNumber(T & number) const
     {
-        for (size_t i = 0; i < _PortNumbers.size(); i++)
+        for (size_t i = 0; i < _PortNumbers.size(); ++i)
         {
             if (_PortNumbers[i] == number)
             {

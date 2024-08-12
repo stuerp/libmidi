@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2024.08.04) **/
+/** $VER: MIDIContainer.cpp (2024.08.12) **/
 
 #include "framework.h"
 
@@ -441,7 +441,7 @@ void midi_container_t::ApplyHack(uint32_t hack)
     }
 }
 
-void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & midiStream, sysex_table_t & sysExTable, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const
+void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_item_t> & midiStream, sysex_table_t & sysExTable, std::vector<uint8_t> & portNumbers, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const
 {
     uint32_t LoopBeginTimestamp = GetLoopBeginTimestamp(subSongIndex);
     uint32_t LoopEndTimestamp = GetLoopEndTimestamp(subSongIndex);
@@ -653,6 +653,8 @@ void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_i
 
         TrackPositions[SelectedTrack]++;
     }
+
+    portNumbers = _PortNumbers;
 
     loopBegin = (uint32_t) LoopBegin;
     loopEnd   = (uint32_t) LoopEnd;

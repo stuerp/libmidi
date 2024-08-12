@@ -29,7 +29,7 @@ using namespace std;
 #include "SysEx.h"
 
 void ProcessContainer(midi_container_t & container, bool asStream);
-void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents = false);
+void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents = false);
 void ProcessTracks(const midi_container_t & container);
 
 std::vector<uint8_t> ReadFile(std::wstring & filePath);
@@ -105,10 +105,11 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
 
         std::vector<midi_item_t> Stream;
         sysex_table_t SysExMap;
+        std::vector<uint8_t> PortNumbers;
 
-        Container.SerializeAsStream(0, Stream, SysExMap, LoopBegin, LoopEnd, 0);
+        Container.SerializeAsStream(0, Stream, SysExMap, PortNumbers, LoopBegin, LoopEnd, 0);
 
-        ProcessStream(Stream, SysExMap);
+        ProcessStream(Stream, SysExMap, PortNumbers);
     }
     else
         ProcessTracks(Container);

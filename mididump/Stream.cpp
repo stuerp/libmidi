@@ -1,5 +1,5 @@
 
-/** $VER: Stream.cpp (2024.08.11) P. Stuer **/
+/** $VER: Stream.cpp (2024.08.12) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -22,11 +22,11 @@
 uint32_t ProcessEvent(const midi_item_t & event, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap);
 
 /// <summary>
-/// 
+/// Processes the stream.
 /// </summary>
-void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, bool skipNormalEvents)
+void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents)
 {
-    ::printf("%u messages, %u unique SysEx messages\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size());
+    ::printf("%u messages, %u unique SysEx messages, %u ports\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size(), (uint32_t) portNumbers.size());
 
     uint32_t Time = std::numeric_limits<uint32_t>::max();
     size_t i = 0;
