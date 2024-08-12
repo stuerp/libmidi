@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.08.04) **/
+/** $VER: MIDIContainer.h (2024.08.11) **/
 
 #pragma once
 
@@ -259,6 +259,8 @@ struct midi_item_t
 {
     uint32_t Time; // in ms
     uint32_t Data;
+
+    bool IsSysEx() const noexcept { return ((Data & 0x80000000u) == 0x80000000u); }
 };
 
 class midi_container_t

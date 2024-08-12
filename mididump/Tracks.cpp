@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2024.05.20) P. Stuer **/
+/** $VER: Tracks.cpp (2024.08.11) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -101,7 +101,7 @@ void ProcessMetaData(const midi_event_t & me)
 
         case MetaDataTypes::MIDIPort:
         {
-            ::printf(" MIDI Port");
+            ::printf(" Set MIDI Port %d", me.Data[2]);
             break;
         }
 
@@ -345,13 +345,13 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     {
         case midi_event_t::event_type_t::NoteOff:
         {
-            ::printf("Note Off                      80");
+            ::printf("Note Off                      Note %3d, Velocity %3d", event.Data[0], event.Data[1]);
             break;
         }
 
         case midi_event_t::event_type_t::NoteOn:
         {
-            ::printf("Note On                       90");
+            ::printf("Note On                       Note %3d, Velocity %3d", event.Data[0], event.Data[1]);
             break;
         }
 

@@ -601,7 +601,7 @@ void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_i
 
                     if (Data[DataSize - 1] == StatusCodes::SysExEnd)
                     {
-                        uint32_t Index = (uint32_t) sysExTable.AddItem(&Data[0], DataSize, PortNumbers[SelectedTrack]) | 0x80000000u;
+                        uint32_t Index = (uint32_t) sysExTable.AddItem(Data.data(), DataSize, PortNumbers[SelectedTrack]) | 0x80000000u;
 
                         midiStream.push_back(midi_item_t(TimestampInMS, Index));
                     }
@@ -645,6 +645,7 @@ void midi_container_t::SerializeAsStream(size_t subSongIndex, std::vector<midi_i
                     uint32_t Message = (uint32_t)(PortNumbers[SelectedTrack] << 24);
 
                     Message += Event.Data[0];
+
                     midiStream.push_back(midi_item_t(TimestampInMS, Message));
                 }
             }

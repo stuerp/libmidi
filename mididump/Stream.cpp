@@ -1,5 +1,5 @@
 
-/** $VER: Stream.cpp (2024.05.15) P. Stuer **/
+/** $VER: Stream.cpp (2024.08.11) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -31,28 +31,28 @@ void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t 
     uint32_t Time = std::numeric_limits<uint32_t>::max();
     size_t i = 0;
 
-    for (const auto & me : stream)
+    for (const auto & mi : stream)
     {
         // Skip all normal MIDI events.
-        if (skipNormalEvents && ((me.Data & 0x80000000u) == 0))
+        if (skipNormalEvents && !mi.IsSysEx())
             continue;
 
-        Time = ProcessEvent(me, Time, i++, sysExMap);
+        Time = ProcessEvent(mi, Time, i++, sysExMap);
     }
 }
 
 /// <summary>
 /// Processes MIDI stream events.
 /// </summary>
-uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
+uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
 {
     char Timestamp[16];
     char Time[16];
 
-    if (me.Time != timestamp)
+    if (item.Time != timestamp)
     {
-        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u",  me.Time);
-        ::_snprintf_s(Time, _countof(Time), "%8.2f", (double) me.Time / 1000.);
+        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u",  item.Time);
+        ::_snprintf_s(Time, _countof(Time), "%8.2f", (double) item.Time / 1000.);
     }
     else
     {
@@ -63,13 +63,13 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
     ::printf("%8d %-8s %-8s ", (int) index, Timestamp, Time);
 
     // MIDI Event
-    if ((me.Data & 0x80000000u) == 0)
+    if (!item.IsSysEx())
     {
         uint8_t Event[3]
         {
-            (uint8_t) (me.Data),
-            (uint8_t) (me.Data >> 8),
-            (uint8_t) (me.Data >> 16)
+            (uint8_t) (item.Data),
+            (uint8_t) (item.Data >> 8),
+            (uint8_t) (item.Data >> 16)
         };
 
         const uint8_t StatusCode = (const uint8_t) (Event[0] & 0xF0u);
@@ -77,9 +77,9 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
         const uint32_t EventSize = (uint32_t) ((StatusCode >= StatusCodes::TimingClock && StatusCode <= StatusCodes::MetaData) ? 1 :
                                               ((StatusCode == StatusCodes::ProgramChange || StatusCode == StatusCodes::ChannelPressure) ? 2 : 3));
 
-        uint8_t PortNumber = (me.Data >> 24) & 0x7F;
+        uint8_t PortNumber = (item.Data >> 24) & 0x7F;
 
-        ::printf("(%02X) %02X", PortNumber, Event[0]);
+        ::printf("%02X", Event[0]);
 
         if (EventSize > 1)
         {
@@ -95,82 +95,84 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
 
         int Channel = (Event[0] & 0x0F) + 1;
 
+        ::printf(" Port %d, Channel %2d, ", PortNumber, Channel);
+
         switch (StatusCode)
         {
             case NoteOff:
-                ::printf(" Channel %2d, Note Off, %3d, Velocity %3d\n", Channel, Event[1], Event[2]);
+                ::printf("Note Off, %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case NoteOn:
-                ::printf(" Channel %2d, Note On , %3d, Velocity %3d\n", Channel, Event[1], Event[2]);
+                ::printf("Note On , %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case KeyPressure:
-                ::printf(" Channel %2d, Key Pressure %3d (Aftertouch)\n", Channel, Event[1]);
+                ::printf("Key Pressure %3d (Aftertouch)\n", Event[1]);
                 break;
 
             case ControlChange:
-                ::printf(" Channel %2d, Control Change %3d = %d (%s)\n", Channel, Event[1], Event[2], WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
+                ::printf("Control Change %3d = %d (%s)\n", Event[1], Event[2], WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
                 break;
 
             case ProgramChange:
-                ::printf(" Channel %2d, Program Change %3d, %s\n", Channel, Event[1] + 1, WideToUTF8(Instruments[Event[1]].Name).c_str());
+                ::printf("Program Change %3d, %s\n", Event[1] + 1, WideToUTF8(Instruments[Event[1]].Name).c_str());
                 break;
 
             case ChannelPressure:
-                ::printf(" Channel %2d, Channel Pressure %3d (Aftertouch)\n", Channel, Event[1]);
+                ::printf("Channel Pressure %3d (Aftertouch)\n", Event[1]);
                 break;
 
             case PitchBendChange:
-                ::printf(" Channel %2d, Pitch Bend Change %02X:%02X\n", Channel, Event[1], Event[2]);
+                ::printf("Pitch Bend Change %02X:%02X\n", Event[1], Event[2]);
                 break;
 
             case SysEx:
-                ::printf(" Channel %2d, SysEx\n", Channel);
+                ::puts("SysEx");
                 break;
 
             case MIDITimeCodeQtrFrame:
-                ::printf(" Channel %2d, MIDI Time Code Qtr Frame\n", Channel);
+                ::puts("MIDI Time Code Qtr Frame");
                 break;
 
             case SongPositionPointer:
-                ::printf(" Channel %2d, Song Position Pointer\n", Channel);
+                ::puts("Song Position Pointer");
                 break;
 
             case SongSelect:
-                ::printf(" Channel %2d, Song Select\n", Channel);
+                ::puts("Song Select");
                 break;
 
             case TuneRequest:
-                ::printf(" Channel %2d, Tune Request\n", Channel);
+                ::puts("Tune Request");
                 break;
 
             case SysExEnd:
-                ::printf(" Channel %2d, SysEx End\n", Channel);
+                ::puts("SysEx End");
                 break;
 
             case TimingClock:
-                ::printf(" Channel %2d, Timing Clock\n", Channel);
+                ::puts("Timing Clock");
                 break;
 
             case Start:
-                ::printf(" Channel %2d, Start\n", Channel);
+                ::puts("Start");
                 break;
 
             case Continue:
-                ::printf(" Channel %2d, Continue\n", Channel);
+                ::puts("Continue");
                 break;
 
             case Stop:
-                ::printf(" Channel %2d, Stop\n", Channel);
+                ::puts("Stop");
                 break;
 
             case ActiveSensing:
-                ::printf(" Channel %2d, Active Sensing\n", Channel);
+                ::puts("Active Sensing");
                 break;
 
             case MetaData:
-                ::printf(" Channel %2d, Meta Data\n", Channel);
+                ::puts("Meta Data");
                 break;
 
             default:
@@ -180,7 +182,7 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
     // SysEx Index
     else
     {
-        const uint32_t Index = me.Data & 0xFFFFFFu;
+        const uint32_t Index = item.Data & 0xFFFFFFu;
 
         const uint8_t * MessageData;
         size_t MessageSize;
@@ -190,11 +192,13 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
 
         // Show the message in the output.
         {
-            ::printf("(%02X) SysEx", Port);
+            ::printf("SysEx");
 
             for (size_t j = 0; j < MessageSize; ++j)
                 ::printf(" %02X", MessageData[j]);
         }
+
+        ::printf(" Port %d", Port);
 
         // Identify the SysEx message.
         if (MessageSize > 2)
@@ -203,11 +207,11 @@ uint32_t ProcessEvent(const midi_item_t & me, uint32_t timestamp, size_t index, 
 
             SysEx.Identify();
 
-            ::printf(", \"%s\", \"%s\"\n", WideToUTF8(SysEx.GetManufacturer()).c_str(), WideToUTF8(SysEx.GetDescription()).c_str());
+            ::printf(", \"%s\", \"%s\"", WideToUTF8(SysEx.GetManufacturer()).c_str(), WideToUTF8(SysEx.GetDescription()).c_str());
         }
 
         ::putchar('\n');
     }
 
-    return me.Time;
+    return item.Time;
 }

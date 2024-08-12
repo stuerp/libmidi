@@ -52,7 +52,7 @@ int midmain(int argc, wchar_t * argv[])
 
         midi_processor_t::Process(Data, FilePath.c_str(), Container);
 
-        ProcessContainer(Container, false);
+        ProcessContainer(Container, true);
     }
     catch (std::exception & e)
     {
