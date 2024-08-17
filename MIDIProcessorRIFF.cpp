@@ -1,9 +1,10 @@
 
-/** $VER: MIDIProcessorRIFF.cpp (2024.08.04) **/
+/** $VER: MIDIProcessorRIFF.cpp (2024.08.17) **/
 
 #include "framework.h"
 
 #include "MIDIProcessor.h"
+#include "Encoding.h"
 
 static inline uint32_t toInt32LE(const uint8_t * data)
 {
@@ -110,6 +111,8 @@ static const char * RIFFToTagMap[][2] =
     { "ITCH", "technician" }
 };
 
+static bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept;
+
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     bool FoundDataChunk = false;
@@ -191,6 +194,10 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
 
                 it += 12;
 
+                uint32_t CodePage = ~0u;
+
+                GetCodePage(it, ChunkTail, CodePage);
+
                 while (it != ChunkTail)
                 {
                     if (ChunkTail - it < 4)
@@ -205,20 +212,44 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
 
                     ValueData.assign(it, it + 4);
 
-                    for (size_t i = 0; i < _countof(RIFFToTagMap); ++i)
+                    if (ValueData == "IENC")
                     {
-                        if (::memcmp(&it[0], RIFFToTagMap[i][0], 4) == 0)
+                        // Skip
+                    }
+                    else
+                    if (ValueData == "IPIC")
+                    {
+                        Temp.resize(ValueSize);
+                        std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
+
+                        container.SetArtwork(Temp);
+                    }
+                    else
+                    {
+                        for (size_t i = 0; i < _countof(RIFFToTagMap); ++i)
                         {
-                            ValueData = RIFFToTagMap[i][1];
-                            break;
+                            if (::memcmp(&it[0], RIFFToTagMap[i][0], 4) == 0)
+                            {
+                                ValueData = RIFFToTagMap[i][1];
+                                break;
+                            }
+                        }
+
+                        if (CodePage != ~0u)
+                        {
+                            std::string Text = CodePageToUTF8(CodePage, (const char *) &it[8], ValueSize);
+
+                            MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), Text.c_str()));
+                        }
+                        else
+                        {
+                            Temp.resize(ValueSize + 1);
+                            std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
+                            Temp[ValueSize] = '\0';
+
+                            MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), (const char *) Temp.data()));
                         }
                     }
-
-                    Temp.resize(ValueSize + 1);
-                    std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
-                    Temp[ValueSize] = '\0';
-
-                    MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), (const char *) Temp.data()));
 
                     it += (int) (8 + ValueSize);
 
@@ -263,13 +294,49 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
             if ((ChunkSize & 1) && (it != Tail))
                 ++it;
         }
-/*
-        if (FoundDataChunk && FoundInfoChunk)
-            break;
-*/
     }
 
     container.SetExtraMetaData(MetaData);
 
     return true;
+}
+
+/// <summary>
+/// Gets the code page from the IENC chunk, if present.
+/// </summary>
+bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept
+{
+    while (it != chunkTail)
+    {
+        if (chunkTail - it < 4)
+            return false;
+
+        uint32_t ValueSize = toInt32LE(it + 4);
+
+        if ((uint32_t) (chunkTail - it) < 8 + ValueSize)
+            return false;
+
+        std::string ValueData;
+
+        ValueData.assign(it, it + 4);
+
+        if (ValueData == "IENC")
+        {
+            std::string Encoding;
+
+            Encoding.resize(ValueSize);
+            std::copy(it + 8, it + 8 + (int) ValueSize, Encoding.begin());
+
+            GetCodePageFromEncoding(Encoding, codePage);
+
+            return true;
+        }
+
+        it += (int) (8 + ValueSize);
+
+        if ((ValueSize & 1) && (it < chunkTail))
+            ++it;
+    }
+
+    return false;
 }

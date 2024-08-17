@@ -1,5 +1,5 @@
 
-/** $VER: Encoding.h (2024.05.18) P. Stuer **/
+/** $VER: Encoding.h (2024.08.17) P. Stuer **/
 
 #pragma once
 
@@ -12,6 +12,8 @@ std::wstring CodePageToWide(uint32_t codePage, const char * text, size_t size);
 std::string CodePageToUTF8(uint32_t codePage, const char * text, size_t size);
 
 std::string TextToUTF8(const char * text, size_t size = 0);
+
+bool GetCodePageFromEncoding(const std::string & encoding, uint32_t & codePage) noexcept;
 
 inline std::wstring UTF8ToWide(const char * text, size_t size)
 {

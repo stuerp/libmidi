@@ -28,7 +28,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\MIDI\Examples\Test\Multiple Ports\05orche.mid)";
+const WCHAR * Argument = LR"(f:\Tst\RMI\Bad Apple!!.rmi)";
 const WCHAR * Filters[] = { L".mid", L".g36", L".rmi" };
 
 int wmain()

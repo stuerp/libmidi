@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.08.12) **/
+/** $VER: MIDIContainer.h (2024.08.17) **/
 
 #pragma once
 
@@ -311,6 +311,9 @@ public:
 
     std::vector<midi_track_t> & GetTracks() { return _Tracks; }
 
+    const std::vector<uint8_t> & GetArtwork() const noexcept { return _Artwork; }
+    void SetArtwork(const std::vector<uint8_t> & artwork) noexcept { _Artwork = artwork; }
+
     void GetMetaData(size_t subSongIndex, midi_metadata_table_t & data);
 
     void SetExtraPercussionChannel(uint32_t channelNumber) noexcept { _ExtraPercussionChannel = channelNumber; }
@@ -404,4 +407,5 @@ private:
     std::vector<uint32_t> _EndTimestamps;
 
     std::vector<range_t> _Loop;
+    std::vector<uint8_t> _Artwork;
 };

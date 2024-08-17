@@ -1,9 +1,28 @@
 ﻿
-/** $VER: Encoding.cpp (2024.05.18) P. Stuer **/
+/** $VER: Encoding.cpp (2024.08.17) P. Stuer **/
 
 #include "framework.h"
 
 #include "Encoding.h"
+
+#include <map>
+
+static const std::map<const std::string, uint32_t> EncodingToCodePage
+{
+    { "shift-jis",        932 },    // Shift-JIS
+
+    { "utf-8",          65001 },    // UTF-8
+
+    { "windows-1250",    1250 },    // Central Europe
+    { "windows-1251",    1251 },    // Cyrillic
+    { "windows-1252",    1252 },    // Western
+    { "windows-1253",    1253 },    // Greek
+    { "windows-1254",    1254 },    // Turkish
+    { "windows-1255",    1255 },    // Hebrew
+    { "windows-1256",    1256 },    // Arabic
+    { "windows-1257",    1257 },    // Baltic
+    { "windows-1258",    1258 },    // Vietnamese
+};
 
 /// <summary>
 /// Converts an UTF-16 string of UTF-8.
@@ -268,6 +287,29 @@ std::string TextToUTF8(const char * text, size_t size)
         return CodePageToUTF8(20932, text, size);
 
     return CodePageToUTF8(51932, text, size);
+}
+
+/// <summary>
+/// Gets the matching Windows code page for the specfied encoding.
+/// </summary>
+bool GetCodePageFromEncoding(const std::string & encoding, uint32_t & codePage) noexcept
+{
+    std::string Key;
+
+    Key.resize(encoding.size());
+
+    std::transform(encoding.begin(), encoding.end(), Key.begin(), ::tolower);
+
+    bool x = EncodingToCodePage.contains(Key);
+
+    auto Item = EncodingToCodePage.find(Key);
+
+    if (Item == EncodingToCodePage.end())
+        return false;
+
+    codePage = Item->second;
+
+    return true;
 }
 
 #ifdef _DEBUG
