@@ -6,6 +6,31 @@
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
+static const char * RIFFToTagMap[][2] =
+{
+    { "IALB", "album" },
+    { "IARL", "archival_location" },
+    { "IART", "artist" },
+    { "ITRK", "tracknumber" },
+    { "ICMS", "commissioned" },
+    { "ICMP", "composer" },
+    { "ICMT", "comment" },
+    { "ICOP", "copyright" },
+    { "ICRD", "creation_date" },
+    { "IENC", "encoding" },
+    { "IENG", "engineer" },
+    { "IGNR", "genre" },
+    { "IKEY", "keywords" },
+    { "IMED", "medium" },
+    { "INAM", "title" },
+    { "IPRD", "product" },
+    { "ISBJ", "subject" },
+    { "ISFT", "software" },
+    { "ISRC", "source" },
+    { "ISRF", "source_form" },
+    { "ITCH", "technician" }
+};
+
 static inline uint32_t toInt32LE(const uint8_t * data)
 {
     return static_cast<uint32_t>(data[0]) | static_cast<uint32_t>(data[1] << 8) | static_cast<uint32_t>(data[2] << 16) | static_cast<uint32_t>(data[3] << 24);
@@ -15,6 +40,8 @@ static inline uint32_t toInt32LE(std::vector<uint8_t>::const_iterator data)
 {
     return static_cast<uint32_t>(data[0]) | static_cast<uint32_t>(data[1] << 8) | static_cast<uint32_t>(data[2] << 16) | static_cast<uint32_t>(data[3] << 24);
 }
+
+static bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept;
 
 bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
 {
@@ -43,75 +70,6 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
 
     return IsSMF(Data);
 }
-/*
-bool MIDIProcessor::GetTrackCountFromRIFF(std::vector<uint8_t> const & data, size_t & trackCount)
-{
-    trackCount = 0;
-
-    uint32_t Size = (uint32_t)(data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
-
-    auto it = data.begin() + 12;
-
-    auto body_end = data.begin() + 8 + Size;
-
-    std::vector<uint8_t> extra_buffer;
-
-    while (it != body_end)
-    {
-        if (body_end - it < 8)
-            return false;
-
-        uint32_t ChunkSize = (uint32_t)(it[4] | (it[5] << 8) | (it[6] << 16) | (it[7] << 24));
-
-        if ((uint32_t) (body_end - it) < ChunkSize)
-            return false;
-
-        if (::memcmp(&it[0], "data", 4) == 0)
-        {
-            std::vector<uint8_t> Data;
-
-            Data.assign(it + 8, it + 8 + ChunkSize);
-
-            return GetTrackCount(Data, trackCount);
-        }
-        else
-        {
-            it += ChunkSize;
-
-            if (ChunkSize & 1 && it != body_end)
-                ++it;
-        }
-    }
-
-    return false;
-}
-*/
-static const char * RIFFToTagMap[][2] =
-{
-    { "IALB", "album" },
-    { "IARL", "archival_location" },
-    { "IART", "artist" },
-    { "ITRK", "tracknumber" },
-    { "ICMS", "commissioned" },
-    { "ICMP", "composer" },
-    { "ICMT", "comment" },
-    { "ICOP", "copyright" },
-    { "ICRD", "creation_date" },
-    { "IENC", "encoding" },
-    { "IENG", "engineer" },
-    { "IGNR", "genre" },
-    { "IKEY", "keywords" },
-    { "IMED", "medium" },
-    { "INAM", "title" },
-    { "IPRD", "product" },
-    { "ISBJ", "subject" },
-    { "ISFT", "software" },
-    { "ISRC", "source" },
-    { "ISRF", "source_form" },
-    { "ITCH", "technician" }
-};
-
-static bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept;
 
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
@@ -268,13 +226,13 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                 ++it;
         }
         else
-        // Is it a "RIFF" chunk? According to the standard this should not be possible it is how embedded SoundFonts are implemented... Sloppy programming...
+        // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded SoundFonts are implemented... Sloppy programming...
         if (::memcmp(&it[0], "RIFF", 4) == 0)
         {
             auto ChunkTail = it + (int) (8 + ChunkSize);
 
             // Is it a "sfbk" chunk?
-            if (::memcmp(&it[8], "sfbk", 4) == 0)
+            if ((::memcmp(&it[8], "sfbk", 4) == 0) || (::memcmp(&it[8], "DLS ", 4) == 0))
             {
                 Temp.resize(8 + ChunkSize);
                 std::copy(it, it + (int) (8 + ChunkSize), Temp.begin());

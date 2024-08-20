@@ -312,6 +312,7 @@ void midi_container_t::AddTrack(const midi_track_t & track)
         }
     }
 
+    // Determine the file duration as the longest track in the file.
     if ((_Format != 2) && (EventIndex > 0) && (track[EventIndex - 1].Time > _EndTimestamps[0]))
     {
         _EndTimestamps[0] = track[EventIndex - 1].Time;

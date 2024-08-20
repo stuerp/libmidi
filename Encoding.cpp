@@ -300,8 +300,6 @@ bool GetCodePageFromEncoding(const std::string & encoding, uint32_t & codePage) 
 
     std::transform(encoding.begin(), encoding.end(), Key.begin(), ::tolower);
 
-    bool x = EncodingToCodePage.contains(Key);
-
     auto Item = EncodingToCodePage.find(Key);
 
     if (Item == EncodingToCodePage.end())

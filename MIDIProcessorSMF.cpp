@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorSMF.cpp (2024.05.19) Standard MIDI File **/
+/** $VER: MIDIProcessorSMF.cpp (2024.08.18) Standard MIDI File **/
 
 #include "framework.h"
 
@@ -91,7 +91,7 @@ bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_contai
 
             std::vector<uint8_t>::const_iterator ChunkTail = Data + (int) ChunkSize;
 
-            if (!ProcessSMFTrack(Data, ChunkTail, container, true))
+            if (!ProcessSMFTrack(Data, ChunkTail, container, false))
                 return false;
 
             Data = ChunkTail; // In case no all track data gets used.
@@ -130,6 +130,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
 
     for (;;)
     {
+        // Workaround for invalid SMF files that have tracks without an End of Track message.
         if (!trackNeedsEndMarker && (data == tail))
             break;
 
@@ -164,14 +165,15 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             if (SysExSize > 0)
             {
                 Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+
                 SysExSize = 0;
             }
 
             RunningStatus = StatusCode;
-
+/*
             if (!trackNeedsEndMarker && ((StatusCode & 0xF0) == StatusCodes::PitchBendChange))
                 continue;
-
+*/
             if (BytesRead == 0)
             {
                 if (data == tail)
