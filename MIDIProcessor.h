@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2024.08.10) **/
+/** $VER: MIDIProcessor.h (2024.08.20) **/
 
 #pragma once
 
@@ -22,6 +22,9 @@ struct midi_processor_options_t
 
     // HMI / HMP
     uint16_t _DefaultTempo = 160; // in bpm
+
+    // SMF
+    bool _IsEndOfTrackRequired = true;
 };
 
 const midi_processor_options_t DefaultOptions(0, false, false, true, false, false, true, 160);
@@ -56,7 +59,7 @@ private:
     static bool ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container);
     static bool ProcessSysEx(std::vector<uint8_t> const & data, midi_container_t & container);
 
-    static bool ProcessSMFTrack(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, midi_container_t & container, bool needs_end_marker);
+    static bool ProcessSMFTrack(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, midi_container_t & container);
     static int DecodeVariableLengthQuantity(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;
 
     static uint32_t DecodeVariableLengthQuantityHMP(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;

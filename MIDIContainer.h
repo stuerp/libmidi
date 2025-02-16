@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.08.17) **/
+/** $VER: MIDIContainer.h (2024.09.08) **/
 
 #pragma once
 
@@ -14,14 +14,14 @@ struct midi_event_t
 {
     enum event_type_t
     {
-        NoteOff = 0,        // x080
-        NoteOn,             // x090
-        KeyPressure,        // x0A0
-        ControlChange,      // x0B0
-        ProgramChange,      // x0C0
-        ChannelPressure,    // x0D0
-        PitchBendChange,    // x0E0
-        Extended            // x0F0
+        NoteOff = 0,        // 0x80
+        NoteOn,             // 0x90
+        KeyPressure,        // 0xA0
+        ControlChange,      // 0xB0
+        ProgramChange,      // 0xC0
+        ChannelPressure,    // 0xD0
+        PitchBendChange,    // 0xE0
+        Extended            // 0xF0
     };
 
     uint32_t Time;              // Absolute time
@@ -266,7 +266,7 @@ struct midi_item_t
 class midi_container_t
 {
 public:
-    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u)
+    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(-1) // See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
     {
         _DeviceNames.resize(16);
     }
@@ -313,6 +313,16 @@ public:
 
     const std::vector<uint8_t> & GetArtwork() const noexcept { return _Artwork; }
     void SetArtwork(const std::vector<uint8_t> & artwork) noexcept { _Artwork = artwork; }
+
+    int GetBankOffset() const noexcept
+    {
+        return _BankOffset;
+    }
+
+    void SetBankOffset(int bankOffset) noexcept
+    {
+        _BankOffset = bankOffset;
+    }
 
     void GetMetaData(size_t subSongIndex, midi_metadata_table_t & data);
 
@@ -392,6 +402,7 @@ private:
     uint32_t _Format;
     uint32_t _TimeDivision;
     uint32_t _ExtraPercussionChannel;
+    int _BankOffset;
 
     std::vector<uint64_t> _ChannelMask;
     std::vector<tempo_map_t> _TempoMaps;

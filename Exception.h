@@ -1,5 +1,5 @@
 
-/** $VER: Exception.h (2024.05.16) P. Stuer **/
+/** $VER: Exception.h (2024.08.20) P. Stuer **/
 
 #pragma once
 
@@ -9,10 +9,10 @@ std::string GetErrorMessage(DWORD errorCode, const std::string & errorMessage);
 
 #pragma warning(disable: 4820) // 'x' bytes padding added after data member 'y'
 
-class MIDIException : public std::runtime_error
+class midi_exception : public std::runtime_error
 {
 public:
-    MIDIException(const std::string & errorMessage) : std::runtime_error(errorMessage) { }
+    midi_exception(const std::string & errorMessage) : std::runtime_error(errorMessage) { }
 };
 
 class Win32Exception : public std::runtime_error

@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2024.08.11) P. Stuer **/
+/** $VER: Tracks.cpp (2024.08.23) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -18,8 +18,6 @@
 
 #include "Tables.h"
 #include "SysEx.h"
-
-uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index);
 
 /// <summary>
 /// Returns true of the input value is in the interval between min and max.
@@ -278,33 +276,6 @@ void ProcessProgramChange(const midi_event_t & me)
 }
 
 /// <summary>
-/// Processes all tracks.
-/// </summary>
-void ProcessTracks(const midi_container_t & container)
-{
-    const uint32_t SubsongIndex = 0;
-
-    uint32_t TrackIndex = 0;
-
-    for (const auto & Track : container)
-    {
-        uint32_t ChannelCount = container.GetChannelCount(SubsongIndex);
-        uint32_t Duration = container.GetDuration(SubsongIndex, false);
-        uint32_t DurationInMS = container.GetDuration(SubsongIndex, true);
-
-        ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
-
-        uint32_t Time = std::numeric_limits<uint32_t>::max();
-        size_t i = 0;
-
-        for (const auto & Event : Track)
-            Time = ProcessEvent(Event, Time, i++);
-
-        ++TrackIndex;
-    }
-}
-
-/// <summary>
 /// Processes MIDI events.
 /// </summary>
 uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
@@ -314,8 +285,8 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 
     if (event.Time!= time)
     {
-        ::_snprintf_s(TimeInTicks, _countof(TimeInTicks), "%8u",  event.Time);
-        ::_snprintf_s(TimeInMs, _countof(TimeInMs), "%8.2f", (double) event.Time / 1000.);
+        ::_snprintf_s(TimeInTicks, _countof(TimeInTicks), "%8u ticks",  event.Time);
+        ::_snprintf_s(TimeInMs, _countof(TimeInMs), "%8.2fs", (double) event.Time / 1000.);
     }
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
@@ -323,6 +294,8 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     ::printf("%8d %-8s %-8s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
 
     const int ByteCount = 16;
+
+    ::printf(" %02X", (event.Type + 8) << 4);
 
     int i = 1;
 
@@ -380,7 +353,7 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 
         case midi_event_t::event_type_t::PitchBendChange:
         {
-            ::printf("Pitch Bend Change             E0");
+            ::printf("Pitch Bend Change             Value %5d", 8192 - ((int) (event.Data[1] & 0x7F) << 7) | (event.Data[0] & 0x7F));
             break;
         }
 
@@ -415,4 +388,31 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     ::putchar('\n');
 
     return event.Time;
+}
+
+/// <summary>
+/// Processes all tracks.
+/// </summary>
+void ProcessTracks(const midi_container_t & container)
+{
+    const uint32_t SubsongIndex = 0;
+
+    uint32_t TrackIndex = 0;
+
+    for (const auto & Track : container)
+    {
+        uint32_t ChannelCount = container.GetChannelCount(SubsongIndex);
+        uint32_t Duration = container.GetDuration(SubsongIndex, false);
+        uint32_t DurationInMS = container.GetDuration(SubsongIndex, true);
+
+        ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
+
+        uint32_t Time = std::numeric_limits<uint32_t>::max();
+        size_t i = 0;
+
+        for (const auto & Event : Track)
+            Time = ProcessEvent(Event, Time, i++);
+
+        ++TrackIndex;
+    }
 }

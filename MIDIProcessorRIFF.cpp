@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRIFF.cpp (2024.08.17) **/
+/** $VER: MIDIProcessorRIFF.cpp (2024.09.08) **/
 
 #include "framework.h"
 
@@ -181,6 +181,13 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                         std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
 
                         container.SetArtwork(Temp);
+                    }
+                    else
+                    if ((ValueData == "DBNK") && (ValueSize == 2))
+                    {
+                        const uint8_t * Data = &it[8];
+
+                        container.SetBankOffset((Data[1] << 8) | Data[0]);
                     }
                     else
                     {

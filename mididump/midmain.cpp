@@ -49,8 +49,9 @@ int midmain(int argc, wchar_t * argv[])
         std::vector<uint8_t> Data = ReadFile(FilePath);
 
         midi_container_t Container;
+        midi_processor_options_t Options;
 
-        midi_processor_t::Process(Data, FilePath.c_str(), Container);
+        midi_processor_t::Process(Data, FilePath.c_str(), Container, Options);
 
         ProcessContainer(Container, false);
     }
