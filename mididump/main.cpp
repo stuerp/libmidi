@@ -1,5 +1,5 @@
 ﻿
-/** $VER: main.cpp (2024.08.11) P. Stuer **/
+/** $VER: main.cpp (2025.02.23) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -28,32 +28,37 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"()";
-const WCHAR * Filters[] = { L".mid", L".g36", L".rmi" };
+const WCHAR * Filters[] = { L".mid", L".g36", L".rmi", L".mxmf", L".xmf" };
 
-int wmain()
+int wmain(int argc, const wchar_t ** argv)
 {
     ::printf("\xEF\xBB\xBF"); // UTF-8 BOM
 
-    if (!::PathFileExistsW(Argument))
+    if (argc < 2)
     {
-        ::printf("Failed to access \"%s\": path does not exist.\n", WideToUTF8(Argument).c_str());
+        ::printf("Insufficient arguments.\n");
+        return -1;
+    }
+
+    if (!::PathFileExistsW(argv[1]))
+    {
+        ::printf("Failed to access \"%s\": path does not exist.\n", WideToUTF8(argv[1]).c_str());
         return -1;
     }
 
     WCHAR DirectoryPath[MAX_PATH];
 
-    if (::GetFullPathNameW(Argument, _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
+    if (::GetFullPathNameW(argv[1], _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
     {
-        ::printf("Failed to expand \"%s\": Error %u.\n", WideToUTF8(Argument).c_str(), (uint32_t) ::GetLastError());
+        ::printf("Failed to expand \"%s\": Error %u.\n", WideToUTF8(argv[1]).c_str(), (uint32_t) ::GetLastError());
         return -1;
     }
 
-    if (!::PathIsDirectoryW(Argument))
+    if (!::PathIsDirectoryW(argv[1]))
     {
         ::PathCchRemoveFileSpec(DirectoryPath, _countof(DirectoryPath));
 
-        ProcessDirectory(DirectoryPath, ::PathFindFileNameW(Argument));
+        ProcessDirectory(DirectoryPath, ::PathFindFileNameW(argv[1]));
     }
     else
         ProcessDirectory(DirectoryPath, L"*.*");

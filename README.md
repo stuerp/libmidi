@@ -28,6 +28,7 @@ v0.1.0.0, 2024-xx-xx
 ## Acknowledgements / Credits
 
 * [kode54](https://gitlab.com/kode54) for the original [midiprocessing]() library.
+* Jean-loup Gailly and Mark Adler for [zlib](http://www.zlib.net/).
 
 ## Reference Material
 

@@ -23,6 +23,7 @@
     <ClCompile Include="framework.cpp" />
     <ClCompile Include="Encoding.cpp" />
     <ClCompile Include="Exception.cpp" />
+    <ClCompile Include="MIDIProcessorXMF.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MIDIContainer.h" />

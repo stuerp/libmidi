@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2024.08.20) **/
+/** $VER: MIDIProcessor.h (2025.02.23) **/
 
 #pragma once
 
@@ -45,6 +45,7 @@ private:
     static bool IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension);
     static bool IsGMF(std::vector<uint8_t> const & data);
     static bool IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension);
+    static bool IsXMF(std::vector<uint8_t> const & data);
     static bool IsSysEx(std::vector<uint8_t> const & data);
 
     static bool ProcessSMF(std::vector<uint8_t> const & data, midi_container_t & container);
@@ -57,6 +58,7 @@ private:
     static bool ProcessLDS(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessGMF(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container);
+    static bool ProcessXMF(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessSysEx(std::vector<uint8_t> const & data, midi_container_t & container);
 
     static bool ProcessSMFTrack(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, midi_container_t & container);
@@ -67,6 +69,8 @@ private:
     static bool ReadStream(std::vector<uint8_t> const & data, iff_stream_t & stream);
     static bool ReadChunk(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, iff_chunk_t & chunk, bool isFirstChunk);
     static uint32_t DecodeVariableLengthQuantityXMI(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;
+
+    static bool ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container);
 
 private:
     static const uint8_t MIDIEventEndOfTrack[2];

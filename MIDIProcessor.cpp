@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2024.05.19) **/
+/** $VER: MIDIProcessor.cpp (2025.02.16) **/
 
 #include "framework.h"
 
@@ -54,6 +54,9 @@ bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t 
 
     if (IsRCP(data, FileExtension))
         return ProcessRCP(data, filePath, container);
+
+    if (IsXMF(data))
+        return ProcessXMF(data, container);
 
     if (IsSysEx(data))
         return ProcessSysEx(data, container);
