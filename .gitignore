@@ -400,3 +400,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 *.mid
+/mididump/Leadsol.mxmf
+/mididump/Leadsol.sf2
