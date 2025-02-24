@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2024.08.23) P. Stuer **/
+/** $VER: Tracks.cpp (2025.02.24) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -291,7 +291,7 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
 
-    ::printf("%8d %-8s %-8s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
+    ::printf("%8d %-14s %-9s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
 
     const int ByteCount = 16;
 
