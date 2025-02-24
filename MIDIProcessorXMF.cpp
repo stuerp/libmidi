@@ -46,6 +46,9 @@ enum FieldSpecifierID
     Autostart = 11,                 // Node Name of the FileNode containing the SMF image to autostart when the XMF file loads
     Preload = 12,                   // Used to pre-load specific SMF and DLS file images.
 
+    ContentDescription = 13,        // Used to characterize the set of resources needed to play an SMF file in the Mobile XMF document, (RP-42a, Mobile XMF Content Format Specification, December 2006)
+    ID3Metadata = 14,               // Contains a block of ID3v2.4.0 Metadata (RP-47, ID3 Metadata for XMF Files)
+
     Custom = -1,
 };
 
@@ -145,6 +148,8 @@ struct xmf_node_t
     size_t HeaderSize;  // Relative offset to the node contents (in bytes)
     size_t ItemCount;   // 0 for a FileNode, or count for a FolderNode
 
+    std::string Name;
+
     uint32_t XMFFileTypeID;
     uint32_t XMFFileTypeRevisionID;
 
@@ -158,7 +163,7 @@ struct xmf_node_t
 
 struct xmf_file_t
 {
-    std::string Version;
+    std::string XMFMetaFileVersion;
 
     uint32_t XMFFileTypeID;
     uint32_t XMFFileTypeRevisionID;
@@ -195,10 +200,11 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
     auto Data = Head + MagicSize;
 
     // Read the XMFMetaFileVersion which indicates the version of the XMF Meta-File Format Specification being used.
-    File.Version = std::string(Data, Data + 4);
+    File.XMFMetaFileVersion = std::string(Data, Data + 4);
     Data += 4;
 
-    if (std::atof(File.Version.c_str()) >= 2.0f)
+    // RP-043: XMF Meta File Format 2.0, September 2004
+    if (std::atof(File.XMFMetaFileVersion.c_str()) >= 2.0f)
     {
         // Read the XMFFileTypeID: XMF Type 2 file (Mobile XMF)
         File.XMFFileTypeID = (uint32_t ) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
@@ -234,7 +240,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 /// </summary>
 bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container)
 {
-    const std::vector<uint8_t>::const_iterator & HeaderHead = data;
+    const std::vector<uint8_t>::const_iterator HeaderHead = data;
 
     xmf_node_t Node = {};
 
@@ -247,9 +253,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
     // Read the metadata.
     {
-//      const std::vector<uint8_t>::const_iterator & MetaDataHead = data;
+//      const auto MetaDataHead = data;
         const size_t MetaDataSize = (size_t) DecodeVariableLengthQuantity(data, tail);
-        const std::vector<uint8_t>::const_iterator & MetaDataTail = data + (ptrdiff_t) MetaDataSize;
+        const auto MetaDataTail = data + (ptrdiff_t) MetaDataSize;
 
         while (data < MetaDataTail)
         {
@@ -284,18 +290,25 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                         MetadataItem.UniversalContentsData.assign(data, data + (ptrdiff_t) Size - 1);
                         data += (ptrdiff_t) Size - 1;
 
+                        // Interpret the universal content.
+                        auto Head = MetadataItem.UniversalContentsData.begin();
+                        auto Tail = MetadataItem.UniversalContentsData.end();
+
                         switch (MetadataItem.ID)
                         {
                             case FieldSpecifierID::XMFFileType:
                             {
-                                auto Data = MetadataItem.UniversalContentsData.begin();
-
-                                Node.XMFFileTypeID         = (uint32_t) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
-                                Node.XMFFileTypeRevisionID = (uint32_t) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
+                                Node.XMFFileTypeID         = (uint32_t) DecodeVariableLengthQuantity(Head, Tail);
+                                Node.XMFFileTypeRevisionID = (uint32_t) DecodeVariableLengthQuantity(Head, Tail);
                                 break;
                             }
 
                             case FieldSpecifierID::NodeName:
+                            {
+                                Node.Name = std::string(Head, Tail);
+                                break;
+                            }
+
                             case FieldSpecifierID::NodeIDNumber:
                             {
                                 break;
@@ -303,13 +316,11 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
                             case FieldSpecifierID::ResourceFormat:
                             {
-                                auto Data = MetadataItem.UniversalContentsData.begin();
-
-                                auto ResourceFormat = (ResourceFormatID) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
+                                auto ResourceFormat = (ResourceFormatID) DecodeVariableLengthQuantity(Head, MetadataItem.UniversalContentsData.end());
 
                                 if (ResourceFormat == ResourceFormatID::Standard)
                                 {
-                                    StandardResourceFormat = (StandardResourceFormatID) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
+                                    StandardResourceFormat = (StandardResourceFormatID) DecodeVariableLengthQuantity(Head, MetadataItem.UniversalContentsData.end());
                                 }
                                 else
                                     ; // Not yet supported.
@@ -337,6 +348,8 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                             case FieldSpecifierID::Comment:
                             case FieldSpecifierID::Autostart:
                             case FieldSpecifierID::Preload:
+                            case FieldSpecifierID::ContentDescription:
+                            case FieldSpecifierID::ID3Metadata:
 
                             case FieldSpecifierID::Custom:
                             {
@@ -371,9 +384,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
     // Read the unpackers.
     {
-//      const std::vector<uint8_t>::const_iterator & UnpackersHead = data;
+//      const auto UnpackersHead = data;
         const size_t UnpackersLength = (size_t) DecodeVariableLengthQuantity(data, tail);
-        const std::vector<uint8_t>::const_iterator & UnpackersTail = data + (ptrdiff_t) UnpackersLength;
+        const auto UnpackersTail = data + (ptrdiff_t) UnpackersLength;
 
         while (data < UnpackersTail)
         {
