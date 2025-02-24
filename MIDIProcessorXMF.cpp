@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMF.cpp (2025.02.23) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
+/** $VER: MIDIProcessorXMF.cpp (2025.02.24) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
 #include "framework.h"
 
@@ -25,7 +25,7 @@ enum StringFormatID
 
 enum FieldSpecifierID
 {
-    XmfFileType = 0,                // XMF File Type including the revision ID (only valid in the root node).
+    XMFFileType = 0,                // XMF File Type including the revision ID (only valid in the root node).
 
     NodeName = 1,                   // Node name, unique
     NodeIDNumber = 2,               // Node ID number
@@ -116,8 +116,8 @@ struct xmf_international_content_t
 
 struct xmf_metadata_item_t
 {
-    FieldSpecifierID FieldSpecifier;
-    std::string FieldSpecifierName;
+    FieldSpecifierID ID;
+    std::string Name;
 
     StringFormatID UniversalContentsFormat;
     std::vector<uint8_t> UniversalContentsData;
@@ -143,7 +143,10 @@ struct xmf_node_t
 {
     size_t Size;        // Size of the complete node (in bytes)
     size_t HeaderSize;  // Relative offset to the node contents (in bytes)
-    uint32_t ItemCount; // 0 for a FileNode, or count for a FolderNode
+    size_t ItemCount;   // 0 for a FileNode, or count for a FolderNode
+
+    uint32_t XMFFileTypeID;
+    uint32_t XMFFileTypeRevisionID;
 
     std::vector<xmf_metadata_item_t> MetaData;
     std::vector<xmf_unpacker_t> Unpackers;
@@ -151,6 +154,16 @@ struct xmf_node_t
     xmf_reference_type_t ReferenceType;
 
     std::vector<xmf_node_t> Children;
+};
+
+struct xmf_file_t
+{
+    std::string Version;
+
+    uint32_t XMFFileTypeID;
+    uint32_t XMFFileTypeRevisionID;
+
+    uint32_t Size;
 };
 
 const size_t MagicSize = 4;
@@ -174,27 +187,29 @@ bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data)
 /// </summary>
 bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
+    xmf_file_t File = { };
+
     auto Head = data.begin();
     auto Tail = data.end();
 
     auto Data = Head + MagicSize;
 
-    // Read the XmfMetaFileVersion which indicates the version of the XMF Meta-File Format Specification being used.
-    std::string FileVersion(Data, Data + 4);
+    // Read the XMFMetaFileVersion which indicates the version of the XMF Meta-File Format Specification being used.
+    File.Version = std::string(Data, Data + 4);
     Data += 4;
 
-    if (std::atof(FileVersion.c_str()) >= 2.0f)
+    if (std::atof(File.Version.c_str()) >= 2.0f)
     {
-        // Read the XmfFileTypeID: XMF Type 2 file (Mobile XMF)
-        const uint32_t FileTypeID = (uint32_t ) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
+        // Read the XMFFileTypeID: XMF Type 2 file (Mobile XMF)
+        File.XMFFileTypeID = (uint32_t ) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
         Data += 4;
 
-        // Read the XmfFileTypeRevisionID: Version 1 of Mobile XMF spec
-        const uint32_t FileTypeRevisionID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
+        // Read the XMFFileTypeRevisionID: Version 1 of Mobile XMF spec
+        File.XMFFileTypeRevisionID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
         Data += 4;
     }
 
-    const uint32_t FileSize = (uint32_t) DecodeVariableLengthQuantity(Data, Tail);
+    File.Size = (uint32_t) DecodeVariableLengthQuantity(Data, Tail);
 
     // Read the MetaDataTypesTable if present.
     const uint32_t TableSize = (uint32_t) DecodeVariableLengthQuantity(Data, Tail); // Total node length in bytes, including NodeContents
@@ -215,116 +230,68 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 }
 
 /// <summary>
-/// Inflates the zlib deflated data.
-/// </summary>
-int Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst)
-{
-    z_stream strm = { };
-
-    strm.total_in = strm.avail_in = src.size();
-    strm.next_in = (Bytef *) src.data();
-
-    strm.total_out = strm.avail_out = dst.size();
-    strm.next_out = (Bytef *) dst.data();
-
-    strm.zalloc = Z_NULL;
-    strm.zfree = Z_NULL;
-    strm.opaque = Z_NULL;
-
-    int ret = -1;
-
-    int err = ::inflateInit2(&strm, (15 + 32)); // Use 15 window bits. +32 tells zlib to to detect if using gzip or zlib.
-
-    if (err == Z_OK)
-    {
-        err = ::inflate(&strm, Z_FINISH);
-
-        if (err == Z_STREAM_END)
-        {
-            ret = strm.total_out;
-        }
-        else
-        {
-            ::inflateEnd(&strm);
-
-            return err;
-        }
-    }
-    else
-    {
-        ::inflateEnd(&strm);
-
-        return err;
-    }
-
-    ::inflateEnd(&strm);
-
-    return ret;
-}
-
-/// <summary>
 /// Processes a tree node.
 /// </summary>
 bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container)
 {
-    auto HeaderHead = data;
+    const std::vector<uint8_t>::const_iterator & HeaderHead = data;
 
     xmf_node_t Node = {};
 
     // Read the node header.
-    Node.Size = DecodeVariableLengthQuantity(data, tail);
-    Node.ItemCount = DecodeVariableLengthQuantity(data, tail);
-    Node.HeaderSize = DecodeVariableLengthQuantity(data, tail);
+    Node.Size = (size_t) DecodeVariableLengthQuantity(data, tail);
+    Node.ItemCount = (size_t) DecodeVariableLengthQuantity(data, tail);
+    Node.HeaderSize = (size_t) DecodeVariableLengthQuantity(data, tail);
 
     auto StandardResourceFormat = StandardResourceFormatID::InvalidStandardResourceFormat;
 
     // Read the metadata.
     {
-        auto MetaDataHead = data;
-        const size_t MetaDataSize = DecodeVariableLengthQuantity(data, tail);
-        auto MetaDataTail = data + MetaDataSize;
+//      const std::vector<uint8_t>::const_iterator & MetaDataHead = data;
+        const size_t MetaDataSize = (size_t) DecodeVariableLengthQuantity(data, tail);
+        const std::vector<uint8_t>::const_iterator & MetaDataTail = data + (ptrdiff_t) MetaDataSize;
 
         while (data < MetaDataTail)
         {
             xmf_metadata_item_t MetadataItem = {};
 
             {
-                const size_t Size = DecodeVariableLengthQuantity(data, tail);
+                const size_t Size = (size_t) DecodeVariableLengthQuantity(data, tail);
 
                 if (Size == 0)
                 {
-                    MetadataItem.FieldSpecifier = (FieldSpecifierID) DecodeVariableLengthQuantity(data, tail);
+                    MetadataItem.ID = (FieldSpecifierID) DecodeVariableLengthQuantity(data, tail);
                 }
                 else
                 {
-                    MetadataItem.FieldSpecifier = FieldSpecifierID::Custom;
-                    MetadataItem.FieldSpecifierName = std::string(data, data + Size);
-                    data += Size;
+                    MetadataItem.ID = FieldSpecifierID::Custom;
+                    MetadataItem.Name = std::string(data, data + (ptrdiff_t) Size);
+                    data += (ptrdiff_t) Size;
                 }
             }
 
             {
-                const size_t InternationalContentsCount = DecodeVariableLengthQuantity(data, tail);
+                const size_t InternationalContentsCount = (size_t) DecodeVariableLengthQuantity(data, tail);
 
                 if (InternationalContentsCount == 0)
                 {
                     // Get the universal content.
-                    const size_t Size = DecodeVariableLengthQuantity(data, tail);
+                    const size_t Size = (size_t) DecodeVariableLengthQuantity(data, tail);
 
                     if (Size > 0)
                     {
                         MetadataItem.UniversalContentsFormat = (StringFormatID) DecodeVariableLengthQuantity(data, tail);
-                        MetadataItem.UniversalContentsData.assign(data, data + Size - 1);
-                        data += Size - 1;
+                        MetadataItem.UniversalContentsData.assign(data, data + (ptrdiff_t) Size - 1);
+                        data += (ptrdiff_t) Size - 1;
 
-                        switch (MetadataItem.FieldSpecifier)
+                        switch (MetadataItem.ID)
                         {
-                            case FieldSpecifierID::XmfFileType:
+                            case FieldSpecifierID::XMFFileType:
                             {
                                 auto Data = MetadataItem.UniversalContentsData.begin();
 
-                                int FileTypeID = DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
-                                int RevisionID = DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
+                                Node.XMFFileTypeID         = (uint32_t) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
+                                Node.XMFFileTypeRevisionID = (uint32_t) DecodeVariableLengthQuantity(Data, MetadataItem.UniversalContentsData.end());
                                 break;
                             }
 
@@ -346,6 +313,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                                 }
                                 else
                                     ; // Not yet supported.
+                                break;
                             }
 
                             case FieldSpecifierID::FilenameOnDisk:
@@ -367,6 +335,10 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                             case FieldSpecifierID::Title:
                             case FieldSpecifierID::CopyrightNotice:
                             case FieldSpecifierID::Comment:
+                            case FieldSpecifierID::Autostart:
+                            case FieldSpecifierID::Preload:
+
+                            case FieldSpecifierID::Custom:
                             {
                                 break;
                             }
@@ -399,9 +371,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
     // Read the unpackers.
     {
-        auto UnpackersHead = data;
-        const size_t UnpackersLength = DecodeVariableLengthQuantity(data, tail);
-        auto UnpackersTail = data + UnpackersLength;
+//      const std::vector<uint8_t>::const_iterator & UnpackersHead = data;
+        const size_t UnpackersLength = (size_t) DecodeVariableLengthQuantity(data, tail);
+        const std::vector<uint8_t>::const_iterator & UnpackersTail = data + (ptrdiff_t) UnpackersLength;
 
         while (data < UnpackersTail)
         {
@@ -442,7 +414,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                     throw midi_exception("Unknown XMF unpacker");
             }
 
-            Unpacker.UnpackedSize = DecodeVariableLengthQuantity(data, tail);
+            Unpacker.UnpackedSize = (size_t) DecodeVariableLengthQuantity(data, tail);
 
             Node.Unpackers.push_back(Unpacker);
         }
@@ -450,7 +422,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
     // Read the reference type.
     {
-        data = HeaderHead + Node.HeaderSize;
+        data = HeaderHead + (ptrdiff_t) Node.HeaderSize;
 
         Node.ReferenceType.ID = (ReferenceTypeID) DecodeVariableLengthQuantity(data, tail);
 
@@ -458,7 +430,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
         {
             case ReferenceTypeID::InLineResource:
             {
-                Node.ReferenceType.Offset = data - head;
+                Node.ReferenceType.Offset = (size_t) (data - head);
                 break;
             }
 
@@ -466,8 +438,10 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
             case ReferenceTypeID::InFileNode:
             case ReferenceTypeID::ExternalResourceFile:
             case ReferenceTypeID::ExternalXMFResource:
+            case ReferenceTypeID::XMFFileURIandNodeID:
                 throw midi_exception("Unsupported XMF reference type");
 
+            case ReferenceTypeID::Invalid:
             default:
                 throw midi_exception("Unknown XMF reference type");
         }
@@ -488,7 +462,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case StandardResourceFormatID::StandardMidiFileType0:
                 case StandardResourceFormatID::StandardMidiFileType1:
                 {
-                    Data.assign(data, data + Size);
+                    Data.assign(data, data + (ptrdiff_t) Size);
 
                     if ((Node.Unpackers.size() > 0) && (Node.Unpackers[0].StandardUnpackerID == StandardUnpackerID::Zlib))
                     {
@@ -508,7 +482,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case StandardResourceFormatID::DownloadableSoundsLevel2_1:
                 case StandardResourceFormatID::MobileDownloadableSoundsInstrumentFile:
                 {
-                    Data.assign(data, data + Size);
+                    Data.assign(data, data + (ptrdiff_t) Size);
 
                     if ((Node.Unpackers.size() > 0) && (Node.Unpackers[0].StandardUnpackerID == StandardUnpackerID::Zlib))
                     {
@@ -523,11 +497,12 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                     break;
                 }
 
+                case StandardResourceFormatID::InvalidStandardResourceFormat:
                 default:
                     ; // Not yet supported.
             }
 
-            data += Size;
+            data += (ptrdiff_t) Size;
         }
         else
         {
@@ -537,7 +512,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case ReferenceTypeID::InLineResource:
                 case ReferenceTypeID::InFileResource:
                 {
-                    auto Data = head + Node.ReferenceType.Offset;
+                    auto Data = head + (ptrdiff_t) Node.ReferenceType.Offset;
 
                     for (size_t i = 0; i < Node.ItemCount; ++i)
                     {
@@ -546,6 +521,11 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                     break;
                 }
 
+                case ReferenceTypeID::InFileNode:
+                case ReferenceTypeID::ExternalResourceFile:
+                case ReferenceTypeID::ExternalXMFResource:
+                case ReferenceTypeID::XMFFileURIandNodeID:
+                case ReferenceTypeID::Invalid:
                 default:
                     throw midi_exception("Unsupported XMF reference type");
             }
@@ -553,4 +533,32 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
     }
 
     return true;
+}
+
+/// <summary>
+/// Inflates the zlib deflated data.
+/// </summary>
+int midi_processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
+{
+    z_stream Stream = { };
+
+    Stream.total_in = Stream.avail_in = (uInt) src.size();
+    Stream.next_in = (Bytef *) src.data();
+
+    Stream.total_out = Stream.avail_out = (uInt) dst.size();
+    Stream.next_out = (Bytef *) dst.data();
+
+    int Status = ::inflateInit2(&Stream, (15 + 32)); // Use 15 window bits. +32 tells zlib to to detect if using gzip or zlib.
+
+    if (Status == Z_OK)
+    {
+        Status = ::inflate(&Stream, Z_FINISH);
+
+        if (Status == Z_STREAM_END)
+            Status = Z_OK;
+    }
+
+    ::inflateEnd(&Stream);
+
+    return Status;
 }

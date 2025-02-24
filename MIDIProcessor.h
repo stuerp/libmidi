@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.02.23) **/
+/** $VER: MIDIProcessor.h (2025.02.24) **/
 
 #pragma once
 
@@ -71,6 +71,8 @@ private:
     static uint32_t DecodeVariableLengthQuantityXMI(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;
 
     static bool ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container);
+
+    static int Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept;
 
 private:
     static const uint8_t MIDIEventEndOfTrack[2];
