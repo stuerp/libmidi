@@ -6,6 +6,8 @@
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
+#undef WINAPI
+
 #include <zlib.h>
 
 enum StringFormatID

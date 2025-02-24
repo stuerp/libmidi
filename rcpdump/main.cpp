@@ -1,5 +1,5 @@
 ﻿
-/** $VER: main.cpp (2024.05.12) P. Stuer **/
+/** $VER: main.cpp (2025.02.24) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #include <Encoding.h>
 
@@ -109,7 +110,7 @@ static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPa
 
 static void ProcessFile(const WCHAR * filePath, uint64_t fileSize)
 {
-    ::printf("\n\"%s\", %zu bytes\n", WideToUTF8(filePath).c_str(), fileSize);
+    ::printf("\n\"%s\", %" PRIu64 " bytes\n", WideToUTF8(filePath).c_str(), fileSize);
 
     const WCHAR * FileExtension;
 
