@@ -195,6 +195,7 @@ bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data)
 bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     xmf_file_t File = { };
+    midi_metadata_table_t Metadata;
 
     auto Head = data.begin();
     auto Tail = data.end();
@@ -205,25 +206,37 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
     File.XMFMetaFileVersion = std::string(Data, Data + 4);
     Data += 4;
 
+    Metadata.AddItem(midi_metadata_item_t(0, "xmf_meta_file_version", File.XMFMetaFileVersion.c_str()));
+
     // RP-043: XMF Meta File Format 2.0, September 2004
     if (std::atof(File.XMFMetaFileVersion.c_str()) >= 2.0f)
     {
+        char s[16];;
+
         // Read the XMFFileTypeID: XMF Type 2 file (Mobile XMF)
-        File.XMFFileTypeID = (uint32_t ) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
+        File.XMFFileTypeID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
         Data += 4;
+
+        ::sprintf_s(s, _countof(s), "%d", File.XMFFileTypeID);
+
+        Metadata.AddItem(midi_metadata_item_t(0, "xmf_file_type", s));
 
         // Read the XMFFileTypeRevisionID: Version 1 of Mobile XMF spec
         File.XMFFileTypeRevisionID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
         Data += 4;
+
+        ::sprintf_s(s, _countof(s), "%d", File.XMFFileTypeRevisionID);
+
+        Metadata.AddItem(midi_metadata_item_t(0, "xmf_file_type_revision", s));
     }
 
     File.Size = (uint32_t) DecodeVariableLengthQuantity(Data, Tail);
 
-    // Read the MetaDataTypesTable if present.
+    // Read the MetadataTypesTable if present.
     const uint32_t TableSize = (uint32_t) DecodeVariableLengthQuantity(Data, Tail); // Total node length in bytes, including NodeContents
 
     if (TableSize != 0)
-        DebugBreak();
+        throw midi_exception("XMF MetadataTypesTable is not yet supported");
 
     const auto TreeStart = DecodeVariableLengthQuantity(Data, Tail);
 //  const auto TreeEnd   = DecodeVariableLengthQuantity(Data, Tail);
@@ -232,7 +245,9 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
     Data = data.begin() + TreeStart;
 
     // Read the tree.
-    ProcessNode(Head, Tail, Data, container);
+    ProcessNode(Head, Tail, Data, Metadata, container);
+
+    container.SetExtraMetaData(Metadata);
 
     return true;
 }
@@ -240,7 +255,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 /// <summary>
 /// Processes a tree node.
 /// </summary>
-bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container)
+bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_metadata_table_t & metadata, midi_container_t & container)
 {
     const std::vector<uint8_t>::const_iterator HeaderHead = data;
 
@@ -531,7 +546,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 
                     for (size_t i = 0; i < Node.ItemCount; ++i)
                     {
-                        ProcessNode(head, tail, Data, container);
+                        ProcessNode(head, tail, Data, metadata, container);
                     }
                     break;
                 }

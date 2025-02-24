@@ -70,7 +70,7 @@ private:
     static bool ReadChunk(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, iff_chunk_t & chunk, bool isFirstChunk);
     static uint32_t DecodeVariableLengthQuantityXMI(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;
 
-    static bool ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_container_t & container);
+    static bool ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_metadata_table_t & metaData, midi_container_t & container);
 
     static int Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept;
 
