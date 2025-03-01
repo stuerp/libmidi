@@ -293,9 +293,10 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 
     ::printf("%8d %-14s %-9s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
 
-    const int ByteCount = 16;
+    if (event.Type != midi_event_t::event_type_t::Extended)
+        ::printf(" %02X", (event.Type + 8) << 4);
 
-    ::printf(" %02X", (event.Type + 8) << 4);
+    const int ByteCount = 16;
 
     int i = 1;
 
@@ -309,6 +310,9 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
             break;
         }
     }
+
+    if (event.Type == midi_event_t::event_type_t::Extended)
+        ::printf("   ");
 
     ::printf("%*.s", std::max(0, (ByteCount - (int) event.Data.size()) * 3), "");
 
