@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2024.09.08) **/
+/** $VER: MIDIContainer.h (2025.03.02) **/
 
 #pragma once
 
@@ -266,7 +266,7 @@ struct midi_item_t
 class midi_container_t
 {
 public:
-    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(-1) // See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
+    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(1) // See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
     {
         _DeviceNames.resize(16);
     }
