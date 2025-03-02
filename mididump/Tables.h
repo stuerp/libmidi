@@ -1,5 +1,5 @@
 
-/** $VER: Tables.h (2025.03.01) P. Stuer **/
+/** $VER: Tables.h (2025.03.02) P. Stuer **/
 
 #pragma once
 
@@ -251,18 +251,18 @@ struct control_change_description_t
 
 const control_change_description_t ControlChangeMessages[] =
 {
-    {   0, L"Bank Select, MSB" },
-    {   1, L"Modulation Wheel or Lever, MSB" },
-    {   2, L"Breath Controller, MSB" },
+    {   0, L"Bank Select, MSB" },                       // Switches instrument banks for program selection.
+    {   1, L"Modulation Wheel or Lever, MSB" },         // controls a vibrato effect (pitch, loudness, brighness). What is modulated depends on the program.
+    {   2, L"Breath Controller, MSB" },                 // Often used with aftertouch messages. It was originally intended for use with a breath MIDI controller in which blowing harder produced higher MIDI control values. It can be used for modulation as well.
     {   3, L"Undefined" },
-    {   4, L"Foot Controller, MSB" },
-    {   5, L"Portamento Time, MSB" },
-    {   6, L"Data Entry, MSB" },
-    {   7, L"Channel Volume, MSB" },
-    {   8, L"Balance, MSB" },
+    {   4, L"Foot Controller, MSB" },                   // Often used with aftertouch messages. It can send a continuous stream of values based on how the pedal is used.
+    {   5, L"Portamento Time, MSB" },                   // Controls portamento rate between 2 notes played after each other.
+    {   6, L"Data Entry, MSB" },                        // Enters a value for NRPN or RPN parameters.
+    {   7, L"Channel Volume, MSB" },                    // Sets the volume of the channel.
+    {   8, L"Balance, MSB" },                           // Sets the left/right balance, usually for stereo patches. (0 = hard left, 64 = center, 127 = hard right)
     {   9, L"Undefined" },
-    {  10, L"Pan, MSB" },
-    {  11, L"Expression Controller, MSB" },
+    {  10, L"Pan, MSB" },                               // Sets the left/right balance, usually for mono patches. (0 = hard left, 64 = center, 127 = hard right)
+    {  11, L"Expression Controller, MSB" },             // Expression is a percentage of the channel volume.
     {  12, L"Effect Control 1, MSB" },
     {  13, L"Effect Control 2, MSB" },
     {  14, L"Undefined" },
@@ -319,12 +319,12 @@ const control_change_description_t ControlChangeMessages[] =
     {  62, L"Undefined" },
     {  63, L"Undefined" },
 
-    {  64, L"Damper Pedal On/Off (Sustain)" },
-    {  65, L"Portamento On/Off" },
-    {  66, L"Sostenuto On/Off" },
-    {  67, L"Soft Pedal On/Off" },
-    {  68, L"Legato Footswitch" },
-    {  69, L"Hold 2" },
+    {  64, L"Damper Pedal On/Off (Sustain)" },                              // On/Off switch to control sustain. See also Sostenuto CC 66. (0 to 63 = Off, 64 to 127 = On)
+    {  65, L"Portamento On/Off" },                                          // On/Off switch (0 to 63 = Off, 64 to 127 = On)
+    {  66, L"Sostenuto On/Off" },                                           // On/Off switch to hold only notes that were “On” when the pedal was pressed. (0 to 63 = Off, 64 to 127 = On)
+    {  67, L"Soft Pedal On/Off" },                                          // On/Off switch to lower the volume of playing note. (0 to 63 = Off, 64 to 127 = On)
+    {  68, L"Legato Footswitch" },                                          // On/Off switch to turn legato effect between 2 notes On or Off. (0 to 63 = Off, 64 to 127 = On)
+    {  69, L"Hold 2" },                                                     // Another way to “hold notes” (see MIDI CC 64 and MIDI CC 66). However notes fade out according to their release parameter rather than when the pedal is released.
 
     {  70, L"Sound Controller 1 (default: Sound Variation), LSB" },
     {  71, L"Sound Controller 2 (default: Timbre/Harmonic Intens.), LSB" },
@@ -342,31 +342,31 @@ const control_change_description_t ControlChangeMessages[] =
     {  82, L"General Purpose Controller 7, LSB" },
     {  83, L"General Purpose Controller 8, LSB" },
 
-    {  84, L"Portamento Control, LSB" },
+    {  84, L"Portamento Control, LSB" },                                    // Controls the amount of portamento.
 
     {  85, L"Undefined" },
     {  86, L"Undefined" },
     {  87, L"Undefined" },
 
-    {  88, L"High Resolution Velocity Prefix, LSB" },
+    {  88, L"High Resolution Velocity Prefix, LSB" },                       // Extends the range of values to increase precision.
 
     {  89, L"Undefined" },
     {  90, L"Undefined" },
 
-    {  91, L"Effects 1 Depth" },
-    {  92, L"Effects 2 Depth" },
-    {  93, L"Effects 3 Depth" },
-    {  94, L"Effects 4 Depth" },
-    {  95, L"Effects 5 Depth" },
+    {  91, L"Effects 1 Depth" },                                            // Usually sets the reverb send value.
+    {  92, L"Effects 2 Depth" },                                            // Usually sets the tremolo value.
+    {  93, L"Effects 3 Depth" },                                            // Usually sets the chorus value.
+    {  94, L"Effects 4 Depth" },                                            // Usually sets the detune value.
+    {  95, L"Effects 5 Depth" },                                            // Usually sets the phaser value.
 
     {  96, L"Data Increment (Data Entry +1)" },
     {  97, L"Data Decrement (Data Entry -1)" },
 
-    {  98, L"Non-Registered Parameter Number (NRPN), LSB" },
-    {  99, L"Non-Registered Parameter Number (NRPN), MSB" },
+    {  98, L"Non-Registered Parameter Number (NRPN), LSB" },                // Selects the NRPN parameter for controller 6, 38, 96 and 97.
+    {  99, L"Non-Registered Parameter Number (NRPN), MSB" },                // Selects the NRPN parameter for controller 6, 38, 96 and 97.
 
-    { 100, L"Registered Parameter Number (RPN), LSB" },
-    { 101, L"Registered Parameter Number (RPN), MSB" },
+    { 100, L"Select Registered Parameter Number (RPN), LSB" },              // Selects the RPN parameter for controller 6, 38, 96 and 97.
+    { 101, L"Select Registered Parameter Number (RPN), MSB" },              // Selects the RPN parameter for controller 6, 38, 96 and 97.
 
     { 102, L"Undefined" },
     { 103, L"Undefined" },

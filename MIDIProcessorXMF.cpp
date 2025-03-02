@@ -134,6 +134,8 @@ struct xmf_unpacker_t
 {
     UnpackerID ID;
     StandardUnpackerID StandardUnpackerID;
+    int ManufacturerID;
+    int InternalUnpackerID;
     size_t UnpackedSize;
 };
 
@@ -161,6 +163,8 @@ struct xmf_node_t
     xmf_reference_type_t ReferenceType;
 
     std::vector<xmf_node_t> Children;
+
+    std::vector<uint8_t> Unpack(const std::vector<uint8_t> & data);
 };
 
 struct xmf_file_t
@@ -429,9 +433,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                         ManufacturerID <<= 8; ManufacturerID |= *data++;
                     }
 
-                    int InternalUnpackerID = DecodeVariableLengthQuantity(data, tail);
-
-                    throw midi_exception(FormatText("Unknown unpacker 0x%02X from MMA manufacturer 0x%06X", InternalUnpackerID, ManufacturerID));
+                    Unpacker.ManufacturerID     = ManufacturerID;
+                    Unpacker.InternalUnpackerID = DecodeVariableLengthQuantity(data, tail);
+                    break;
                 }
 
                 case UnpackerID::RegisteredUnpacker:
@@ -484,7 +488,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
             // File node
             size_t Size = Node.Size - Node.HeaderSize - 1;
 
-            std::vector<uint8_t> Data;
+            std::vector<uint8_t> Data(data, data + (ptrdiff_t) Size);
             std::vector<uint8_t> UnpackedData;
 
             switch (StandardResourceFormat)
@@ -492,18 +496,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case StandardResourceFormatID::StandardMidiFileType0:
                 case StandardResourceFormatID::StandardMidiFileType1:
                 {
-                    Data.assign(data, data + (ptrdiff_t) Size);
+                    UnpackedData = Node.Unpack(Data);
 
-                    if ((Node.Unpackers.size() > 0) && (Node.Unpackers[0].StandardUnpackerID == StandardUnpackerID::Zlib))
-                    {
-                        UnpackedData.resize(Node.Unpackers[0].UnpackedSize);
-
-                        Inflate(Data, UnpackedData);
-
-                        ProcessSMF(UnpackedData, container);
-                    }
-                    else
-                        ProcessSMF(Data, container);
+                    ProcessSMF(UnpackedData, container);
                     break;
                 }
 
@@ -512,18 +507,9 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case StandardResourceFormatID::DownloadableSoundsLevel2_1:
                 case StandardResourceFormatID::MobileDownloadableSoundsInstrumentFile:
                 {
-                    Data.assign(data, data + (ptrdiff_t) Size);
+                    UnpackedData = Node.Unpack(Data);
 
-                    if ((Node.Unpackers.size() > 0) && (Node.Unpackers[0].StandardUnpackerID == StandardUnpackerID::Zlib))
-                    {
-                        UnpackedData.resize(Node.Unpackers[0].UnpackedSize);
-
-                        Inflate(Data, UnpackedData);
-
-                        container.SetSoundFontData(UnpackedData);
-                    }
-                    else
-                        container.SetSoundFontData(Data);
+                    container.SetSoundFontData(UnpackedData);
                     break;
                 }
 
@@ -566,7 +552,40 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
 }
 
 /// <summary>
-/// Inflates the zlib deflated data.
+/// Unpackes the specified data, if necessary.
+/// </summary>
+std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
+{
+    if (Unpackers.size() == 0)
+        return data;
+
+    const auto & Unpacker = Unpackers[0];
+    std::vector<uint8_t> UnpackedData;
+
+    if (Unpacker.StandardUnpackerID == StandardUnpackerID::Zlib)
+    {
+        UnpackedData.resize(Unpacker.UnpackedSize);
+
+        midi_processor_t::Inflate(data, UnpackedData);
+    }
+    else
+    if (Unpacker.InternalUnpackerID != 0)
+    {
+        if ((data.size() > 2) && (data[0] == 0x78) && (data[1] == 0xDA))
+        {
+            UnpackedData.resize(Unpacker.UnpackedSize);
+
+            midi_processor_t::InflateRaw(data, UnpackedData);
+        }
+        else
+            throw midi_exception(FormatText("Unknown unpacker 0x%02X from MMA manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
+    }
+
+    return UnpackedData;
+}
+
+/// <summary>
+/// Inflates a zlib deflated data stream.
 /// </summary>
 int midi_processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
 {
@@ -578,11 +597,39 @@ int midi_processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint
     Stream.total_out = Stream.avail_out = (uInt) dst.size();
     Stream.next_out = (Bytef *) dst.data();
 
-    int Status = ::inflateInit2(&Stream, (15 + 32)); // Use 15 window bits. +32 tells zlib to to detect if using gzip or zlib.
+    int Status = ::inflateInit2(&Stream, MAX_WBITS);
 
     if (Status == Z_OK)
     {
         Status = ::inflate(&Stream, Z_FINISH);
+
+        if (Status == Z_STREAM_END)
+            Status = Z_OK;
+    }
+
+    ::inflateEnd(&Stream);
+
+    return Status;
+}
+
+/// <summary>
+/// Inflates a raw deflated data stream.
+/// </summary>
+int midi_processor_t::InflateRaw(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
+{
+    z_stream Stream = { };
+
+    Stream.avail_in = (uInt) src.size();
+    Stream.next_in = (Bytef *) src.data();
+
+    Stream.avail_out = (uInt) dst.size();
+    Stream.next_out = (Bytef *) dst.data();
+
+    int Status = ::inflateInit(&Stream);
+
+    if (Status == Z_OK)
+    {
+        Status = ::inflate(&Stream, Z_NO_FLUSH);
 
         if (Status == Z_STREAM_END)
             Status = Z_OK;

@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2025.02.24) P. Stuer **/
+/** $VER: Tracks.cpp (2025.03.02) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -173,26 +173,47 @@ void ProcessControlChange(const midi_event_t & me)
 
     switch (me.Data[0])
     {
-        case 0x00: ::printf(" Bank Select MSB %02X", Value); break; // Allows user to switch bank for patch selection. Program change used with Bank Select. MIDI can access 16,384 patches per MIDI channel
-
-        case 0x06: ::printf(" Data Entry MSB %02X", Value); break; // Controls Value for NRPN or RPN parameters.
-        case 0x26: ::printf(" Data Entry LSB %02X", Value); break; // Controls Value for NRPN or RPN parameters.
-
-        case 0x01: ::printf(" Modulation Depth %d", Value); break; // Generally this CC controls a vibrato effect (pitch, loudness, brighness). What is modulated is based on the patch.
-        case 0x02: ::printf(" Breath Controller %d", Value); break; // Often times associated with aftertouch messages. It was originally intended for use with a breath MIDI controller in which blowing harder produced higher MIDI control values. It can be used for modulation as well.
+        case 0x00: ::printf(" Bank Select (MSB) %02X", Value); break; // Allows user to switch bank for patch selection. Program change used with Bank Select. MIDI can access 16,384 patches per MIDI channel
+        case 0x01: ::printf(" Modulation Depth (MSB) %d", Value); break; // Generally this CC controls a vibrato effect (pitch, loudness, brighness). What is modulated is based on the patch.
+        case 0x02: ::printf(" Breath Controller (MSB) %d", Value); break; // Often times associated with aftertouch messages. It was originally intended for use with a breath MIDI controller in which blowing harder produced higher MIDI control values. It can be used for modulation as well.
         case 0x03: ::printf(" Undefined"); break;
-        case 0x04: ::printf(" Foot Controller %d", Value); break; // Often used with aftertouch messages. It can send a continuous stream of values based on how the pedal is used.
-        case 0x05: ::printf(" Portamento Time %d", Value); break; // Controls portamento rate to slide between 2 notes played subsequently.
-
-        case 0x07: ::printf(" Channel Volume %d", Value); break; // Control the volume of the channel
-        case 0x08: ::printf(" Balance %d", Value); break; // Controls the left and right balance, generally for stereo patches. 0 = hard left, 64 = center, 127 = hard right.
+        case 0x04: ::printf(" Foot Controller (MSB) %d", Value); break; // Often used with aftertouch messages. It can send a continuous stream of values based on how the pedal is used.
+        case 0x05: ::printf(" Portamento Time (MSB) %d", Value); break; // Controls portamento rate to slide between 2 notes played subsequently.
+        case 0x06: ::printf(" Data Entry (MSB) %02X", Value); break; // Sets the Value for NRPN or RPN parameters.
+        case 0x07: ::printf(" Channel Volume (MSB) %d", Value); break; // Control the volume of the channel
+        case 0x08: ::printf(" Balance (MSB) %d", Value); break; // Controls the left and right balance, generally for stereo patches. 0 = hard left, 64 = center, 127 = hard right.
         case 0x09: ::printf(" Undefined"); break;
-        case 0x0A: ::printf(" Pan %d", Value); break; // Controls the left and right balance, generally for mono patches. 0 = hard left, 64 = center, 127 = hard right.
-        case 0x0B: ::printf(" Expression %d", Value); break; // Expression is a percentage of volume (CC7).
-        case 0x0C: ::printf(" Effect Controller 1 %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
-        case 0x0D: ::printf(" Effect Controller 2 %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+        case 0x0A: ::printf(" Pan (MSB) %d", Value); break; // Controls the left and right balance, generally for mono patches. 0 = hard left, 64 = center, 127 = hard right.
+        case 0x0B: ::printf(" Expression (MSB) %d", Value); break; // Expression is a percentage of volume (CC7).
+        case 0x0C: ::printf(" Effect Controller 1 (MSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+        case 0x0D: ::printf(" Effect Controller 2 (MSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
         case 0x0E: ::printf(" Undefined"); break;
         case 0x0F: ::printf(" Undefined"); break;
+        case 0x10: ::printf(" General Purpose Controller 1 (MSB)"); break;
+        case 0x11: ::printf(" General Purpose Controller 2 (MSB)"); break;
+        case 0x12: ::printf(" General Purpose Controller 3 (MSB)"); break;
+        case 0x13: ::printf(" General Purpose Controller 4 (MSB)"); break;
+
+        case 0x20: ::printf(" Bank Select (LSB) %02X", Value); break; // Allows user to switch bank for patch selection. Program change used with Bank Select. MIDI can access 16,384 patches per MIDI channel
+        case 0x21: ::printf(" Modulation Depth (LSB) %d", Value); break; // Generally this CC controls a vibrato effect (pitch, loudness, brighness). What is modulated is based on the patch.
+        case 0x22: ::printf(" Breath Controller (LSB) %d", Value); break; // Often times associated with aftertouch messages. It was originally intended for use with a breath MIDI controller in which blowing harder produced higher MIDI control values. It can be used for modulation as well.
+        case 0x23: ::printf(" Undefined"); break;
+        case 0x24: ::printf(" Foot Controller (LSB) %d", Value); break; // Often used with aftertouch messages. It can send a continuous stream of values based on how the pedal is used.
+        case 0x25: ::printf(" Portamento Time (LSB) %d", Value); break; // Controls portamento rate to slide between 2 notes played subsequently.
+        case 0x26: ::printf(" Data Entry (LSB) %02X", Value); break; // Sets the Value for NRPN or RPN parameters.
+        case 0x27: ::printf(" Channel Volume (LSB) %d", Value); break; // Control the volume of the channel
+        case 0x28: ::printf(" Balance (LSB) %d", Value); break; // Controls the left and right balance, generally for stereo patches. 0 = hard left, 64 = center, 127 = hard right.
+        case 0x29: ::printf(" Undefined"); break;
+        case 0x2A: ::printf(" Pan (LSB) %d", Value); break; // Controls the left and right balance, generally for mono patches. 0 = hard left, 64 = center, 127 = hard right.
+        case 0x2B: ::printf(" Expression (LSB) %d", Value); break; // Expression is a percentage of volume (CC7).
+        case 0x2C: ::printf(" Effect Controller 1 (LSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+        case 0x2D: ::printf(" Effect Controller 2 (LSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+        case 0x2E: ::printf(" Undefined"); break;
+        case 0x2F: ::printf(" Undefined"); break;
+        case 0x30: ::printf(" General Purpose Controller 1 (LSB)"); break;
+        case 0x31: ::printf(" General Purpose Controller 2 (LSB)"); break;
+        case 0x32: ::printf(" General Purpose Controller 3 (LSB)"); break;
+        case 0x33: ::printf(" General Purpose Controller 4 (LSB)"); break;
 
         case 0x40: ::printf(" Damper Pedal / Sustain Pedal %s", (Value < 64 ? "off" : "on")); break; // On/Off switch that controls sustain. (See also Sostenuto CC 66) 0 to 63 = Off, 64 to 127 = On
         case 0x41: ::printf(" Portamento %s", (Value < 64 ? "off" : "on")); break; // On/Off switch 0 to 63 = Off, 64 to 127 = On
@@ -225,6 +246,15 @@ void ProcessControlChange(const midi_event_t & me)
         case 0x5E: ::printf(" Effect 4 Depth (Detune) Send Level %d", Value); break;
         case 0x5F: ::printf(" Effect 5 Depth (Phaser) Send Level %d", Value); break;
 
+        case 0x60: ::printf(" Data Increment"); break;
+        case 0x61: ::printf(" Data Decrement"); break;
+
+        case 0x62: ::printf(" Select NRPN parameter (LSB) %d", Value); break;
+        case 0x63: ::printf(" Select NRPN parameter (MSB) %d", Value); break;
+
+        case 0x64: ::printf(" Select RPN parameter (LSB) %d", Value); break;
+        case 0x65: ::printf(" Select RPN parameter (MSB) %d", Value); break;
+
         case 0x6E: ::printf(" LeapFrog Start of Loop marker (%02X %02X)", (int) me.Data[0], Value); break;
         case 0x6F: ::printf(" LeapFrog End of Loop marker (%02X %02X)", (int) me.Data[0], Value); break;
 
@@ -239,14 +269,8 @@ void ProcessControlChange(const midi_event_t & me)
         case 0x7F: ::printf(" Poly On (Mono Off)"); break; // Sets device mode to Polyphonic. [Channel Mode Message] Poly Mode On (+ mono off, +all notes off).
 
         default:
-            if (InRange((int) me.Data[0], 16, 19))
-                ::printf(" General Purpose CC %d", me.Data[0]);
-            else
             if (InRange((int) me.Data[0], 20, 31))
                 ::printf(" Undefined");
-            else
-            if (InRange((int) me.Data[0], 32, 63))
-                ::printf(" Bank Select LSB %02X", Value);
             else
             if (InRange((int) me.Data[0], 85, 87))
                 ::printf(" Undefined");
