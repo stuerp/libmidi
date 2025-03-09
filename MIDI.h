@@ -1,5 +1,5 @@
 
-/** $VER: MIDI.h (2024.08.11) **/
+/** $VER: MIDI.h (2025.03.09) **/
 
 #pragma once
 
@@ -33,9 +33,9 @@ enum StatusCodes
 
 enum ControlChangeNumbers
 {
-    BankSelect = 0x00,
+    BankSelect    = 0x00,
 
-    LSB = 0x20,                 // LSB for Control Changes 0 to 31
+    BankSelectLSB = 0x20,   // LSB for Control Changes 0 to 31
 };
 
 enum ChannelModeMessages

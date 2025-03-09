@@ -1327,7 +1327,7 @@ void midi_container_t::SplitByInstrumentChanges(SplitCallback callback)
         {
             const midi_event_t & Event = SrcTrack[k];
 
-            if ((Event.Type == midi_event_t::ProgramChange) || ((Event.Type == midi_event_t::ControlChange) && (Event.Data[0] == ControlChangeNumbers::BankSelect || Event.Data[0] == ControlChangeNumbers::LSB)))
+            if ((Event.Type == midi_event_t::ProgramChange) || ((Event.Type == midi_event_t::ControlChange) && (Event.Data[0] == ControlChangeNumbers::BankSelect || Event.Data[0] == ControlChangeNumbers::BankSelectLSB)))
             {
                 ProgramChangeTrack.AddEvent(Event);
             }
