@@ -84,7 +84,7 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
             uint32_t Duration = Container.GetDuration(SubsongIndex, false);
             uint32_t DurationInMS = Container.GetDuration(SubsongIndex, true);
 
-            ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", i, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
+            ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", i + 1, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
 
             midi_metadata_table_t MetaData;
 

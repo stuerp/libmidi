@@ -45,49 +45,49 @@ void ProcessMetaData(const midi_event_t & me)
 
         case MetaDataTypes::Text:
         {
-            ::printf(" Text \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Text \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::Copyright:
         {
-            ::printf(" Copyright \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Copyright \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::TrackName:
         {
-            ::printf(" Track Name \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Track Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::InstrumentName:
         {
-            ::printf(" Instrument Name \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Instrument Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::Lyrics:
         {
-            ::printf(" Lyrics \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Lyrics \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::Marker:
         {
-            ::printf(" Marker \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::CueMarker:
         {
-            ::printf(" Cue Marker \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Cue Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case MetaDataTypes::DeviceName:
         {
-            ::printf(" Device Name \"%s\"", TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str());
+            ::printf(" Device Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
@@ -315,7 +315,7 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
 
-    ::printf("%8d %-14s %-9s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber);
+    ::printf("%8d %-14s %-9s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber + 1);
 
     if (event.Type != midi_event_t::event_type_t::Extended)
         ::printf(" %02X", (event.Type + 8) << 4);
@@ -433,7 +433,8 @@ void ProcessTracks(const midi_container_t & container)
         uint32_t Duration = container.GetDuration(SubsongIndex, false);
         uint32_t DurationInMS = container.GetDuration(SubsongIndex, true);
 
-        ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
+        ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex + 1, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
+        ::puts("Index   - Ticks        - ms      - Ch - Data");
 
         uint32_t Time = std::numeric_limits<uint32_t>::max();
         size_t i = 0;

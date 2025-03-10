@@ -29,7 +29,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Filters[] = { /*L".mid", L".g36"*/ L".rmi", L".mxmf", L".xmf" };
+const WCHAR * Filters[] = { L".mid", /*L".g36", */ L".rmi", L".mxmf", L".xmf" };
 
 int wmain(int argc, const wchar_t ** argv)
 {
