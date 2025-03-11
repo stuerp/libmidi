@@ -145,12 +145,19 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
 
         RunningTime += DeltaTime;
 
+        uint8_t StatusCode = *data++;
         uint32_t BytesRead = 0;
 
-        uint8_t StatusCode = *data++;
-
+        // Is it a data byte?
         if (StatusCode < StatusCodes::NoteOff)
         {
+            // Flush any pending SysEx.
+            if (SysExSize > 0)
+            {
+                Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                SysExSize = 0;
+            }
+
             if (RunningStatus == 0xFF)
                 throw midi_exception("Invalid first status code");
 
@@ -161,16 +168,17 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             StatusCode = RunningStatus;
         }
 
+        // Is it a Voice Category message?
         if (StatusCode < StatusCodes::SysEx)
         {
+            // Flush any pending SysEx.
             if (SysExSize > 0)
             {
                 Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
-
                 SysExSize = 0;
             }
 
-            RunningStatus = StatusCode;
+            RunningStatus = StatusCode; // Set the running status
 
             if (BytesRead == 0)
             {
@@ -179,8 +187,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
 
                 Temp.resize(3);
 
-                Temp[0] = *data++;
-                BytesRead = 1;
+                Temp[BytesRead++] = *data++;
             }
 
             switch (StatusCode & 0xF0)
@@ -210,129 +217,135 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 DetectedPercussionText = false;
             }
 
-//          if ((StatusCode & 0xF0) != StatusCodes::PitchBendChange)
             Track.AddEvent(midi_event_t(RunningTime, (midi_event_t::event_type_t) ((StatusCode >> 4) - 8), ChannelNumber, Temp.data(), BytesRead));
         }
         else
-        if (StatusCode == StatusCodes::SysEx)
         {
-            if (SysExSize > 0)
+            // Is it a SysEx message?
+            if (StatusCode == StatusCodes::SysEx)
             {
-                Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
-                SysExSize = 0;
-            }
-
-            int Size = DecodeVariableLengthQuantity(data, tail);
-
-            if (Size < 0)
-                throw midi_exception("Invalid System Exclusive event");
-
-            if (Size > tail - data)
-                throw midi_exception("Insufficient data for System Exclusive event");
-
-            {
-                Temp.resize((size_t) (Size + 1));
-
-                Temp[0] = StatusCodes::SysEx;
-
-                std::copy(data, data + Size, Temp.begin() + 1);
-                data += Size;
-
-                SysExSize = (uint32_t) (Size + 1);
-                SysExTime = RunningTime;
-            }
-        }
-        else
-        if (StatusCode == StatusCodes::SysExEnd)
-        {
-            if (SysExSize == 0)
-                throw midi_exception("Invalid System Exclusive End event");
-
-            // Add the SysEx continuation to the current SysEx message
-            int Size = DecodeVariableLengthQuantity(data, tail);
-
-            if (Size < 0)
-                throw midi_exception("Invalid System Exclusive event");
-
-            if (Size > tail - data)
-                throw midi_exception("Insufficient data for System Exclusive event continuation");
-
-            {
-                Temp.resize((size_t) SysExSize + Size);
-
-                std::copy(data, data + Size, Temp.begin() + (int) SysExSize);
-                data += Size;
-
-                SysExSize += Size;
-            }
-        }
-        else
-        if (StatusCode == StatusCodes::MetaData)
-        {
-            if (SysExSize > 0)
-            {
-                Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
-                SysExSize = 0;
-            }
-
-            if (data == tail)
-                throw midi_exception("Insufficient data for meta data event");
-
-            uint8_t MetaDataType = *data++;
-
-            if (MetaDataType > MetaDataTypes::SequencerSpecific)
-                throw midi_exception("Invalid meta data type");
-
-            int Size = DecodeVariableLengthQuantity(data, tail);
-
-            if (Size < 0)
-                throw midi_exception("Invalid meta data event");
-
-            if (Size > tail - data)
-                throw midi_exception("Insufficient data for meta data event");
-
-            // Remember when the track or instrument name contains the word "drum". We'll need it later.
-            if ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName))
-            {
-                const char * p = (const char *) &data[0];
-
-                for (int n = Size; n > 3; --n, p++)
+                // Flush any pending SysEx.
+                if (SysExSize > 0)
                 {
-                    if (::_strnicmp(p, "drum", 4) == 0)
-                    {
-                        DetectedPercussionText = true;
-                        break;
-                    }
+                    Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                    SysExSize = 0;
+                }
+
+                int Size = DecodeVariableLengthQuantity(data, tail);
+
+                if (Size < 0)
+                    throw midi_exception("Invalid System Exclusive event");
+
+                if (Size > tail - data)
+                    throw midi_exception("Insufficient data for System Exclusive event");
+
+                {
+                    Temp.resize((size_t) (Size + 1));
+
+                    Temp[0] = StatusCodes::SysEx;
+
+                    std::copy(data, data + Size, Temp.begin() + 1);
+                    data += Size;
+
+                    SysExSize = (uint32_t) (Size + 1);
+                    SysExTime = RunningTime;
                 }
             }
-
+            else
+            if (StatusCode == StatusCodes::SysExEnd)
             {
-                Temp.resize((size_t)(Size + 2));
+                if (SysExSize == 0)
+                    throw midi_exception("Invalid System Exclusive End event");
 
-                Temp[0] = StatusCodes::MetaData;
-                Temp[1] = MetaDataType;
+                // Add the SysEx continuation to the current SysEx message
+                int Size = DecodeVariableLengthQuantity(data, tail);
 
-                std::copy(data, data + Size, Temp.begin() + 2);
-                data += Size;
+                if (Size < 0)
+                    throw midi_exception("Invalid System Exclusive event");
 
-                Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                if (Size > tail - data)
+                    throw midi_exception("Insufficient data for System Exclusive event continuation");
+
+                {
+                    Temp.resize((size_t) SysExSize + Size);
+
+                    std::copy(data, data + Size, Temp.begin() + (int) SysExSize);
+                    data += Size;
+
+                    SysExSize += Size;
+                }
             }
-
-            if (MetaDataType == MetaDataTypes::EndOfTrack) // Mandatory, Marks the end of the track.
+            else
+            if (StatusCode == StatusCodes::MetaData)
             {
-                FoundEndOfTrack = true;
-                break;
-            }
-        }
-        else
-        if ((StatusCodes::SysExEnd < StatusCode) && (StatusCode < StatusCodes::MetaData)) // Sequencer specific events, single byte.
-        {
-            Temp[0] = StatusCode;
+                // Flush any pending SysEx.
+                if (SysExSize > 0)
+                {
+                    Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                    SysExSize = 0;
+                }
 
-            Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), 1));
+                if (data == tail)
+                    throw midi_exception("Insufficient data for meta data event");
+
+                uint8_t MetaDataType = *data++;
+
+                if (MetaDataType > MetaDataTypes::SequencerSpecific)
+                    throw midi_exception("Invalid meta data type");
+
+                int Size = DecodeVariableLengthQuantity(data, tail);
+
+                if (Size < 0)
+                    throw midi_exception("Invalid meta data event");
+
+                if (Size > tail - data)
+                    throw midi_exception("Insufficient data for meta data event");
+
+                // Remember when the track or instrument name contains the word "drum". We'll need it later.
+                if ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName))
+                {
+                    const char * p = (const char *) &data[0];
+
+                    for (int n = Size; n > 3; --n, p++)
+                    {
+                        if (::_strnicmp(p, "drum", 4) == 0)
+                        {
+                            DetectedPercussionText = true;
+                            break;
+                        }
+                    }
+                }
+
+                {
+                    Temp.resize((size_t)(Size + 2));
+
+                    Temp[0] = StatusCodes::MetaData;
+                    Temp[1] = MetaDataType;
+
+                    std::copy(data, data + Size, Temp.begin() + 2);
+                    data += Size;
+
+                    Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                }
+
+                if (MetaDataType == MetaDataTypes::EndOfTrack) // Mandatory, Marks the end of the track.
+                {
+                    FoundEndOfTrack = true;
+                    break;
+                }
+            }
+            else
+
+            // Is it a RealTime Category message?
+            if ((StatusCodes::SysExEnd < StatusCode) && (StatusCode < StatusCodes::MetaData)) // Sequencer specific events, single byte.
+            {
+                Temp[0] = StatusCode;
+
+                Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), 1));
+            }
+            else
+                throw midi_exception("Invalid status code");
         }
-        else
-            throw midi_exception("Invalid status code");
     }
 
     if (!FoundEndOfTrack)
