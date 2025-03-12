@@ -21,6 +21,8 @@ enum StatusCodes
 
     TuneRequest             = 0xF6,
     SysExEnd                = 0xF7,
+
+    // Real-time events
     TimingClock             = 0xF8,
 
     Start                   = 0xFA,
