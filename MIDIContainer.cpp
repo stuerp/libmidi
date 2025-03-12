@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2024.08.12) **/
+/** $VER: MIDIContainer.cpp (2025.03.12) **/
 
 #include "framework.h"
 
@@ -8,6 +8,9 @@
 
 #pragma region MIDI Track
 
+/// <summary>
+/// Adds an event to the current track.
+/// </summary>
 void midi_track_t::AddEvent(const midi_event_t & newEvent)
 {
     auto it = _Events.end();
@@ -26,7 +29,7 @@ void midi_track_t::AddEvent(const midi_event_t & newEvent)
 
         while (it > _Events.begin())
         {
-            if ((*(it - 1)).Time <= newEvent.Time)
+            if ((*(it - 1)).Time < newEvent.Time)
                 break;
 
             --it;

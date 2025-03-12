@@ -315,7 +315,10 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
 
-    ::printf("%8d %-14s %-9s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber + 1);
+    if (event.Type != midi_event_t::event_type_t::Extended)
+        ::printf("%8d %-14s %-10s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber + 1);
+    else
+        ::printf("%8d %-14s %-10s      ", (int) index, TimeInTicks, TimeInMs);
 
     if (event.Type != midi_event_t::event_type_t::Extended)
         ::printf(" %02X", (event.Type + 8) << 4);

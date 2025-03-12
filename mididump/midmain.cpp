@@ -117,7 +117,7 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
 }
 
 /// <summary>
-/// 
+/// Reads a file and returns its contents as a byte vector.
 /// </summary>
 std::vector<uint8_t> ReadFile(std::wstring & filePath)
 {
