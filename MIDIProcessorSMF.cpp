@@ -325,7 +325,10 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                     std::copy(data, data + Size, Temp.begin() + 2);
                     data += Size;
 
-                    Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                    if ((MetaDataType != MetaDataTypes::MIDIPort) || ((MetaDataType == MetaDataTypes::MIDIPort) && Track.IsPortSet()))
+                        Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                    else
+                        Track.AddEventToStart(midi_event_t(0, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
                 }
 
                 if (MetaDataType == MetaDataTypes::EndOfTrack) // Mandatory, Marks the end of the track.

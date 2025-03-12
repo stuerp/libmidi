@@ -19,7 +19,8 @@ void midi_track_t::AddEvent(const midi_event_t & newEvent)
     {
         midi_event_t & Event = *(it - 1);
 
-        if ((Event.Type == midi_event_t::Extended) && (Event.Data.size() >= 2) && (Event.Data[0] == StatusCodes::MetaData) && (Event.Data[1] == MetaDataTypes::EndOfTrack))
+        // Make sure the new event gets inserted for the End of Track event and that the End of Track event has a timestamp no less than the new event.
+        if (Event.IsEndOfTrack())
         {
             --it;
 
@@ -29,7 +30,7 @@ void midi_track_t::AddEvent(const midi_event_t & newEvent)
 
         while (it > _Events.begin())
         {
-            if ((*(it - 1)).Time < newEvent.Time)
+            if ((*(it - 1)).Time <= newEvent.Time)
                 break;
 
             --it;
@@ -37,11 +38,25 @@ void midi_track_t::AddEvent(const midi_event_t & newEvent)
     }
 
     _Events.insert(it, newEvent);
+
+    if (!_IsPortSet && newEvent.IsPort())
+        _IsPortSet = true;
+}
+
+/// <summary>
+/// Adds an event to the start of the current track.
+/// </summary>
+void midi_track_t::AddEventToStart(const midi_event_t & newEvent)
+{
+    _Events.insert(_Events.begin(), newEvent);
+
+    if (!_IsPortSet && newEvent.IsPort())
+        _IsPortSet = true;
 }
 
 void midi_track_t::RemoveEvent(size_t index)
 {
-    _Events.erase(_Events.begin() + (int) index);
+    _Events.erase(_Events.begin() + (ptrdiff_t) index);
 }
 
 #pragma endregion

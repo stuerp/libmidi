@@ -58,14 +58,17 @@ struct midi_event_t
         ChannelNumber = channelNumber;
         Data.assign(data, data + size);
     }
+
+    bool IsEndOfTrack() const noexcept  { return (Type == midi_event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::EndOfTrack); }
+    bool IsPort() const noexcept        { return (Type == midi_event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::MIDIPort); }
 };
 
 class midi_track_t
 {
 public:
-    midi_track_t() noexcept { }
+    midi_track_t() noexcept : _IsPortSet(false) { }
 
-    midi_track_t(const midi_track_t & track) noexcept
+    midi_track_t(const midi_track_t & track) noexcept : _IsPortSet(false)
     {
         _Events = track._Events;
     }
@@ -78,6 +81,7 @@ public:
     }
 
     void AddEvent(const midi_event_t & event);
+    void AddEventToStart(const midi_event_t & event);
     void RemoveEvent(size_t index);
 
     size_t GetLength() const noexcept
@@ -94,6 +98,8 @@ public:
     {
         return _Events[index];
     }
+
+    bool IsPortSet() const noexcept { return _IsPortSet; }
 
 public:
     using midi_events_t = std::vector<midi_event_t>;
@@ -115,6 +121,7 @@ public:
 
 private:
     std::vector<midi_event_t> _Events;
+    bool _IsPortSet;                        // True if the track contains at least 1 MIDI Port event.
 };
 
 struct tempo_item_t
