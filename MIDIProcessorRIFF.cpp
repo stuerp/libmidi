@@ -1,12 +1,14 @@
 
-/** $VER: MIDIProcessorRIFF.cpp (2024.09.08) **/
+/** $VER: MIDIProcessorRIFF.cpp (2025.03.13) **/
 
 #include "framework.h"
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
-static const char * RIFFToTagMap[][2] =
+#include <map>
+
+static const std::map<const std::string, const std::string> RIFFToTagMap =
 {
     { "IALB", "album" },
     { "IARL", "archival_location" },
@@ -74,14 +76,14 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     bool FoundDataChunk = false;
-    bool FoundInfoChunk = false;
+    bool FoundINFOChunk = false;
 
     midi_metadata_table_t MetaData;
     std::vector<uint8_t> Temp;
 
     uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
 
-    const auto Tail = data.begin() + 8 + (int) Size;
+    const auto Tail = data.begin() + (ptrdiff_t) (8 + Size);
 
     auto it = data.begin() + 12;
 
@@ -95,56 +97,60 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
         if ((uint32_t) (Tail - it) < ChunkSize)
             return false;
 
+        std::string ChunkId;
+
+        ChunkId.assign(it, it + 4);
+
         // Is it a "data" chunk?
-        if (::memcmp(&it[0], "data", 4) == 0)
+        if (ChunkId == "data")
         {
             if (FoundDataChunk)
                 return false; // throw exception_io_data( "Multiple RIFF data chunks found" );
 
             std::vector<uint8_t> Data;
 
-            Data.assign(it + 8, it + 8 + (int) ChunkSize);
+            Data.assign(it + 8, it + (ptrdiff_t) (8 + ChunkSize));
 
             if (!ProcessSMF(Data, container))
                 return false;
 
             FoundDataChunk = true;
 
-            it += 8 + (int) ChunkSize;
+            it += (ptrdiff_t) (8 + ChunkSize);
 
             if ((ChunkSize & 1) && (it < Tail))
                 ++it;
         }
         else
         // Is it a "DISP" chunk?
-        if (::memcmp(&it[0], "DISP", 4) == 0)
+        if (ChunkId == "DISP")
         {
             uint32_t type = toInt32LE(it + 8);
 
             if (type == CF_TEXT)
             {
-                Temp.resize(ChunkSize - 4 + 1);
-                std::copy(it + 12, it + 8 + (int) ChunkSize, Temp.begin());
-                Temp[ChunkSize - 4] = '\0';
+                std::string DisplayName;
 
-                MetaData.AddItem(midi_metadata_item_t(0, "display_name", (const char *) Temp.data()));
+                DisplayName.assign(it + 12, it + (ptrdiff_t) (8 + ChunkSize));
+
+                MetaData.AddItem(midi_metadata_item_t(0, "display_name", DisplayName.c_str()));
             }
 
-            it += (int) (8 + ChunkSize);
+            it += (ptrdiff_t) (8 + ChunkSize);
 
             if ((ChunkSize & 1) && (it < Tail))
                 ++it;
         }
         else
         // Is it a "LIST" chunk?
-        if (::memcmp(&it[0], "LIST", 4) == 0)
+        if (ChunkId == "LIST")
         {
-            auto ChunkTail = it + (int) (8 + ChunkSize);
+            auto ChunkTail = it + (ptrdiff_t) (8 + ChunkSize);
 
             // Is it a "INFO" chunk?
             if (::memcmp(&it[8], "INFO", 4) == 0)
             {
-                if (FoundInfoChunk)
+                if (FoundINFOChunk)
                     return false; // throw exception_io_data( "Multiple RIFF LIST INFO chunks found" );
 
                 if (ChunkTail - it < 12)
@@ -153,6 +159,10 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                 it += 12;
 
                 uint32_t CodePage = ~0u;
+
+                bool FoundIALBChunk = false;
+
+                std::string ProductName;
 
                 GetCodePage(it, ChunkTail, CodePage);
 
@@ -166,24 +176,23 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                     if ((uint32_t) (ChunkTail - it) < 8 + ValueSize)
                         return false;
 
-                    std::string ValueData;
+                    ChunkId.assign(it, it + 4);
 
-                    ValueData.assign(it, it + 4);
-
-                    if (ValueData == "IENC")
+                    if (ChunkId == "IENC")
                     {
                         // Skip
                     }
                     else
-                    if (ValueData == "IPIC")
+                    if (ChunkId == "IPIC")
                     {
                         Temp.resize(ValueSize);
-                        std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
+
+                        std::copy(it + 8, it + (ptrdiff_t) (8 + ValueSize), Temp.begin());
 
                         container.SetArtwork(Temp);
                     }
                     else
-                    if ((ValueData == "DBNK") && (ValueSize == 2))
+                    if ((ChunkId == "DBNK") && (ValueSize == 2))
                     {
                         const uint8_t * Data = &it[8];
 
@@ -191,38 +200,40 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                     }
                     else
                     {
-                        for (size_t i = 0; i < _countof(RIFFToTagMap); ++i)
-                        {
-                            if (::memcmp(&it[0], RIFFToTagMap[i][0], 4) == 0)
-                            {
-                                ValueData = RIFFToTagMap[i][1];
-                                break;
-                            }
-                        }
+                        if (ChunkId == "IALB")
+                            FoundIALBChunk = true;
+
+                        std::string Text;
 
                         if (CodePage != ~0u)
-                        {
-                            std::string Text = CodePageToUTF8(CodePage, (const char *) &it[8], ValueSize);
-
-                            MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), Text.c_str()));
-                        }
+                            Text = CodePageToUTF8(CodePage, (const char *) &it[8], ValueSize);
                         else
-                        {
-                            Temp.resize(ValueSize + 1);
-                            std::copy(it + 8, it + 8 + (int) ValueSize, Temp.begin());
-                            Temp[ValueSize] = '\0';
+                            Text.assign(it + 8, it + (ptrdiff_t) (8 + ValueSize));
 
-                            MetaData.AddItem(midi_metadata_item_t(0, ValueData.c_str(), (const char *) Temp.data()));
+                        if (ChunkId == "IPRD")
+                            ProductName = Text;
+
+                        {
+                            const auto it2 = RIFFToTagMap.find(ChunkId);
+
+                            if (it2 != RIFFToTagMap.end())
+                                ChunkId = it2->second;
                         }
+
+                        MetaData.AddItem(midi_metadata_item_t(0, ChunkId.c_str(), Text.c_str()));
                     }
 
-                    it += (int) (8 + ValueSize);
+                    it += (ptrdiff_t) (8 + ValueSize);
 
                     if ((ValueSize & 1) && (it < ChunkTail))
                         ++it;
                 }
 
-                FoundInfoChunk = true;
+                // Use the product name also as album name if no IALB chunk was found in the INFO list.
+                if (!FoundIALBChunk && !ProductName.empty())
+                    MetaData.AddItem(midi_metadata_item_t(0, "album", ProductName.c_str()));
+
+                FoundINFOChunk = true;
             }
             else
                 return false; // Unknown LIST chunk.
@@ -233,16 +244,16 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
                 ++it;
         }
         else
-        // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded SoundFonts are implemented... Sloppy programming...
-        if (::memcmp(&it[0], "RIFF", 4) == 0)
+        // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded SoundFonts are implemented. Sloppy design...
+        if (ChunkId == "RIFF")
         {
-            auto ChunkTail = it + (int) (8 + ChunkSize);
+            const auto ChunkTail = it + (ptrdiff_t) (8 + ChunkSize);
 
             // Is it a "sfbk" chunk?
             if ((::memcmp(&it[8], "sfbk", 4) == 0) || (::memcmp(&it[8], "DLS ", 4) == 0))
             {
                 Temp.resize(8 + ChunkSize);
-                std::copy(it, it + (int) (8 + ChunkSize), Temp.begin());
+                std::copy(it, ChunkTail, Temp.begin());
 
                 container.SetSoundFontData(Temp);
             }
@@ -254,7 +265,7 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
         }
         else
         {
-            it += (int) ChunkSize;
+            it += (ptrdiff_t) ChunkSize;
 
             if ((ChunkSize & 1) && (it != Tail))
                 ++it;
@@ -278,7 +289,7 @@ bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::
 
         uint32_t ValueSize = toInt32LE(it + 4);
 
-        if ((uint32_t) (chunkTail - it) < 8 + ValueSize)
+        if ((chunkTail - it) < (ptrdiff_t) (8 + ValueSize))
             return false;
 
         std::string ValueData;
@@ -290,14 +301,14 @@ bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::
             std::string Encoding;
 
             Encoding.resize(ValueSize);
-            std::copy(it + 8, it + 8 + (int) ValueSize, Encoding.begin());
+            std::copy(it + 8, it + (ptrdiff_t) (8 + ValueSize), Encoding.begin());
 
             GetCodePageFromEncoding(Encoding, codePage);
 
             return true;
         }
 
-        it += (int) (8 + ValueSize);
+        it += (ptrdiff_t) (8 + ValueSize);
 
         if ((ValueSize & 1) && (it < chunkTail))
             ++it;
