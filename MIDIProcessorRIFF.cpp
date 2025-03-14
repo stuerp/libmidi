@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRIFF.cpp (2025.03.13) **/
+/** $VER: MIDIProcessorRIFF.cpp (2025.03.14) **/
 
 #include "framework.h"
 
@@ -43,9 +43,13 @@ static inline uint32_t toInt32LE(std::vector<uint8_t>::const_iterator data)
     return static_cast<uint32_t>(data[0]) | static_cast<uint32_t>(data[1] << 8) | static_cast<uint32_t>(data[2] << 16) | static_cast<uint32_t>(data[3] << 24);
 }
 
-static bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept;
+static bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t size, midi_container_t & container, midi_metadata_table_t & MetaData) noexcept;
+static bool GetCodePage(std::vector<uint8_t>::const_iterator data, ptrdiff_t size, uint32_t & codePage) noexcept;
 
-bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
+/// <summary>
+/// Returns true if the data contains a RIFF file.
+/// </summary>
+bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 20)
         return false;
@@ -55,7 +59,7 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
 
     uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
 
-    if ((Size < 12) || (data.size() < Size + 8))
+    if ((Size < 12) || (data.size() < (size_t) Size + 8))
         return false;
 
     if (::memcmp(&data[8], "RMID", 4) != 0 || ::memcmp(&data[12], "data", 4) != 0)
@@ -63,213 +67,103 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data)
 
     uint32_t DataSize = toInt32LE(&data[16]);
 
-    if ((DataSize < 18) || data.size() < DataSize + 20 || Size < DataSize + 12)
+    if ((DataSize < 18) || (data.size() < (size_t) DataSize + 20) || (Size < DataSize + 12))
         return false;
 
-    std::vector<uint8_t> Data;
-
-    Data.assign(data.begin() + 20, data.begin() + 20 + 18);
+    std::vector<uint8_t> Data(data.begin() + 20, data.begin() + 20 + 18);
 
     return IsSMF(Data);
 }
 
+/// <summary>
+/// Processes RIFF data and returns an intialized container.
+/// </summary>
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
-    bool FoundDataChunk = false;
-    bool FoundINFOChunk = false;
+    bool HasDataChunk = false;
+    bool HasINFOChunk = false;
 
     midi_metadata_table_t MetaData;
-    std::vector<uint8_t> Temp;
 
-    uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+    const uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+
+    if ((Size < 8) || (data.size() < (size_t) Size + 8))
+        throw midi_exception("Insufficient RIFF data");
 
     const auto Tail = data.begin() + (ptrdiff_t) (8 + Size);
 
-    auto it = data.begin() + 12;
+    auto it = data.begin() + 12; // Skip past "RIFF" <size> "RMID".
 
     while (it < Tail)
     {
         if (Tail - it < 8)
-            return false;
+            throw midi_exception("Insufficient RIFF data");
 
-        uint32_t ChunkSize = toInt32LE(it + 4);
+        const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
 
-        if ((uint32_t) (Tail - it) < ChunkSize)
-            return false;
+        if ((Tail - it) < ChunkSize)
+            throw midi_exception("Insufficient RIFF data");
 
-        std::string ChunkId;
-
-        ChunkId.assign(it, it + 4);
+        const std::string ChunkId(it, it + 4);
 
         // Is it a "data" chunk?
         if (ChunkId == "data")
         {
-            if (FoundDataChunk)
-                return false; // throw exception_io_data( "Multiple RIFF data chunks found" );
+            if (HasDataChunk)
+                throw midi_exception("Multiple RIFF data chunks found");
 
-            std::vector<uint8_t> Data;
-
-            Data.assign(it + 8, it + (ptrdiff_t) (8 + ChunkSize));
+            std::vector<uint8_t> Data(it + 8, it + 8 + ChunkSize);
 
             if (!ProcessSMF(Data, container))
                 return false;
 
-            FoundDataChunk = true;
-
-            it += (ptrdiff_t) (8 + ChunkSize);
-
-            if ((ChunkSize & 1) && (it < Tail))
-                ++it;
+            HasDataChunk = true;
         }
         else
         // Is it a "DISP" chunk?
         if (ChunkId == "DISP")
         {
-            uint32_t type = toInt32LE(it + 8);
+            const uint32_t Type = toInt32LE(it + 8);
 
-            if (type == CF_TEXT)
+            if (Type == CF_TEXT)
             {
-                std::string DisplayName;
-
-                DisplayName.assign(it + 12, it + (ptrdiff_t) (8 + ChunkSize));
+                std::string DisplayName(it + 12, it + 12 + (ChunkSize - 4));
 
                 MetaData.AddItem(midi_metadata_item_t(0, "display_name", DisplayName.c_str()));
             }
-
-            it += (ptrdiff_t) (8 + ChunkSize);
-
-            if ((ChunkSize & 1) && (it < Tail))
-                ++it;
         }
         else
         // Is it a "LIST" chunk?
         if (ChunkId == "LIST")
         {
-            auto ChunkTail = it + (ptrdiff_t) (8 + ChunkSize);
-
             // Is it a "INFO" chunk?
-            if (::memcmp(&it[8], "INFO", 4) == 0)
-            {
-                if (FoundINFOChunk)
-                    return false; // throw exception_io_data( "Multiple RIFF LIST INFO chunks found" );
-
-                if (ChunkTail - it < 12)
-                    return false;
-
-                it += 12;
-
-                uint32_t CodePage = ~0u;
-
-                bool FoundIALBChunk = false;
-
-                std::string ProductName;
-
-                GetCodePage(it, ChunkTail, CodePage);
-
-                while (it != ChunkTail)
-                {
-                    if (ChunkTail - it < 4)
-                        return false;
-
-                    uint32_t ValueSize = toInt32LE(it + 4);
-
-                    if ((uint32_t) (ChunkTail - it) < 8 + ValueSize)
-                        return false;
-
-                    ChunkId.assign(it, it + 4);
-
-                    if (ChunkId == "IENC")
-                    {
-                        // Skip
-                    }
-                    else
-                    if (ChunkId == "IPIC")
-                    {
-                        Temp.resize(ValueSize);
-
-                        std::copy(it + 8, it + (ptrdiff_t) (8 + ValueSize), Temp.begin());
-
-                        container.SetArtwork(Temp);
-                    }
-                    else
-                    if ((ChunkId == "DBNK") && (ValueSize == 2))
-                    {
-                        const uint8_t * Data = &it[8];
-
-                        container.SetBankOffset((Data[1] << 8) | Data[0]);
-                    }
-                    else
-                    {
-                        if (ChunkId == "IALB")
-                            FoundIALBChunk = true;
-
-                        std::string Text;
-
-                        if (CodePage != ~0u)
-                            Text = CodePageToUTF8(CodePage, (const char *) &it[8], ValueSize);
-                        else
-                            Text.assign(it + 8, it + (ptrdiff_t) (8 + ValueSize));
-
-                        if (ChunkId == "IPRD")
-                            ProductName = Text;
-
-                        {
-                            const auto it2 = RIFFToTagMap.find(ChunkId);
-
-                            if (it2 != RIFFToTagMap.end())
-                                ChunkId = it2->second;
-                        }
-
-                        MetaData.AddItem(midi_metadata_item_t(0, ChunkId.c_str(), Text.c_str()));
-                    }
-
-                    it += (ptrdiff_t) (8 + ValueSize);
-
-                    if ((ValueSize & 1) && (it < ChunkTail))
-                        ++it;
-                }
-
-                // Use the product name also as album name if no IALB chunk was found in the INFO list.
-                if (!FoundIALBChunk && !ProductName.empty())
-                    MetaData.AddItem(midi_metadata_item_t(0, "album", ProductName.c_str()));
-
-                FoundINFOChunk = true;
-            }
-            else
-                return false; // Unknown LIST chunk.
-
-            it = ChunkTail;
-
-            if ((ChunkSize & 1) && (it < ChunkTail))
-                ++it;
+            if ((::memcmp(&it[8], "INFO", 4) == 0) && !HasINFOChunk)
+                HasINFOChunk = ProcessList(it + 12, ChunkSize - 4, container, MetaData);
         }
         else
         // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded SoundFonts are implemented. Sloppy design...
         if (ChunkId == "RIFF")
         {
-            const auto ChunkTail = it + (ptrdiff_t) (8 + ChunkSize);
+            const auto ChunkTail = it + 8 + ChunkSize;
 
             // Is it a "sfbk" chunk?
             if ((::memcmp(&it[8], "sfbk", 4) == 0) || (::memcmp(&it[8], "DLS ", 4) == 0))
             {
-                Temp.resize(8 + ChunkSize);
-                std::copy(it, ChunkTail, Temp.begin());
+                std::vector<uint8_t> Data(it, ChunkTail);
 
-                container.SetSoundFontData(Temp);
+                container.SetSoundFontData(Data);
             }
-
-            it = ChunkTail;
-
-            if ((ChunkSize & 1) && (it < ChunkTail))
-                ++it;
         }
+#ifdef _DEBUG
         else
         {
-            it += (ptrdiff_t) ChunkSize;
-
-            if ((ChunkSize & 1) && (it != Tail))
-                ++it;
+            ::OutputDebugStringW(::FormatText(L"Uknown chunk \"%s\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
         }
+#endif
+        it += (ptrdiff_t) 8 + ChunkSize;
+
+        if ((ChunkSize & 1) && (it < Tail))
+            ++it;
     }
 
     container.SetExtraMetaData(MetaData);
@@ -278,40 +172,117 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
 }
 
 /// <summary>
+/// Processes a RIFF LIST chunk and update the metadata with it.
+/// </summary>
+bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize, midi_container_t & container, midi_metadata_table_t & MetaData) noexcept
+{
+    // Determine which code page to use before we encounter any text chunks.
+    uint32_t CodePage = ~0u;
+
+    GetCodePage(data, chunkSize, CodePage);
+
+    // Process all chunks in the list.
+    bool FoundIALBChunk = false;
+    std::string ProductName;
+
+    const auto Tail = data + chunkSize;
+
+    while (data != Tail)
+    {
+        if (Tail - data < 4)
+            return false;
+
+        const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(data + 4);
+
+        if ((Tail - data) < ((ptrdiff_t) 8 + ChunkSize))
+            return false;
+
+        const std::string ChunkId(data, data + 4);
+        const auto ChunkData = data + 8;
+
+        if (ChunkId == "IENC")
+        {
+            // Skip
+        }
+        else
+        if (ChunkId == "IPIC")
+        {
+            container.SetArtwork(std::vector<uint8_t>(ChunkData, ChunkData + ChunkSize));
+        }
+        else
+        if (ChunkId == "DBNK")
+        {
+            if (ChunkSize == 2)
+                container.SetBankOffset((ChunkData[1] << 8) | ChunkData[0]);
+        }
+        else
+        {
+            if (ChunkId == "IALB")
+                FoundIALBChunk = true;
+
+            std::string Text;
+
+            if (CodePage != ~0u)
+                Text = CodePageToUTF8(CodePage, (const char *) &ChunkData[0], (size_t) ChunkSize);
+            else
+                Text.assign(ChunkData, ChunkData + ChunkSize);
+
+            if (ChunkId == "IPRD")
+                ProductName = Text;
+
+            const auto Item = RIFFToTagMap.find(ChunkId);
+
+            const std::string TagName = (Item != RIFFToTagMap.end()) ? Item->second : ChunkId;
+
+            MetaData.AddItem(midi_metadata_item_t(0, TagName.c_str(), Text.c_str()));
+        }
+
+        data += (ptrdiff_t) 8 + ChunkSize;
+
+        if ((ChunkSize & 1) && (data < Tail))
+            ++data;
+    }
+
+    // Use the product name also as album name if no IALB chunk was found in the INFO list.
+    if (!FoundIALBChunk && !ProductName.empty())
+        MetaData.AddItem(midi_metadata_item_t(0, "album", ProductName.c_str()));
+
+    return true;
+}
+
+/// <summary>
 /// Gets the code page from the IENC chunk, if present.
 /// </summary>
-bool GetCodePage(std::vector<uint8_t>::const_iterator it, std::vector<uint8_t>::const_iterator chunkTail, uint32_t & codePage) noexcept
+bool GetCodePage(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize, uint32_t & codePage) noexcept
 {
-    while (it != chunkTail)
+    const auto Tail = data + chunkSize;
+
+    while (data != Tail)
     {
-        if (chunkTail - it < 4)
+        if (Tail - data < 4)
             return false;
 
-        uint32_t ValueSize = toInt32LE(it + 4);
+        const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(data + 4);
 
-        if ((chunkTail - it) < (ptrdiff_t) (8 + ValueSize))
+        if ((Tail - data) < (ptrdiff_t) (8 + ChunkSize))
             return false;
 
-        std::string ValueData;
+        const std::string ChunkId(data, data + 4);
+        const auto ChunkData = data + 8;
 
-        ValueData.assign(it, it + 4);
-
-        if (ValueData == "IENC")
+        if (ChunkId == "IENC")
         {
-            std::string Encoding;
-
-            Encoding.resize(ValueSize);
-            std::copy(it + 8, it + (ptrdiff_t) (8 + ValueSize), Encoding.begin());
+            std::string Encoding(ChunkData, ChunkData + ChunkSize);
 
             GetCodePageFromEncoding(Encoding, codePage);
 
             return true;
         }
 
-        it += (ptrdiff_t) (8 + ValueSize);
+        data += (ptrdiff_t) 8 + ChunkSize;
 
-        if ((ValueSize & 1) && (it < chunkTail))
-            ++it;
+        if ((ChunkSize & 1) && (data < Tail))
+            ++data;
     }
 
     return false;

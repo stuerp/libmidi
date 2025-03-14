@@ -437,7 +437,7 @@ void ProcessTracks(const midi_container_t & container)
         uint32_t DurationInMS = container.GetDuration(SubsongIndex, true);
 
         ::printf("\nTrack %2d: %d channels, %8d ticks, %8.2fs\n", TrackIndex + 1, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
-        ::puts("Index   - Ticks        - ms      - Ch - Data");
+        ::puts("Index    - Ticks        - ms      - Ch - Data");
 
         uint32_t Time = std::numeric_limits<uint32_t>::max();
         size_t i = 0;

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorSMF.cpp (2024.08.20) Standard MIDI File **/
+/** $VER: MIDIProcessorSMF.cpp (2025.03.14) Standard MIDI File **/
 
 #include "framework.h"
 
@@ -11,7 +11,7 @@ const uint8_t SysExUseForRhythmPartCh16[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40
 /// <summary>
 /// Returns true if data points to an SMF sequence.
 /// </summary>
-bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 18)
         return false;

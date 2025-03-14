@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.03.02) **/
+/** $VER: MIDIProcessor.h (2025.03.14) **/
 
 #pragma once
 
@@ -38,8 +38,8 @@ public:
     static int InflateRaw(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept;
 
 private:
-    static bool IsSMF(std::vector<uint8_t> const & data);
-    static bool IsRIFF(std::vector<uint8_t> const & data);
+    static bool IsSMF(std::vector<uint8_t> const & data) noexcept;
+    static bool IsRIFF(std::vector<uint8_t> const & data) noexcept;
     static bool IsHMP(std::vector<uint8_t> const & data);
     static bool IsHMI(std::vector<uint8_t> const & data);
     static bool IsXMI(std::vector<uint8_t> const & data);
