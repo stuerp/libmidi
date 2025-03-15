@@ -76,7 +76,7 @@ bool midi_processor_t::IsRIFF(std::vector<uint8_t> const & data) noexcept
 }
 
 /// <summary>
-/// Processes RIFF data and returns an intialized container.
+/// Processes the data as an RIFF file and returns an intialized container.
 /// </summary>
 bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
@@ -157,7 +157,7 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
 #ifdef _DEBUG
         else
         {
-            ::OutputDebugStringW(::FormatText(L"Uknown chunk \"%s\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            ::OutputDebugStringW(::FormatText(L"Unknown chunk \"%s\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
         }
 #endif
         it += (ptrdiff_t) 8 + ChunkSize;

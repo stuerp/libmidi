@@ -194,8 +194,8 @@ void sysex_t::IdentifyGSMessage()
                 case 0x401036: _Description = FormatText(L"GS Tone Modify 7, channel %d: %d", PartNumber, (int) _Data[8]); break;
                 case 0x401037: _Description = FormatText(L"GS Tone Modify 8, channel %d: %d", PartNumber, (int) _Data[8]); break;
 
-                case 0x404000: _Description = FormatText(L"GS Tone Map Number: %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
-                case 0x404001: _Description = FormatText(L"GS Tone Map-0 Number: %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
+                case 0x404000: _Description = FormatText(L"GS Tone Map Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
+                case 0x404001: _Description = FormatText(L"GS Tone Map-0 Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
 
                 case 0x402010: _Description = FormatText(L"GS Bend Pitch Control: Channel %d, %d semitones", GSBlockToPart(_Data[6] & 0x0F), (int) _Data[8]); break;
 

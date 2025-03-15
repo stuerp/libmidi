@@ -6,17 +6,15 @@
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
-const uint8_t SysExUseForRhythmPartCh16[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x1F, 0x15, 0x02, 0x0A, 0xF7 }; // Use channel 16 for rhythm.
-
 /// <summary>
-/// Returns true if data points to an SMF sequence.
+/// Returns true if the data contains an SMF file.
 /// </summary>
 bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 18)
         return false;
 
-    if (::memcmp(&data[0], "MThd", 4) != 0)
+    if (::memcmp(data.data(), "MThd", 4) != 0)
         return false;
 
     if (data[4] != 0 || data[5] != 0 || data[6] != 0 || data[7] != 6)
@@ -42,67 +40,65 @@ bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 }
 
 /// <summary>
-/// Processes the sequence data.
+/// Processes the data as an SMF file and returns an intialized container.
 /// </summary>
 bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_container_t & container)
 {
     if (data.size() < 18)
-        throw midi_exception("Insufficient data");
+        throw midi_exception("Insufficient SMF data");
 
     if (::memcmp(&data[0], "MThd", 4) != 0)
-        throw midi_exception("Invalid header chunk type");
+        throw midi_exception("Invalid SMF header chunk type");
 
     if (data[4] != 0 || data[5] != 0 || data[6] != 0 || data[7] != 6)
-        throw midi_exception("Invalid header chunk size");
+        throw midi_exception("Invalid SMF header chunk size");
 
-    int Format = (data[8] << 8) | data[9];
+    const int Format = (data[8] << 8) | data[9];
 
     if (Format > 2)
         throw midi_exception(FormatText("Unrecognized MIDI format: %d", Format));
 
-    int TrackCount = (data[10] << 8) | data[11];
+    const size_t TrackCount = (size_t) ((data[10] << 8) | data[11]);
 
     if ((TrackCount == 0) || ((Format == 0) && (TrackCount != 1)))
         throw midi_exception("Invalid track count");
 
-    int TimeDivision = (data[12] << 8) | data[13];
+    const int TimeDivision = (data[12] << 8) | data[13];
 
     if ((TimeDivision == 0))
         throw midi_exception("Invalid time division");
 
     container.Initialize((uint32_t) Format, (uint32_t) TimeDivision);
 
-    std::vector<uint8_t>::const_iterator Data = data.begin() + 14;
-    std::vector<uint8_t>::const_iterator Tail = data.end();
+    const auto Tail = data.end();
 
-    for (int i = 0; i < TrackCount; ++i)
+    auto Data = data.begin() + 14;
+
+    for (size_t i = 0; i < TrackCount; ++i)
     {
         if (Tail - Data < 8)
-            throw midi_exception("Insufficient data");
+            throw midi_exception("Insufficient SMF data");
 
-        uint32_t ChunkSize = (uint32_t)((Data[4] << 24) | (Data[5] << 16) | (Data[6] << 8) | Data[7]);
+        const ptrdiff_t ChunkSize = (ptrdiff_t)((Data[4] << 24) | (Data[5] << 16) | (Data[6] << 8) | Data[7]);
+
+        if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
+            throw midi_exception("Insufficient SMF data");
 
         if (::memcmp(&Data[0], "MTrk", 4) == 0)
         {
-            if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
-                throw midi_exception("Insufficient data");
-
             Data += 8;
 
-            std::vector<uint8_t>::const_iterator ChunkTail = Data + (int) ChunkSize;
+            const auto ChunkTail = Data + ChunkSize;
 
             if (!ProcessSMFTrack(Data, ChunkTail, container))
                 return false;
 
-            Data = ChunkTail; // In case no all track data gets used.
+            Data = ChunkTail; // In case not all track data gets used.
         }
         // Skip unknown chunks in the stream.
         else
         {
-            if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
-                throw midi_exception("Insufficient data");
-
-            Data += (int64_t)(8) + ChunkSize;
+            Data += (ptrdiff_t) (8 + ChunkSize);
 
             continue;
         }
@@ -112,7 +108,7 @@ bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_contai
 }
 
 /// <summary>
-/// 
+/// Processes an SMF track.
 /// </summary>
 bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, std::vector<uint8_t>::const_iterator tail, midi_container_t & container)
 {
@@ -138,7 +134,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
         int DeltaTime = DecodeVariableLengthQuantity(data, tail);
 
         if (data == tail)
-            throw midi_exception("Insufficient data");
+            throw midi_exception("Insufficient SMF data");
 
         if (DeltaTime < 0)
             DeltaTime = -DeltaTime; // "Encountered negative delta: " << delta << "; flipping sign."
@@ -183,7 +179,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             if (BytesRead == 0)
             {
                 if (data == tail)
-                    throw midi_exception("Insufficient data");
+                    throw midi_exception("Insufficient SMF data");
 
                 Temp.resize(3);
 
@@ -199,17 +195,19 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 default:
                 {
                     if (data == tail)
-                        throw midi_exception("Insufficient data");
+                        throw midi_exception("Insufficient SMF data");
 
                     Temp[BytesRead++] = *data++;
                 }
             }
 
-            uint32_t ChannelNumber = (uint32_t) (StatusCode & 0x0F);
+            const uint32_t ChannelNumber = (uint32_t) (StatusCode & 0x0F);
 
-            // Assign percussion to channel 16 if it's first message was preceded with meta data containing the word "drum".
+            // Assign percussion to channel 16 if it's first message was preceeded with meta data containing the word "drum".
             if ((ChannelNumber == 0x0F) && DetectedPercussionText)
             {
+                const uint8_t SysExUseForRhythmPartCh16[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x1F, 0x15, 0x02, 0x0A, 0xF7 }; // Use channel 16 for rhythm.
+
                 Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, SysExUseForRhythmPartCh16, _countof(SysExUseForRhythmPartCh16)));
 
                 container.SetExtraPercussionChannel(ChannelNumber);
@@ -231,7 +229,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                     SysExSize = 0;
                 }
 
-                int Size = DecodeVariableLengthQuantity(data, tail);
+                const int Size = DecodeVariableLengthQuantity(data, tail);
 
                 if (Size < 0)
                     throw midi_exception("Invalid System Exclusive event");
@@ -258,7 +256,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                     throw midi_exception("Invalid System Exclusive End event");
 
                 // Add the SysEx continuation to the current SysEx message
-                int Size = DecodeVariableLengthQuantity(data, tail);
+                const int Size = DecodeVariableLengthQuantity(data, tail);
 
                 if (Size < 0)
                     throw midi_exception("Invalid System Exclusive event");
@@ -269,7 +267,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 {
                     Temp.resize((size_t) SysExSize + Size);
 
-                    std::copy(data, data + Size, Temp.begin() + (int) SysExSize);
+                    std::copy(data, data + Size, Temp.begin() + (ptrdiff_t) SysExSize);
                     data += Size;
 
                     SysExSize += Size;
@@ -288,7 +286,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 if (data == tail)
                     throw midi_exception("Insufficient data for meta data event");
 
-                uint8_t MetaDataType = *data++;
+                const uint8_t MetaDataType = *data++;
 
                 if (MetaDataType > MetaDataTypes::SequencerSpecific)
                     throw midi_exception("Invalid meta data type");
