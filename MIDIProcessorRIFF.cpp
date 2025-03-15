@@ -97,7 +97,7 @@ bool midi_processor_t::ProcessRIFF(std::vector<uint8_t> const & data, midi_conta
     while (it < Tail)
     {
         if (Tail - it < 8)
-            throw midi_exception("Insufficient RIFF data");
+            return false; // throw midi_exception("Insufficient RIFF data"); // 02 - Rock.rmi is malformed.
 
         const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
 
