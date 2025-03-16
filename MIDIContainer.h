@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.03.02) **/
+/** $VER: MIDIContainer.h (2025.03.16) **/
 
 #pragma once
 
@@ -273,7 +273,7 @@ struct midi_item_t
 class midi_container_t
 {
 public:
-    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(1) // See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
+    midi_container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(1)
     {
         _DeviceNames.resize(16);
     }
@@ -402,7 +402,7 @@ private:
     uint32_t _Format;
     uint32_t _TimeDivision;
     uint32_t _ExtraPercussionChannel;
-    int _BankOffset; // Bank offset for MIDI files that contain an embedded sound font.
+    int _BankOffset; // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
 
     std::vector<uint64_t> _ChannelMask;
     std::vector<tempo_map_t> _TempoMaps;

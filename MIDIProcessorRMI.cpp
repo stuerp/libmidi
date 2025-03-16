@@ -82,6 +82,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
 {
     bool HasDataChunk = false;
     bool HasINFOChunk = false;
+    bool IsDLS = false;
 
     midi_metadata_table_t MetaData;
 
@@ -97,7 +98,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
     while (it < Tail)
     {
         if (Tail - it < 8)
-            return false; // throw midi_exception("Insufficient RIFF data"); // 02 - Rock.rmi is malformed.
+            break; // throw midi_exception("Insufficient RIFF data"); // 02 - Rock.rmi is malformed.
 
         const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
 
@@ -146,8 +147,9 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
         {
             const auto ChunkTail = it + 8 + ChunkSize;
 
-            // Is it a "sfbk" chunk?
-            if ((::memcmp(&it[8], "sfbk", 4) == 0) || (::memcmp(&it[8], "DLS ", 4) == 0))
+            IsDLS = (::memcmp(&it[8], "DLS ", 4) == 0);
+
+            if (IsDLS || (::memcmp(&it[8], "sfbk", 4) == 0) || (::memcmp(&it[8], "sfpk", 4) == 0))
             {
                 std::vector<uint8_t> Data(it, ChunkTail);
 
@@ -164,6 +166,24 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
 
         if ((ChunkSize & 1) && (it < Tail))
             ++it;
+    }
+
+    // If an embedded DLS sound font was found: assume bank offset 0 unless any bank change (CC0) is detected to a bank that is not 0 and not 127 (Drums).
+    if (IsDLS)
+    {
+        container.SetBankOffset(0);
+
+        for (const auto & Track : container)
+        {
+            for (const auto & Event : Track)
+            {
+                if ((Event.Type == midi_event_t::ControlChange) && (Event.Data[0] == 0) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
+                {
+                    container.SetBankOffset(1);
+                    break;
+                }
+            }
+        }
     }
 
     container.SetExtraMetaData(MetaData);
