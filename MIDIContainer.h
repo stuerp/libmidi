@@ -321,15 +321,8 @@ public:
     const std::vector<uint8_t> & GetArtwork() const noexcept { return _Artwork; }
     void SetArtwork(const std::vector<uint8_t> & artwork) noexcept { _Artwork = artwork; }
 
-    int GetBankOffset() const noexcept
-    {
-        return _BankOffset;
-    }
-
-    void SetBankOffset(int bankOffset) noexcept
-    {
-        _BankOffset = bankOffset;
-    }
+    int GetBankOffset() const noexcept { return _BankOffset; }
+    void SetBankOffset(int bankOffset) noexcept { _BankOffset = bankOffset; }
 
     void GetMetaData(size_t subSongIndex, midi_metadata_table_t & data);
 
@@ -409,7 +402,7 @@ private:
     uint32_t _Format;
     uint32_t _TimeDivision;
     uint32_t _ExtraPercussionChannel;
-    int _BankOffset;
+    int _BankOffset; // Bank offset for MIDI files that contain an embedded sound font.
 
     std::vector<uint64_t> _ChannelMask;
     std::vector<tempo_map_t> _TempoMaps;

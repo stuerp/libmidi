@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2025.02.16) **/
+/** $VER: MIDIProcessor.cpp (2025.03.16) **/
 
 #include "framework.h"
 
@@ -27,8 +27,8 @@ bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t 
         return ProcessSMF(data, container);
 
     // .RMI
-    if (IsRIFF(data))
-        return ProcessRIFF(data, container);
+    if (IsRMI(data))
+        return ProcessRMI(data, container);
 
     // .XMI, .XFM
     if (IsXMI(data))

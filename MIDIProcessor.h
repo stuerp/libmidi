@@ -39,7 +39,7 @@ public:
 
 private:
     static bool IsSMF(std::vector<uint8_t> const & data) noexcept;
-    static bool IsRIFF(std::vector<uint8_t> const & data) noexcept;
+    static bool IsRMI(std::vector<uint8_t> const & data) noexcept;
     static bool IsHMP(std::vector<uint8_t> const & data);
     static bool IsHMI(std::vector<uint8_t> const & data);
     static bool IsXMI(std::vector<uint8_t> const & data);
@@ -52,7 +52,7 @@ private:
     static bool IsSysEx(std::vector<uint8_t> const & data);
 
     static bool ProcessSMF(std::vector<uint8_t> const & data, midi_container_t & container);
-    static bool ProcessRIFF(std::vector<uint8_t> const & data, midi_container_t & container);
+    static bool ProcessRMI(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessHMP(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessHMI(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessXMI(std::vector<uint8_t> const & data, midi_container_t & container);
