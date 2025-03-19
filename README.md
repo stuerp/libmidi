@@ -1,7 +1,7 @@
 
 # libmidi
 
-[libmidi]() is a library to read and write MIDI sequences. It is heavily based on [kode54](https://gitlab.com/kode54)'s [midiprocessing]() library.
+[libmidi](https://github.com/stuerp/libmidi) is a library to read and write MIDI sequences. It is heavily based on [kode54](https://gitlab.com/kode54)'s [midiprocessing]() library.
 
 WARNING: This is very tightly coupled with foo_midi. The API will change several times before it becomes stable.
 
@@ -21,7 +21,7 @@ To build the code you need:
 
 ## Change Log
 
-v0.1.0.0, 2024-xx-xx
+v0.1.0.0, 2025-03-19
 
 * Initial release.
 
@@ -42,3 +42,7 @@ v0.1.0.0, 2024-xx-xx
 * Home page: [https://github.com/stuerp/libmidi](https://github.com/stuerp/libmidi)
 * Repository: [https://github.com/stuerp/libmidi.git](https://github.com/stuerp/libmidi.git)
 * Issue tracker: [https://github.com/stuerp/libmidi/issues](https://github.com/stuerp/libmidi/issues)
+
+## License
+
+![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)
