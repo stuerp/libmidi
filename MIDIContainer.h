@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.03.16) **/
+/** $VER: MIDIContainer.h (2025.03.19) **/
 
 #pragma once
 
@@ -142,10 +142,7 @@ public:
     void Add(uint32_t tempo, uint32_t timestamp);
     uint32_t TimestampToMS(uint32_t timestamp, uint32_t division) const;
 
-    size_t Size() const
-    {
-        return _Items.size();
-    }
+    size_t Size() const noexcept { return _Items.size(); }
 
     const tempo_item_t & operator[](std::size_t p_index) const
     {
@@ -176,12 +173,9 @@ class sysex_table_t
 {
 public:
     size_t AddItem(const uint8_t * data, std::size_t size, uint8_t portNumber);
-    bool GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const;
+    bool GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const noexcept;
 
-    size_t Size() const
-    {
-        return _Items.size();
-    }
+    size_t Size() const noexcept { return _Items.size(); }
 
 private:
     std::vector<sysex_item_t> _Items;
@@ -233,10 +227,11 @@ public:
 
     void AddItem(const midi_metadata_item_t & item);
     void Append(const midi_metadata_table_t & data);
-    bool GetItem(const char * name, midi_metadata_item_t & item) const;
+    bool GetItem(const char * name, midi_metadata_item_t & item) const noexcept;
     bool GetBitmap(std::vector<uint8_t> & bitmap) const;
     void AssignBitmap(std::vector<uint8_t>::const_iterator const & begin, std::vector<uint8_t>::const_iterator const & end);
-    std::size_t GetCount() const;
+
+    std::size_t GetCount() const noexcept { return _Items.size(); }
 
     const midi_metadata_item_t & operator[](size_t index) const;
 

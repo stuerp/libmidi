@@ -1,17 +1,9 @@
 
-/** $VER: Tracks.cpp (2025.03.02) P. Stuer **/
+/** $VER: Tracks.cpp (2025.03.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
-
-#include <SDKDDKVer.h>
-
-#define NOMINMAX
-
-#include <WinSock2.h>
-#include <Windows.h>
-#include <wincodec.h>
 
 #include <MIDIProcessor.h>
 #include <Encoding.h>

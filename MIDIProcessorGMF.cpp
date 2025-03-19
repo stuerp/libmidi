@@ -5,7 +5,7 @@
 
 #include "MIDIProcessor.h"
 
-bool midi_processor_t::IsGMF(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 32)
         return false;
@@ -35,15 +35,16 @@ bool midi_processor_t::ProcessGMF(std::vector<uint8_t> const & data, midi_contai
 
     Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, 5));
 
+    // Roland MT-32 Owner's Manual
     Data[0] = StatusCodes::SysEx;
-    Data[1] = 0x41;
-    Data[2] = 0x10;
-    Data[3] = 0x16;
-    Data[4] = 0x12;
-    Data[5] = 0x7F;
+    Data[1] = 0x41; // Roland manufacturer Id
+    Data[2] = 0x10; // Device Id
+    Data[3] = 0x16; // Model Id (MT-32)
+    Data[4] = 0x12; // Command Id: Send
+    Data[5] = 0x7F; // All parameter reset
     Data[6] = 0x00;
     Data[7] = 0x00;
-    Data[8] = 0x01;
+    Data[8] = 0x01; // Checksum
     Data[9] = StatusCodes::SysExEnd;
 
     Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, 10));

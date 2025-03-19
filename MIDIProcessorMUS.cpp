@@ -1,11 +1,11 @@
 
-/** $VER: MIDIProcessorMUS.cpp (2023.08.14) Created by Paul Radek for his DMX audio library. Used by id Software for Doom and several other games. (https://moddingwiki.shikadi.net/wiki/MUS_Format) **/
+/** $VER: MIDIProcessorMUS.cpp (2025.03.19) Created by Paul Radek for his DMX audio library. Used by id Software for Doom and several other games. (https://moddingwiki.shikadi.net/wiki/MUS_Format) **/
 
 #include "framework.h"
 
 #include "MIDIProcessor.h"
 
-bool midi_processor_t::IsMUS(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsMUS(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 0x20)
         return false;

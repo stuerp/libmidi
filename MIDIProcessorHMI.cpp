@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorHMI.cpp (2023.08.19) Human Machine Interface (http://www.vgmpf.com/Wiki/index.php?title=HMI) **/
+/** $VER: MIDIProcessorHMI.cpp (2025.03.19) Human Machine Interface (http://www.vgmpf.com/Wiki/index.php?title=HMI) **/
 
 #include "framework.h"
 
@@ -9,7 +9,7 @@
 /// <summary>
 /// Returns true if data points to an HMI sequence.
 /// </summary>
-bool midi_processor_t::IsHMI(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsHMI(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 12)
         return false;

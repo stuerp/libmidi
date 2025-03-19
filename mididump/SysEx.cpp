@@ -1,15 +1,9 @@
 
-/** $VER: SysEx.cpp (2024.05.15) P. Stuer **/
+/** $VER: SysEx.cpp (2025.03.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
-
-#define NOMINMAX
-
-#include <WinSock2.h>
-#include <Windows.h>
-#include <wincodec.h>
 
 #include "Encoding.h"
 #include "Tables.h"

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMI.cpp (2024.05.16) Extended Multiple Instrument Digital Interface (http://www.vgmpf.com/Wiki/index.php?title=XMI) **/
+/** $VER: MIDIProcessorXMI.cpp (2025.03.19) Extended Multiple Instrument Digital Interface (http://www.vgmpf.com/Wiki/index.php?title=XMI) **/
 
 #include "framework.h"
 
@@ -8,7 +8,7 @@
 /// <summary>
 /// Returns true if the byte vector contains XMI data.
 /// </summary>
-bool midi_processor_t::IsXMI(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsXMI(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 34)
         return false;

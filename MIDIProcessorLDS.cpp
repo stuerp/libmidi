@@ -20,7 +20,8 @@
 
 #ifdef ENABLE_VIB
 // Vibrato (sine) table
-static const unsigned char vibtab[] = {
+static const unsigned char vibtab[] =
+{
   0, 13, 25, 37, 50, 62, 74, 86, 98, 109, 120, 131, 142, 152, 162,
   171, 180, 189, 197, 205, 212, 219, 225, 231, 236, 240, 244, 247,
   250, 252, 254, 255, 255, 255, 254, 252, 250, 247, 244, 240, 236,
@@ -31,7 +32,8 @@ static const unsigned char vibtab[] = {
 
 #ifdef ENABLE_TREM
 // Tremolo (sine * sine) table
-static const unsigned char tremtab[] = {
+static const unsigned char tremtab[] =
+{
   0, 0, 1, 1, 2, 4, 5, 7, 10, 12, 15, 18, 21, 25, 29, 33, 37, 42, 47,
   52, 57, 62, 67, 73, 79, 85, 90, 97, 103, 109, 115, 121, 128, 134,
   140, 146, 152, 158, 165, 170, 176, 182, 188, 193, 198, 203, 208,
@@ -44,7 +46,7 @@ static const unsigned char tremtab[] = {
 };
 #endif
 
-bool midi_processor_t::IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension)
+bool midi_processor_t::IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept
 {
     if (fileExtension == nullptr)
         return false;

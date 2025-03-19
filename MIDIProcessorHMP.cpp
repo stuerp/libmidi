@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorHMP.cpp (2024.05.19) Human Machine Interfaces MIDI P/R (http://www.vgmpf.com/Wiki/index.php?title=HMP) **/
+/** $VER: MIDIProcessorHMP.cpp (2025.03.19) Human Machine Interfaces MIDI P/R (http://www.vgmpf.com/Wiki/index.php?title=HMP) **/
 
 #include "framework.h"
 
@@ -8,7 +8,7 @@
 /// <summary>
 /// Returns true if data points to an HMP sequence.
 /// </summary>
-bool midi_processor_t::IsHMP(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsHMP(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 8)
         return false;

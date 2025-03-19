@@ -1,17 +1,9 @@
 ﻿
-/** $VER: mididump.cpp (2024.05.15) P. Stuer **/
+/** $VER: mididump.cpp (2025.03.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
-
-#include <SDKDDKVer.h>
-
-#define NOMINMAX
-
-#include <WinSock2.h>
-#include <Windows.h>
-#include <wincodec.h>
 
 #include <stdio.h>
 
@@ -19,8 +11,6 @@
 #include <iomanip>
 
 #include <filesystem>
-
-using namespace std;
 
 #include <MIDIProcessor.h>
 #include <Encoding.h>

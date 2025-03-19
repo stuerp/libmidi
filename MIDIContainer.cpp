@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2025.03.12) **/
+/** $VER: MIDIContainer.cpp (2025.03.19) **/
 
 #include "framework.h"
 
@@ -154,7 +154,10 @@ size_t sysex_table_t::AddItem(const uint8_t * data, std::size_t size, uint8_t po
     return (_Items.size() - 1);
 }
 
-bool sysex_table_t::GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const
+/// <summary>
+/// Gets the data, size and port number of the specified SysEx entry.
+/// </summary>
+bool sysex_table_t::GetItem(size_t index, const uint8_t * & data, std::size_t & size, uint8_t & portNumber) const noexcept
 {
     if (index >= _Items.size())
         return false;
@@ -183,7 +186,10 @@ void midi_metadata_table_t::Append(const midi_metadata_table_t & data)
     _Bitmap = data._Bitmap;
 }
 
-bool midi_metadata_table_t::GetItem(const char * name, midi_metadata_item_t & item) const
+/// <summary>
+/// Gets the metadata item with the specified name. Returns true if successful.
+/// </summary>
+bool midi_metadata_table_t::GetItem(const char * name, midi_metadata_item_t & item) const noexcept
 {
     for (size_t i = 0; i < _Items.size(); ++i)
     {
@@ -192,6 +198,7 @@ bool midi_metadata_table_t::GetItem(const char * name, midi_metadata_item_t & it
         if (::_stricmp(name, Item.Name.c_str()) == 0)
         {
             item = Item;
+
             return true;
         }
     }
@@ -209,11 +216,6 @@ bool midi_metadata_table_t::GetBitmap(std::vector<uint8_t> & bitmap) const
 void midi_metadata_table_t::AssignBitmap(std::vector<uint8_t>::const_iterator const & begin, std::vector<uint8_t>::const_iterator const & end)
 {
     _Bitmap.assign(begin, end);
-}
-
-std::size_t midi_metadata_table_t::GetCount() const
-{
-    return _Items.size();
 }
 
 const midi_metadata_item_t & midi_metadata_table_t::operator [] (std::size_t p_index) const

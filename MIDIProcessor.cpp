@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2025.03.16) **/
+/** $VER: MIDIProcessor.cpp (2025.03.19) **/
 
 #include "framework.h"
 
@@ -67,7 +67,7 @@ bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t 
 /// <summary>
 /// Returns true if the data represents a SysEx message.
 /// </summary>
-bool midi_processor_t::IsSysEx(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 2)
         return false;

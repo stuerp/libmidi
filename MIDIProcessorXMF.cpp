@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMF.cpp (2025.02.24) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
+/** $VER: MIDIProcessorXMF.cpp (2025.03.19) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
 #include "framework.h"
 
@@ -182,7 +182,7 @@ const size_t MagicSize = 4;
 /// <summary>
 /// Returns true if the byte vector contains XMF data.
 /// </summary>
-bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < MagicSize)
         return false;

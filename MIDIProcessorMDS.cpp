@@ -1,11 +1,11 @@
 
-/** $VER: MIDIProcessorMDS.cpp (2023.08.14) MIDI Stream. created by Microsoft with the release of Windows 95 (http://www.vgmpf.com/Wiki/index.php?title=MDS) **/
+/** $VER: MIDIProcessorMDS.cpp (2025.03.19) MIDI Stream. created by Microsoft with the release of Windows 95 (http://www.vgmpf.com/Wiki/index.php?title=MDS) **/
 
 #include "framework.h"
 
 #include "MIDIProcessor.h"
 
-bool midi_processor_t::IsMDS(std::vector<uint8_t> const & data)
+bool midi_processor_t::IsMDS(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 8)
         return false;

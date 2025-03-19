@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.03.14) **/
+/** $VER: MIDIProcessor.h (2025.03.19) **/
 
 #pragma once
 
@@ -40,16 +40,17 @@ public:
 private:
     static bool IsSMF(std::vector<uint8_t> const & data) noexcept;
     static bool IsRMI(std::vector<uint8_t> const & data) noexcept;
-    static bool IsHMP(std::vector<uint8_t> const & data);
-    static bool IsHMI(std::vector<uint8_t> const & data);
-    static bool IsXMI(std::vector<uint8_t> const & data);
-    static bool IsMUS(std::vector<uint8_t> const & data);
-    static bool IsMDS(std::vector<uint8_t> const & data);
-    static bool IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension);
-    static bool IsGMF(std::vector<uint8_t> const & data);
-    static bool IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension);
-    static bool IsXMF(std::vector<uint8_t> const & data);
-    static bool IsSysEx(std::vector<uint8_t> const & data);
+    static bool IsHMP(std::vector<uint8_t> const & data) noexcept;
+    static bool IsHMI(std::vector<uint8_t> const & data) noexcept;
+    static bool IsXMI(std::vector<uint8_t> const & data) noexcept;
+    static bool IsMUS(std::vector<uint8_t> const & data) noexcept;
+    static bool IsMDS(std::vector<uint8_t> const & data) noexcept;
+    static bool IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept;
+    static bool IsGMF(std::vector<uint8_t> const & data) noexcept;
+    static bool IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept;
+    static bool IsXMF(std::vector<uint8_t> const & data) noexcept;
+
+    static bool IsSysEx(std::vector<uint8_t> const & data) noexcept;
 
     static bool ProcessSMF(std::vector<uint8_t> const & data, midi_container_t & container);
     static bool ProcessRMI(std::vector<uint8_t> const & data, midi_container_t & container);

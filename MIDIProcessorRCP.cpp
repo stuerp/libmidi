@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRCP.cpp (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIProcessorRCP.cpp (2025.03.19) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "framework.h"
 
@@ -12,7 +12,7 @@
 /// <summary>
 /// Returns true if data points to an RCP sequence.
 /// </summary>
-bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension)
+bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept
 {
     if (fileExtension == nullptr)
         return false;
