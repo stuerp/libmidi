@@ -1,5 +1,5 @@
 
-/** $VER: RCP.h (2024.05.15) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -8,7 +8,10 @@
 #include "MIDIStream.h"
 #include "Support.h"
 
-class rcp_converter_options_t
+namespace rcp
+{
+
+class converter_options_t
 {
 public:
     uint16_t _RCPLoopCount = 2;
@@ -86,7 +89,7 @@ public:
 class rcp_file_t
 {
 public:
-    rcp_file_t(const rcp_converter_options_t & options) : _Options(options)
+    rcp_file_t(const converter_options_t & options) : _Options(options)
     {
         _Version = 0;
         _TrackCount = 0;
@@ -129,7 +132,7 @@ public:
     rcp_user_sysex_t _SysEx[8];
 
 private:
-    const rcp_converter_options_t & _Options;
+    const converter_options_t & _Options;
 };
 
 class cm6_file_t
@@ -205,12 +208,12 @@ private:
     buffer_t _Data;
 };
 
-class rcp_converter_t
+class converter_t
 {
 public:
-    void SetFilePath(const wchar_t * filePath) noexcept { _FilePath = filePath; }
+    void SetFilePath(const std::wstring & filePath) noexcept { _FilePath = filePath; }
 
-    void Convert(const buffer_t & srcData, buffer_t & dstData, const wchar_t * dstType = L"mid");
+    void Convert(const buffer_t & srcData, buffer_t & dstData, const std::wstring & dstType = L"mid");
 
     void ConvertSequence(const buffer_t & rcpData, buffer_t & midData);
     void ConvertControl(const buffer_t & rcpData, buffer_t & midData, uint8_t fileType, uint8_t outMode);
@@ -225,7 +228,7 @@ private:
     static uint8_t HandleDuration(midi_stream_t * fileInfo, uint32_t & duration);
 
 public:
-    rcp_converter_options_t _Options;
+    converter_options_t _Options;
 
     std::wstring _FilePath;
 };
@@ -236,3 +239,5 @@ const uint8_t MT32PatchChange[] = { 0xFF, 0xFF, 0x18, 0x32, 0x0C, 0x00, 0x01 };
 
 void RCP2MIDITimeSignature(uint8_t numerator, uint8_t denominator, uint8_t buffer[4]);
 void RCP2MIDIKeySignature(uint8_t keySignature, uint8_t buffer[2]);
+
+}

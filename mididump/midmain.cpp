@@ -119,7 +119,7 @@ std::vector<uint8_t> ReadFile(std::wstring & filePath)
 
         ::strerror_s(ErrorMessage, _countof(ErrorMessage), errno);
 
-        throw std::runtime_error(std::format("Failed to open \"{}\" for reading: {} ({})", WideToUTF8(filePath).c_str(), ErrorMessage, errno));
+        throw std::runtime_error(std::format("Failed to open \"{}\" for reading: {} ({})", ::WideToUTF8(filePath).c_str(), ErrorMessage, errno));
     }
 
     ::fseek(fp, 0, SEEK_END);

@@ -1,11 +1,14 @@
 
-/** $VER: RunningNotes.h (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
 #include "pch.h"
 
 #include "MIDIStream.h"
+
+namespace rcp
+{
 
 #define MAX_RUN_NOTES 32 // Should be more than enough even for the MIDI sequences
 
@@ -51,3 +54,5 @@ public:
     size_t _Count;
     std::vector<running_note_t> _Notes;
 };
+
+}

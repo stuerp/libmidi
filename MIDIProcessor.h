@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.03.19) **/
+/** $VER: MIDIProcessor.h (2025.03.21) **/
 
 #pragma once
 
@@ -8,6 +8,8 @@
 #include "MIDIContainer.h"
 #include "Exception.h"
 #include "IFF.h"
+
+#include <string>
 
 namespace midi
 {
@@ -48,9 +50,9 @@ private:
     static bool IsXMI(std::vector<uint8_t> const & data) noexcept;
     static bool IsMUS(std::vector<uint8_t> const & data) noexcept;
     static bool IsMDS(std::vector<uint8_t> const & data) noexcept;
-    static bool IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept;
+    static bool IsLDS(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
     static bool IsGMF(std::vector<uint8_t> const & data) noexcept;
-    static bool IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept;
+    static bool IsRCP(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
     static bool IsXMF(std::vector<uint8_t> const & data) noexcept;
     static bool IsMMF(std::vector<uint8_t> const & data) noexcept;
 
@@ -65,7 +67,7 @@ private:
     static bool ProcessMDS(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessLDS(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessGMF(std::vector<uint8_t> const & data, container_t & container);
-    static bool ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, container_t & container);
+    static bool ProcessRCP(std::vector<uint8_t> const & data, const std::wstring & filePath, container_t & container);
     static bool ProcessXMF(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessMMF(std::vector<uint8_t> const & data, container_t & container);
 

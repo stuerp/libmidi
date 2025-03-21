@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorLDS.cpp (2024.05.12) Loudness Sound System (http://www.vgmpf.com/Wiki/index.php?title=LDS) **/
+/** $VER: MIDIProcessorLDS.cpp (2025.03.21) Loudness Sound System (http://www.vgmpf.com/Wiki/index.php?title=LDS) **/
 
 #include "pch.h"
 
@@ -49,12 +49,12 @@ static const unsigned char tremtab[] =
 };
 #endif
 
-bool processor_t::IsLDS(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept
+bool processor_t::IsLDS(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept
 {
-    if (fileExtension == nullptr)
+    if (fileExtension.empty())
         return false;
 
-    if (::_wcsicmp(fileExtension, L"LDS"))
+    if (::_wcsicmp(fileExtension.c_str(), L"lds"))
         return false;
 
     if (data.size() < 1)
@@ -373,7 +373,7 @@ bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & co
     uint8_t mode = *it++;
 
     if (mode > 2)
-        return false; /*throw exception_io_data( "Invalid LDS mode" );*/
+        throw midi::exception("Invalid LDS mode");
 
 //  speed = it[ 0 ] | ( it[ 1 ] << 8 );
 
@@ -481,7 +481,7 @@ bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & co
             position.pattern_number = (uint16_t) (it[0] | (it[1] << 8));
 
             if (position.pattern_number & 1)
-                return false; /*throw exception_io_data( "Odd LDS pattern number" );*/
+                throw midi::exception("Odd LDS pattern number");
 
             position.pattern_number >>= 1;
             position.transpose = it[2];
@@ -703,7 +703,7 @@ bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & co
                     unsigned char transpose = Positions[posplay * 9 + _chan].transpose;
 
                     if ((unsigned long) (patnum + _c->packpos) >= Patterns.size())
-                        return false; /*throw exception_io_data( "Invalid LDS pattern number" );*/
+                        throw midi::exception("Invalid LDS pattern number");
 
                     unsigned comword = Patterns[(size_t) (patnum + _c->packpos)];
                     unsigned comhi = comword >> 8;
@@ -916,7 +916,7 @@ bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & co
                 posplay = jumppos;
 
                 if (posplay >= PositionCount)
-                    return false; /*throw exception_io_data( "Invalid LDS position jump" );*/
+                    throw midi::exception("Invalid LDS position jump");
             }
             else
             if (pattplay >= pattern_length)

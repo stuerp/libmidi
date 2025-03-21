@@ -1,10 +1,9 @@
 
-/** $VER: MIDIProcessor.cpp (2025.03.20) **/
+/** $VER: MIDIProcessor.cpp (2025.03.21) **/
 
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Recomposer\Support.h"
 
 #include <filesystem>
 
@@ -24,7 +23,17 @@ bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * fil
 {
     _Options = options;
 
-    const wchar_t * FileExtension = (filePath != nullptr) ? (const wchar_t *) GetFileExtension(filePath) : L"";
+    std::wstring FileExtension;
+
+    if (filePath != nullptr)
+    {
+        std::filesystem::path FilePath(filePath);
+
+        FileExtension = FilePath.extension().wstring();
+
+        if (!FileExtension.empty() && FileExtension[0] == L'.')
+            FileExtension = FileExtension.substr(1);
+    }
 
     if (IsSMF(data))
         return ProcessSMF(data, container);
@@ -61,6 +70,7 @@ bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * fil
     if (IsXMF(data))
         return ProcessXMF(data, container);
 
+    // .MMF
     if (IsMMF(data))
         return ProcessMMF(data, container);
 

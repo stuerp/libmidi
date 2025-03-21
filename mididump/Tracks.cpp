@@ -153,7 +153,7 @@ void ProcessSysEx(const midi::event_t & me)
 
     SysEx.Identify();
 
-    ::printf(" \"%s\", \"%s\"", WideToUTF8(SysEx.GetManufacturer()).c_str(), WideToUTF8(SysEx.GetDescription()).c_str());
+    ::printf(" \"%s\", \"%s\"", ::WideToUTF8(SysEx.GetManufacturer()).c_str(), ::WideToUTF8(SysEx.GetDescription()).c_str());
 }
 
 /// <summary>
@@ -285,7 +285,7 @@ void ProcessProgramChange(const midi::event_t & me)
     {
         if (it.Id == Value)
         {
-            ::printf(" %s", WideToUTF8(it.Name).c_str());
+            ::printf(" %s", ::WideToUTF8(it.Name).c_str());
             break;
         }
     }

@@ -1,5 +1,5 @@
 
-/** $VER: RCPConverter.cpp (2024.05.16) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCPConverter.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -8,16 +8,19 @@
 
 #include "Encoding.h"
 
+namespace rcp
+{
+
 uint32_t _MIDITickCount = 0;
 
 running_notes_t RunningNotes;
 
 /// <summary>
-/// 
+/// Converts the RCP data.
 /// </summary>
-void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, const wchar_t * dstType)
+void converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, const std::wstring & dstType)
 {
-    uint8_t FileType = rcp_converter_t::GetFileType(srcData);
+    uint8_t FileType = converter_t::GetFileType(srcData);
 
     if (FileType < 0x10)
     {
@@ -35,13 +38,13 @@ void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, cons
     {
         uint8_t Mode;
 
-        if (::_wcsicmp(dstType, L"syx") == 0)
+        if (::_wcsicmp(dstType.c_str(), L"syx") == 0)
             Mode = 0x00;
         else
-        if (::_wcsicmp(dstType, L"mid") == 0)
+        if (::_wcsicmp(dstType.c_str(), L"mid") == 0)
             Mode = 0x01;
         else
-            throw std::runtime_error(std::string("Unknown output format: ") + WideToUTF8(dstType));
+            throw std::runtime_error(std::string("Unknown output format: ") + ::WideToUTF8(dstType));
 
         try
         {
@@ -53,20 +56,20 @@ void rcp_converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, cons
         }
     }
     else
-        throw std::runtime_error("Unknown file type");
+        throw std::runtime_error("Unknown RCP file type");
 }
 
 /// <summary>
 /// Converts an RCP sequence.
 /// </summary>
-void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
+void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
 {
     rcp_file_t RCPFile(_Options);
 
     RCPFile._Version = GetFileType(rcpData);
 
     if (RCPFile._Version >= 0x10)
-        throw std::runtime_error("Unknown file type");
+        throw std::runtime_error("Unknown RCP file type");
 
 #ifdef _RCP_VERBOSE
     ::printf("RCP version %u\n\n", RCPFile._Version);
@@ -286,7 +289,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         MIDIStream.BeginWriteMIDITrack();
 
         if (RCPFile._Title.Len > 0)
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._Title.Data, RCPFile._Title.Len);
+            MIDIStream.WriteMetaEvent(midi::TrackName, RCPFile._Title.Data, RCPFile._Title.Len);
 
         // Comments
         if (RCPFile._Comments.Len > 0)
@@ -301,7 +304,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
                 if (Size == 0)
                     Size = 1; // Some sequencers remove empty events, so keep at least 1 space.
 
-                MIDIStream.WriteMetaEvent(midi::MetaDataTypes::Text, Text, Size);
+                MIDIStream.WriteMetaEvent(midi::Text, Text, Size);
             }
         }
 
@@ -309,7 +312,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             uint32_t Tempo = BPM2Ticks(RCPFile._Tempo, 64);
 
             MIDIStream.SetTempo(Tempo);
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::SetTempo, Tempo, 3);
+            MIDIStream.WriteMetaEvent(midi::SetTempo, Tempo, 3);
 
             #ifdef _RCP_VERBOSE
             ::printf("Tempo: %u bpm, %u ticks.\n", RCPFile._Tempo, Tempo);
@@ -320,7 +323,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         {
             RCP2MIDITimeSignature(RCPFile._BPMNumerator, RCPFile._BPMDenominator, Temp);
 
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TimeSignature, Temp, 4);
+            MIDIStream.WriteMetaEvent(midi::TimeSignature, Temp, 4);
 
             #ifdef _RCP_VERBOSE
             ::printf("Time signature: %u/%u.\n", RCPFile._BPMNumerator, RCPFile._BPMDenominator);
@@ -330,14 +333,14 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         {
             RCP2MIDIKeySignature(RCPFile._KeySignature, Temp);
 
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::KeySignature, Temp, 2);
+            MIDIStream.WriteMetaEvent(midi::KeySignature, Temp, 2);
 
             #ifdef _RCP_VERBOSE
             ::printf("Key signature: %u.\n", RCPFile._KeySignature);
             #endif
         }
 
-        MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+        MIDIStream.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
         MIDIStream.EndWriteMIDITrack();
     }
@@ -352,7 +355,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._CM6FileName.Data, RCPFile._CM6FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::TrackName, RCPFile._CM6FileName.Data, RCPFile._CM6FileName.Len);
 
             MIDIStream.WriteRolandSysEx(SysExHeaderMT32, 0x7F0000, nullptr, 0, 0); // MT-32 Reset
 
@@ -369,7 +372,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -380,19 +383,19 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._GSD1FileName.Data, RCPFile._GSD1FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::TrackName, RCPFile._GSD1FileName.Data, RCPFile._GSD1FileName.Len);
 
             if (RCPFile._GSD2FileName.Len > 0)
             {
                 Temp[0] = 0x00; // Port A
-                MIDIStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort, Temp, 1);
+                MIDIStream.WriteMetaEvent(midi::MIDIPort, Temp, 1);
             }
 
             Convert(GSD1File, MIDIStream, 0x11);
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -403,16 +406,16 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._GSD2FileName.Data, RCPFile._GSD2FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::TrackName, RCPFile._GSD2FileName.Data, RCPFile._GSD2FileName.Len);
 
             Temp[0] = 0x01; // Port B
-            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort, Temp, 1);
+            MIDIStream.WriteMetaEvent(midi::MIDIPort, Temp, 1);
 
             Convert(GSD2File, MIDIStream, 0x11);
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -493,7 +496,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         #endif
         }
 
-        MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+        MIDIStream.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
         MIDIStream.EndWriteMIDITrack();
     }
@@ -509,7 +512,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 /// <summary>
 /// Converts an RCP control file.
 /// </summary>
-void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiData, uint8_t fileType, uint8_t outMode)
+void converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiData, uint8_t fileType, uint8_t outMode)
 {
     cm6_file_t CM6File;
     gsd_file_t GSDFile;
@@ -549,7 +552,7 @@ void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiD
         else
             Convert(GSDFile, MIDIFile, outMode);
 
-        MIDIFile.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
+        MIDIFile.WriteEvent(midi::MetaData, midi::EndOfTrack, 0);
 
         MIDIFile.EndWriteMIDITrack();
     }
@@ -569,7 +572,7 @@ void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiD
 /// When a track's loop has less ticks than minLoopTicks, then it is ignored.
 /// Returns the number of adjusted tracks.
 /// </summary>
-uint16_t rcp_converter_t::BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint32_t minLoopTicks, uint8_t verbose)
+uint16_t converter_t::BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks, uint32_t minLoopTicks, uint8_t verbose)
 {
     uint32_t maxTicks = 0;
 
@@ -631,9 +634,9 @@ uint16_t rcp_converter_t::BalanceTrackTimes(std::vector<rcp_track_t> & rcpTracks
 }
 
 /// <summary>
-/// 
+/// Gets the file type of the data.
 /// </summary>
-uint8_t rcp_converter_t::GetFileType(const buffer_t & rcpData) noexcept
+uint8_t converter_t::GetFileType(const buffer_t & rcpData) noexcept
 {
     const char * Magic = (const char *) rcpData.Data;
 
@@ -641,10 +644,10 @@ uint8_t rcp_converter_t::GetFileType(const buffer_t & rcpData) noexcept
         return 0xFE; // Incomplete
 
     if (::strcmp(Magic, "RCM-PC98V2.0(C)COME ON MUSIC\r\n") == 0)
-        return 2;
+        return 0x02;
     else
     if (:: strcmp(Magic, "COME ON MUSIC RECOMPOSER RCP3.0") == 0)
-        return 3;
+        return 0x03;
 
     if (::strcmp(Magic, "COME ON MUSIC") == 0)
     {
@@ -661,7 +664,7 @@ uint8_t rcp_converter_t::GetFileType(const buffer_t & rcpData) noexcept
 /// <summary>
 /// 
 /// </summary>
-uint8_t rcp_converter_t::HandleDuration(midi_stream_t * midiStream, uint32_t & duration)
+uint8_t converter_t::HandleDuration(midi_stream_t * midiStream, uint32_t & duration)
 {
     _MIDITickCount += duration;
 
@@ -678,4 +681,6 @@ uint8_t rcp_converter_t::HandleDuration(midi_stream_t * midiStream, uint32_t & d
     }
 
     return 0;
+}
+
 }

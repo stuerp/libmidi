@@ -43,7 +43,7 @@ int wmain(int argc, const wchar_t ** argv)
 
     if (!::PathFileExistsW(argv[1]))
     {
-        ::printf("Failed to access \"%s\": path does not exist.\n", WideToUTF8(argv[1]).c_str());
+        ::printf("Failed to access \"%s\": path does not exist.\n", ::WideToUTF8(argv[1]).c_str());
         return -1;
     }
 
@@ -51,7 +51,7 @@ int wmain(int argc, const wchar_t ** argv)
 
     if (::GetFullPathNameW(argv[1], _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
     {
-        ::printf("Failed to expand \"%s\": Error %u.\n", WideToUTF8(argv[1]).c_str(), (uint32_t) ::GetLastError());
+        ::printf("Failed to expand \"%s\": Error %u.\n", ::WideToUTF8(argv[1]).c_str(), (uint32_t) ::GetLastError());
         return -1;
     }
 
@@ -69,7 +69,7 @@ int wmain(int argc, const wchar_t ** argv)
 
 static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPattern)
 {
-    ::printf("\"%s\"\n", WideToUTF8(directoryPath).c_str());
+    ::printf("\"%s\"\n", ::WideToUTF8(directoryPath).c_str());
 
     WCHAR PathName[MAX_PATH];
 
@@ -115,7 +115,7 @@ static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPa
 
 static void ProcessFile(const WCHAR * filePath, uint64_t fileSize)
 {
-    ::printf("\n\"%s\", %" PRIu64 " bytes\n", WideToUTF8(filePath).c_str(), fileSize);
+    ::printf("\n\"%s\", %" PRIu64 " bytes\n", ::WideToUTF8(filePath).c_str(), fileSize);
 
     const WCHAR * FileExtension;
 

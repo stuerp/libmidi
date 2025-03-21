@@ -1,11 +1,13 @@
 
-/** $VER: MIDIStream.cpp (2024.05.12) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIStream.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
 #include "MIDIStream.h"
-
 #include "Support.h"
+
+namespace rcp
+{
 
 // Optional callback for injecting raw data before writing a MIDI timestamp. Returning non-zero makes it skip writing the timestamp.
 uint8_t (* midi_stream_t::_HandleDuration)(midi_stream_t * midiStream, uint32_t & duration);
@@ -69,4 +71,6 @@ void midi_stream_t::WriteRolandSysEx(const uint8_t * syxHdr, uint32_t address, c
 
     if (opts & SYXOPT_DELAY)
         _State.Duration += MulDivCeil(1 + Size, _TicksPerQuarter * 320, _Tempo); // F0 status code + data size
+}
+
 }

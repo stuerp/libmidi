@@ -1,9 +1,12 @@
 
-/** $VER: Support.cpp (2024.05.14) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: Support.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
 #include "Support.h"
+
+namespace rcp
+{
 
 /// <summary>
 /// 
@@ -52,12 +55,4 @@ const wchar_t * GetFileName(const wchar_t * filePath)
     return (Sep1 != nullptr) ? (Sep1 + 1) : filePath;
 }
 
-/// <summary>
-/// Gets the address of the file extension in the specified file name.
-/// </summary>
-const wchar_t * GetFileExtension(const wchar_t * fileName)
-{
-    const wchar_t * Dot = ::wcsrchr(GetFileName(fileName), '.');
-
-    return (Dot != nullptr) ? (Dot + 1) : L"";
 }

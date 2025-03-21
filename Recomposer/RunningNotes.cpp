@@ -1,9 +1,12 @@
 
-/** $VER: RunningNotes.cpp (2024.05.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
 #include "RunningNotes.h"
+
+namespace rcp
+{
 
 // Adds a note event to the "runNotes" list, so that NoteOff events can be inserted automatically by Check() while processing delays.
 // "length" specifies the number of ticks after which the note is turned off.
@@ -71,13 +74,13 @@ size_t running_notes_t::Check(midi_stream_t & midiStream, uint32_t & duration)
 
                 if (n.NoteOffVelocity < 0x80)
                 {
-                    midiStream.Add((uint8_t) (midi::StatusCodes::NoteOff | n.Channel));
+                    midiStream.Add((uint8_t) (midi::NoteOff | n.Channel));
                     midiStream.Add(n.Note);
                     midiStream.Add(n.NoteOffVelocity);
                 }
                 else
                 {
-                    midiStream.Add((uint8_t) (midi::StatusCodes::NoteOn | n.Channel));
+                    midiStream.Add((uint8_t) (midi::NoteOn | n.Channel));
                     midiStream.Add(n.Note);
                     midiStream.Add(0);
                 }
@@ -114,4 +117,6 @@ uint32_t running_notes_t::Flush(midi_stream_t & midiStream, bool shorten)
     Check(midiStream, Duration);
 
     return Duration;
+}
+
 }

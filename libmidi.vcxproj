@@ -41,7 +41,7 @@
     <ClCompile Include="MIDIProcessorXMF.cpp" />
     <ClCompile Include="MIDIProcessorXMI.cpp" />
     <ClCompile Include="Recomposer\CM6File.cpp" />
-    <ClCompile Include="Recomposer\GDSFile.cpp" />
+    <ClCompile Include="Recomposer\GSDFile.cpp" />
     <ClCompile Include="Recomposer\MIDIStream.cpp" />
     <ClCompile Include="Recomposer\RCP.cpp" />
     <ClCompile Include="Recomposer\RCPConverter.cpp" />

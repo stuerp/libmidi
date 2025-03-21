@@ -1,5 +1,5 @@
 ﻿
-/** $VER: main.cpp (2025.02.24) P. Stuer **/
+/** $VER: main.cpp (2025.03.21) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -29,32 +29,34 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int rcpmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Argument = LR"(f:\Tst\RCP\GitHub Issue 37\NIGHT.G36)";
 const WCHAR * Filters[] = { L".rcp", L".r36", L".g18", L".g36", L".cm6", L".gsd" };
 
-int wmain()
+int wmain(int argc, wchar_t * argv[])
 {
+    if (argc < 2)
+        return -1;
+
     ::printf("\xEF\xBB\xBF"); // UTF-8 BOM
 
-    if (!::PathFileExistsW(Argument))
+    if (!::PathFileExistsW(argv[1]))
     {
-        ::printf("Failed to access \"%s\": path does not exist.\n", WideToUTF8(Argument).c_str());
+        ::printf("Failed to access \"%s\": path does not exist.\n", ::WideToUTF8(argv[1]).c_str());
         return -1;
     }
 
     WCHAR DirectoryPath[MAX_PATH];
 
-    if (::GetFullPathNameW(Argument, _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
+    if (::GetFullPathNameW(argv[1], _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
     {
-        ::printf("Failed to expand \"%s\": Error %u.\n", WideToUTF8(Argument).c_str(), (uint32_t) ::GetLastError());
+        ::printf("Failed to expand \"%s\": Error %u.\n", ::WideToUTF8(argv[1]).c_str(), (uint32_t) ::GetLastError());
         return -1;
     }
 
-    if (!::PathIsDirectoryW(Argument))
+    if (!::PathIsDirectoryW(argv[1]))
     {
         ::PathCchRemoveFileSpec(DirectoryPath, _countof(DirectoryPath));
 
-        ProcessDirectory(DirectoryPath, ::PathFindFileNameW(Argument));
+        ProcessDirectory(DirectoryPath, ::PathFindFileNameW(argv[1]));
     }
     else
         ProcessDirectory(DirectoryPath, L"*.*");
@@ -64,7 +66,7 @@ int wmain()
 
 static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPattern)
 {
-    ::printf("\"%s\"\n", WideToUTF8(directoryPath).c_str());
+    ::printf("\"%s\"\n", ::WideToUTF8(directoryPath).c_str());
 
     WCHAR PathName[MAX_PATH];
 
@@ -110,7 +112,7 @@ static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPa
 
 static void ProcessFile(const WCHAR * filePath, uint64_t fileSize)
 {
-    ::printf("\n\"%s\", %" PRIu64 " bytes\n", WideToUTF8(filePath).c_str(), fileSize);
+    ::printf("\n\"%s\", %" PRIu64 " bytes\n", ::WideToUTF8(filePath).c_str(), fileSize);
 
     const WCHAR * FileExtension;
 

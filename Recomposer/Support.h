@@ -1,5 +1,5 @@
 
-/** $VER: Support.h (2024.05.12) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: Support.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -9,13 +9,15 @@
 
 #include "Encoding.h"
 
+namespace rcp
+{
+
 #pragma warning(disable: 4820) // x bytes padding added after data member 'y'
 
 uint16_t GetTrimmedLength(const char * data, uint16_t size, char trimChar, bool leaveLast);
 uint32_t BPM2Ticks(uint16_t bpm, uint8_t scale);
 
 const wchar_t * GetFileName(const wchar_t * filePath);
-const wchar_t * GetFileExtension(const wchar_t * fileName);
 
 struct buffer_t
 {
@@ -73,7 +75,7 @@ struct buffer_t
         FILE * fp = nullptr;
 
         if (::_wfopen_s(&fp, filePath, L"rb") != 0)
-            throw std::runtime_error(std::format("Failed to open \"{}\" for reading: error {}", WideToUTF8(filePath).c_str(), errno));
+            throw std::runtime_error(std::format("Failed to open \"{}\" for reading: error {}", ::WideToUTF8(filePath).c_str(), errno));
 
         if (fp != nullptr)
         {
@@ -97,7 +99,7 @@ struct buffer_t
         FILE * fp = nullptr;
 
         if (::_wfopen_s(&fp, filePath, L"wb") != 0)
-            throw std::runtime_error(std::format("Failed to open \"{}\" for writing: error {}", WideToUTF8(filePath).c_str(), errno));
+            throw std::runtime_error(std::format("Failed to open \"{}\" for writing: error {}", ::WideToUTF8(filePath).c_str(), errno));
 
         if (fp != nullptr)
         {
@@ -150,4 +152,6 @@ inline uint16_t ReadLE16(const uint8_t * data)
 inline uint32_t ReadLE32(const uint8_t * data)
 {
     return (uint32_t) ((data[3] << 24) | (data[2] << 16) | (data[1] << 8) | (data[0] << 0));
+}
+
 }

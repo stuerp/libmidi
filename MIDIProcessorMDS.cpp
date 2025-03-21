@@ -85,7 +85,7 @@ bool processor_t::ProcessMDS(std::vector<uint8_t> const & data, container_t & co
 
     // Data chunk
     if (it[0] != 'd' || it[1] != 'a' || it[2] != 't' || it[3] != 'a')
-        return false; /*throw exception_io_data( "MIDS missing RIFF data chunk" );*/
+        throw midi::exception("Data chunk missing in MDS data");
 
     it += 4;
 

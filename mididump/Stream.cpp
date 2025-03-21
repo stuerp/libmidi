@@ -49,8 +49,8 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
 
         const uint8_t StatusCode = (const uint8_t) (Event[0] & 0xF0u);
 
-        const uint32_t EventSize = (uint32_t) ((StatusCode >= midi::StatusCodes::TimingClock   && StatusCode <= midi::StatusCodes::MetaData) ? 1 :
-                                              ((StatusCode == midi::StatusCodes::ProgramChange || StatusCode == midi::StatusCodes::ChannelPressure) ? 2 : 3));
+        const uint32_t EventSize = (uint32_t) ((StatusCode >= midi::TimingClock   && StatusCode <= midi::MetaData) ? 1 :
+                                              ((StatusCode == midi::ProgramChange || StatusCode == midi::ChannelPressure) ? 2 : 3));
 
         uint8_t PortNumber = (item.Data >> 24) & 0x7F;
 
@@ -88,7 +88,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
 
             case midi::ControlChange:
             {
-                ::printf("Control Change %3d = %3d (%s)\n", Event[1], Event[2], WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
+                ::printf("Control Change %3d = %3d (%s)\n", Event[1], Event[2], ::WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
 
                 if (Event[1] == 98)     // Non-Registered Parameter LSB
                     CCLSB = Event[2];
@@ -130,7 +130,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
             }
 
             case midi::ProgramChange:
-                ::printf("Program Change %3d, %s\n", Event[1] + 1, WideToUTF8(Instruments[Event[1]].Name).c_str());
+                ::printf("Program Change %3d, %s\n", Event[1] + 1, ::WideToUTF8(Instruments[Event[1]].Name).c_str());
                 break;
 
             case midi::ChannelPressure:
@@ -221,7 +221,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
 
             SysEx.Identify();
 
-            ::printf(", \"%s\", \"%s\"", WideToUTF8(SysEx.GetManufacturer()).c_str(), WideToUTF8(SysEx.GetDescription()).c_str());
+            ::printf(", \"%s\", \"%s\"", ::WideToUTF8(SysEx.GetManufacturer()).c_str(), ::WideToUTF8(SysEx.GetDescription()).c_str());
         }
 
         ::putchar('\n');

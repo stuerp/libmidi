@@ -1,5 +1,5 @@
 
-/** $VER: MIDIStream.h (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIStream.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -8,6 +8,9 @@
 #include "pch.h"
 
 #include <MIDI.h>
+
+namespace rcp
+{
 
 #define SYXOPT_DELAY 0x01
 
@@ -247,11 +250,11 @@ private:
 
         switch (statusCode & 0xF0)
         {
-            case midi::StatusCodes::NoteOff:
-            case midi::StatusCodes::NoteOn:
-            case midi::StatusCodes::KeyPressure:
-            case midi::StatusCodes::ControlChange:
-            case midi::StatusCodes::PitchBendChange:
+            case midi::NoteOff:
+            case midi::NoteOn:
+            case midi::KeyPressure:
+            case midi::ControlChange:
+            case midi::PitchBendChange:
             {
                 // Only add the status if it is different from the running status.
                 if (_State.RunningStatus != Status)
@@ -266,8 +269,8 @@ private:
                 break;
             }
 
-            case midi::StatusCodes::ProgramChange:
-            case midi::StatusCodes::ChannelPressure:
+            case midi::ProgramChange:
+            case midi::ChannelPressure:
             {
                 // Only add the status if it is different from the running status.
                 if (_State.RunningStatus != Status)
@@ -281,7 +284,7 @@ private:
                 break;
             }
 
-            case midi::StatusCodes::SysEx: // Meta Event: Track End
+            case midi::SysEx: // Meta Event: Track End
             {
                 _State.RunningStatus = 0;
 
@@ -338,3 +341,5 @@ private:
 
     static duration_handler_t _HandleDuration;
 };
+
+}

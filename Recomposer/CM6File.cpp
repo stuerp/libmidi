@@ -1,22 +1,25 @@
 
-/** $VER: CM6File.cpp (2024.05.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: CM6File.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
 #include "RCP.h"
+
+namespace rcp
+{
 
 /// <summary>
 /// 
 /// </summary>
 void cm6_file_t::Read(const buffer_t & data)
 {
-    uint8_t FileType = rcp_converter_t::GetFileType(data);
+    uint8_t FileType = converter_t::GetFileType(data);
 
     if (FileType != 0x10)
-        throw std::runtime_error("Invalid CM6 control file.");
+        throw std::runtime_error("Invalid CM6 control file");
 
     if (data.Size < 0x5849)
-        throw std::runtime_error("Insufficient data.");
+        throw std::runtime_error("Insufficient data");
 
     _Data = data;
 
@@ -40,7 +43,7 @@ void cm6_file_t::Read(const buffer_t & data)
 /// <summary>
 /// Converts a CM6 file to a MIDI file.
 /// </summary>
-void rcp_converter_t::Convert(const cm6_file_t & cm6File, midi_stream_t & midiStream, uint8_t mode)
+void converter_t::Convert(const cm6_file_t & cm6File, midi_stream_t & midiStream, uint8_t mode)
 {
     if (mode & 0x01)
         midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, cm6File.Comment.Data, cm6File.Comment.Len);
@@ -92,4 +95,6 @@ void rcp_converter_t::Convert(const cm6_file_t & cm6File, midi_stream_t & midiSt
 
     if (mode & 0x10)
         midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "Setup Finished.");
+}
+
 }

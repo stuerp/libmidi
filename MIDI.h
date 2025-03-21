@@ -45,14 +45,14 @@ enum ControlChangeNumbers
 
 enum ChannelModeMessages
 {
-    AllSoundsOff        = 120,
-    ResetAllControllers = 121,
-    LocalControl        = 122,
-    AllNotesOff         = 123,
-    OmniOff             = 124,
-    OmniOn              = 125,
-    MonoOn              = 126,
-    PolyOn              = 127,
+    AllSoundsOff            = 0x78,
+    ResetAllControllers     = 0x79,
+    LocalControl            = 0x7A,
+    AllNotesOff             = 0x7B,
+    OmniOff                 = 0x7C,
+    OmniOn                  = 0x7D,
+    MonoOn                  = 0x7E,
+    PolyOn                  = 0x7F,
 };
 
 enum MetaDataTypes

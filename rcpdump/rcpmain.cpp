@@ -1,5 +1,5 @@
 
-/** $VER: rcpmain.cpp (2024.05.12) P. Stuer **/
+/** $VER: rcpmain.cpp (2025.03.21) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -24,10 +24,13 @@
 #include <vector>
 #include <cassert>
 #include <format>
+#include <filesystem>
 
 #include <MIDIProcessor.h>
 #include <Recomposer\RCP.h>
 #include <Encoding.h>
+
+using namespace rcp;
 
 /// <summary>
 /// 
@@ -57,9 +60,9 @@ int rcpmain(int argc, wchar_t * argv[])
         return 0;
     }
 
-    rcp_converter_t RCPConverter;
+    converter_t RCPConverter;
 
-    rcp_converter_options_t & Options = RCPConverter._Options;
+    converter_options_t & Options = RCPConverter._Options;
 
     int argbase = 1;
 
@@ -110,21 +113,31 @@ int rcpmain(int argc, wchar_t * argv[])
 
     char TimeText[32]; ::strftime(TimeText, _countof(TimeText), "%Y-%m-%d %H:%M:%S", &TM);
 
-    const wchar_t * FilePath = argv[argbase];
+    const std::wstring FilePath(argv[argbase]);
 
     RCPConverter.SetFilePath(FilePath);
 
-    ::printf("\n%s, \"%S\"\n", TimeText, FilePath);
+    ::printf("\n%s, \"%S\"\n", TimeText, FilePath.c_str());
 
     buffer_t SrcData;
 
     try
     {
-        SrcData.ReadFile(FilePath);
+        SrcData.ReadFile(FilePath.c_str());
 
         buffer_t DstData;
 
-        const wchar_t * FileExtension = GetFileExtension(argv[argbase + 1]);
+        std::wstring FileExtension;
+
+        if (argv[argbase + 1] != nullptr)
+        {
+            std::filesystem::path Path(argv[argbase + 1]);
+
+            FileExtension = Path.extension().wstring();
+
+            if (!FileExtension.empty() && FileExtension[0] == L'.')
+                FileExtension = FileExtension.substr(1);
+        }
 
         RCPConverter.Convert(SrcData, DstData, FileExtension);
 
@@ -136,34 +149,29 @@ int rcpmain(int argc, wchar_t * argv[])
             {
                 ::printf("Src: %d bytes, Dst: %d bytes\n", SrcData.Size, DstData.Size);
 
-                wchar_t RefFilePath[260];
+                std::filesystem::path RefFilePath(FilePath);
 
-                ::wcscpy_s(RefFilePath, _countof(RefFilePath), FilePath);
+                RefFilePath.replace_extension(L".mid");
 
-                wchar_t * fe = (wchar_t *) GetFileExtension(RefFilePath);
-
-                if (fe != nullptr)
                 {
-                    ::wcscpy_s(fe, 4, L"mid");
-
                     buffer_t RefFile;
 
                     try
                     {
-                        RefFile.ReadFile(RefFilePath);
+                        RefFile.ReadFile(RefFilePath.c_str());
                     }
                     catch (std::runtime_error & e)
                     {
-                        std::string Text(FormatText("Reference file \"%s\" not found: ", WideToUTF8(RefFilePath).c_str()));
+                        std::string Text(FormatText("Reference file \"%s\" not found: ", ::WideToUTF8(RefFilePath).c_str()));
 
                         throw std::runtime_error(Text + e.what());
                     }
     
                     if (RefFile.Size != DstData.Size)
-                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File size mismatch (%u != %u).", WideToUTF8(FilePath).c_str(), RefFile.Size, DstData.Size));
+                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File size mismatch (%u != %u)", ::WideToUTF8(FilePath).c_str(), RefFile.Size, DstData.Size));
 
                     if (::memcmp(RefFile.Data, DstData.Data, RefFile.Size) != 0)
-                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File content mismatch.", WideToUTF8(FilePath).c_str()));
+                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File content mismatch", ::WideToUTF8(FilePath).c_str()));
                 }
 
                 midi::container_t Container;
@@ -172,8 +180,8 @@ int rcpmain(int argc, wchar_t * argv[])
 
                 Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
-                if (!midi::processor_t::Process(Data, FilePath, Container))
-                    throw std::runtime_error(FormatText("MIDIProcesser failed: \"%s\".", WideToUTF8(FilePath).c_str()));
+                if (!midi::processor_t::Process(Data, FilePath.c_str(), Container))
+                    throw std::runtime_error(FormatText("MIDIProcesser failed: \"%s\"", ::WideToUTF8(FilePath).c_str()));
             }
             #endif
         }
