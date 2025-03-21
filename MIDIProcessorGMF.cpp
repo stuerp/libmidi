@@ -1,11 +1,14 @@
 
 /** $VER: MIDIProcessorGMF.cpp (2023.08.14) Game Music Format (http://www.vgmpf.com/Wiki/index.php?title=GMF) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 
-bool midi_processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
+namespace midi
+{
+
+bool processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 32)
         return false;
@@ -16,7 +19,7 @@ bool midi_processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
     return true;
 }
 
-bool midi_processor_t::ProcessGMF(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessGMF(std::vector<uint8_t> const & data, container_t & container)
 {
     uint8_t Data[10] = { };
 
@@ -25,7 +28,7 @@ bool midi_processor_t::ProcessGMF(std::vector<uint8_t> const & data, midi_contai
     uint16_t Tempo = (uint16_t) (((uint16_t) data[4] << 8) | data[5]);
     uint32_t ScaledTempo = (uint32_t) Tempo * 100000;
 
-    midi_track_t Track;
+    track_t Track;
 
     Data[0] = StatusCodes::MetaData;
     Data[1] = MetaDataTypes::SetTempo;
@@ -33,7 +36,7 @@ bool midi_processor_t::ProcessGMF(std::vector<uint8_t> const & data, midi_contai
     Data[3] = (uint8_t) (ScaledTempo >>  8);
     Data[4] = (uint8_t)  ScaledTempo;
 
-    Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, 5));
+    Track.AddEvent(event_t(0, event_t::Extended, 0, Data, 5));
 
     // Roland MT-32 Owner's Manual
     Data[0] = StatusCodes::SysEx;
@@ -47,16 +50,18 @@ bool midi_processor_t::ProcessGMF(std::vector<uint8_t> const & data, midi_contai
     Data[8] = 0x01; // Checksum
     Data[9] = StatusCodes::SysExEnd;
 
-    Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, 10));
+    Track.AddEvent(event_t(0, event_t::Extended, 0, Data, 10));
 
     Data[0] = StatusCodes::MetaData;
     Data[1] = MetaDataTypes::EndOfTrack;
 
-    Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, 2));
+    Track.AddEvent(event_t(0, event_t::Extended, 0, Data, 2));
 
     container.AddTrack(Track);
 
     auto it = data.begin() + 7;
 
     return ProcessSMFTrack(it, data.end(), container);
+}
+
 }

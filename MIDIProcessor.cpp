@@ -1,23 +1,26 @@
 
-/** $VER: MIDIProcessor.cpp (2025.03.19) **/
+/** $VER: MIDIProcessor.cpp (2025.03.20) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Recomposer\Support.h"
 
 #include <filesystem>
 
-midi_processor_options_t midi_processor_t::_Options;
+namespace midi
+{
 
-const uint8_t midi_processor_t::MIDIEventEndOfTrack[2] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
-const uint8_t midi_processor_t::LoopBeginMarker[11]    = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'S', 't', 'a', 'r', 't' };
-const uint8_t midi_processor_t::LoopEndMarker[9]       = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'E', 'n', 'd' };
+processor_options_t processor_t::_Options;
+
+const uint8_t processor_t::MIDIEventEndOfTrack[2] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
+const uint8_t processor_t::LoopBeginMarker[11]    = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'S', 't', 'a', 'r', 't' };
+const uint8_t processor_t::LoopEndMarker[9]       = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'E', 'n', 'd' };
 
 /// <summary>
 /// Processes a stream of bytes.
 /// </summary>
-bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container, const midi_processor_options_t & options)
+bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * filePath, container_t & container, const processor_options_t & options)
 {
     _Options = options;
 
@@ -58,6 +61,9 @@ bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t 
     if (IsXMF(data))
         return ProcessXMF(data, container);
 
+    if (IsMMF(data))
+        return ProcessMMF(data, container);
+
     if (IsSysEx(data))
         return ProcessSysEx(data, container);
 
@@ -67,7 +73,7 @@ bool midi_processor_t::Process(std::vector<uint8_t> const & data, const wchar_t 
 /// <summary>
 /// Returns true if the data represents a SysEx message.
 /// </summary>
-bool midi_processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 2)
         return false;
@@ -81,7 +87,7 @@ bool midi_processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes a byte stream containing 1 or more SysEx messages.
 /// </summary>
-bool midi_processor_t::ProcessSysEx(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessSysEx(std::vector<uint8_t> const & data, container_t & container)
 {
     const size_t Size = data.size();
 
@@ -89,7 +95,7 @@ bool midi_processor_t::ProcessSysEx(std::vector<uint8_t> const & data, midi_cont
 
     container.Initialize(0, 1);
 
-    midi_track_t Track;
+    track_t Track;
 
     while (Index < Size)
     {
@@ -100,7 +106,7 @@ bool midi_processor_t::ProcessSysEx(std::vector<uint8_t> const & data, midi_cont
 
         while (data[Index + MessageLength++] != StatusCodes::SysExEnd);
 
-        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, &data[Index], MessageLength));
+        Track.AddEvent(event_t(0, event_t::Extended, 0, &data[Index], MessageLength));
 
         Index += MessageLength;
     }
@@ -113,7 +119,7 @@ bool midi_processor_t::ProcessSysEx(std::vector<uint8_t> const & data, midi_cont
 /// <summary>
 /// Decodes a variable-length quantity.
 /// </summary>
-int midi_processor_t::DecodeVariableLengthQuantity(std::vector<uint8_t>::const_iterator & data, std::vector<uint8_t>::const_iterator tail) noexcept
+int processor_t::DecodeVariableLengthQuantity(std::vector<uint8_t>::const_iterator & data, std::vector<uint8_t>::const_iterator tail) noexcept
 {
     int Quantity = 0;
 
@@ -130,4 +136,6 @@ int midi_processor_t::DecodeVariableLengthQuantity(std::vector<uint8_t>::const_i
     while (Byte & 0x80);
 
     return Quantity;
+}
+
 }

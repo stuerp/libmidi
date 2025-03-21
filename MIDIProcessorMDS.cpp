@@ -1,11 +1,14 @@
 
 /** $VER: MIDIProcessorMDS.cpp (2025.03.19) MIDI Stream. created by Microsoft with the release of Windows 95 (http://www.vgmpf.com/Wiki/index.php?title=MDS) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 
-bool midi_processor_t::IsMDS(std::vector<uint8_t> const & data) noexcept
+namespace midi
+{
+
+bool processor_t::IsMDS(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 8)
         return false;
@@ -24,7 +27,7 @@ bool midi_processor_t::IsMDS(std::vector<uint8_t> const & data) noexcept
     return true;
 }
 
-bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessMDS(std::vector<uint8_t> const & data, container_t & container)
 {
     if (data.size() < 20)
         return false;
@@ -87,9 +90,9 @@ bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_contai
     it += 4;
 
     {
-        midi_track_t Track;
+        track_t Track;
 
-        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+        Track.AddEvent(event_t(0, event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
         container.AddTrack(Track);
     }
 
@@ -107,7 +110,7 @@ bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_contai
 
     bool IsEightByte = !!(Flags & 1);
 
-    midi_track_t Track;
+    track_t Track;
 
     uint32_t Timestamp = 0;
 
@@ -152,7 +155,7 @@ bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_contai
                 Data[3] = (uint8_t) (Event >> 8);
                 Data[4] = (uint8_t)  Event;
 
-                container.AddEventToTrack(0, midi_event_t(Timestamp, midi_event_t::Extended, 0, Data, sizeof(Data)));
+                container.AddEventToTrack(0, event_t(Timestamp, event_t::Extended, 0, Data, sizeof(Data)));
             }
             else
             if ((Event >> 24) == 0x00)
@@ -170,15 +173,17 @@ bool midi_processor_t::ProcessMDS(std::vector<uint8_t> const & data, midi_contai
                         Size = 2;
                     }
 
-                    Track.AddEvent(midi_event_t(Timestamp, (midi_event_t::event_type_t) (StatusCode - 8), Event & 0x0F, Data, Size));
+                    Track.AddEvent(event_t(Timestamp, (event_t::event_type_t) (StatusCode - 8), Event & 0x0F, Data, Size));
                 }
             }
         }
     }
 
-    Track.AddEvent(midi_event_t(Timestamp, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+    Track.AddEvent(event_t(Timestamp, event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
     container.AddTrack(Track);
 
     return true;
+}
+
 }

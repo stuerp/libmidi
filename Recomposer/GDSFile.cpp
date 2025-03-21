@@ -1,7 +1,7 @@
 
 /** $VER: GDSFile.cpp (2024.05.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "RCP.h"
 
@@ -41,7 +41,7 @@ void rcp_converter_t::Convert(const gsd_file_t & gsdFile, midi_stream_t & midiSt
 
     // The order follows how Recomposer 3.0 sends the data.
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Common Settings");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Common Settings");
 
     // Recomposer 3.0 sends Master Volume (40 00 04), Key-Shift (40 00 06) and Pan (via GM SysEx) separately, but doing a bulk-dump works just fine on SC-55/88.
     midiStream.WriteRolandSysEx(SysExHeaderSC55, 0x400000, gsdFile.sysParams, 0x07, SYXOPT_DELAY);
@@ -53,23 +53,23 @@ void rcp_converter_t::Convert(const gsd_file_t & gsdFile, midi_stream_t & midiSt
             VoiceReserve[i] = gsdFile.partParams[Part2Channel[i] * 0x7A + 0x79];
 
         if (mode & 0x10)
-            midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Voice Reserve");
+            midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Voice Reserve");
 
         midiStream.WriteRolandSysEx(SysExHeaderSC55, 0x400110, VoiceReserve, _countof(VoiceReserve), SYXOPT_DELAY);
     }
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Reverb Settings");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Reverb Settings");
 
     midiStream.WriteRolandSysEx(SysExHeaderSC55, 0x400130, gsdFile.reverbParams, 0x07, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Chorus Settings");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Chorus Settings");
 
     midiStream.WriteRolandSysEx(SysExHeaderSC55, 0x400138, gsdFile.chorusParams, 0x08, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Part Settings");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Part Settings");
 
     {
         uint8_t Bulk[0x100] = { };
@@ -85,7 +85,7 @@ void rcp_converter_t::Convert(const gsd_file_t & gsdFile, midi_stream_t & midiSt
         }
 
         if (mode & 0x10)
-            midiStream.WriteMetaEvent(MetaDataTypes::Text, "SC-55 Drum Setup");
+            midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "SC-55 Drum Setup");
 
         for (size_t i = 0; i < 2; ++i) // Each drum map
         {
@@ -116,7 +116,7 @@ void rcp_converter_t::Convert(const gsd_file_t & gsdFile, midi_stream_t & midiSt
     //gsdInf->masterTune;
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "Setup Finished.");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "Setup Finished.");
 }
 
 /// <summary>

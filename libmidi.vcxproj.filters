@@ -20,10 +20,10 @@
     <ClCompile Include="Recomposer\RCPConverter.cpp" />
     <ClCompile Include="Recomposer\RunningNotes.cpp" />
     <ClCompile Include="Recomposer\Support.cpp" />
-    <ClCompile Include="framework.cpp" />
+    <ClCompile Include="pch.cpp" />
     <ClCompile Include="Encoding.cpp" />
-    <ClCompile Include="Exception.cpp" />
     <ClCompile Include="MIDIProcessorXMF.cpp" />
+    <ClCompile Include="MIDIProcessorMMF.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MIDIContainer.h" />
@@ -34,7 +34,7 @@
     <ClInclude Include="Recomposer\RCP.h" />
     <ClInclude Include="Recomposer\RunningNotes.h" />
     <ClInclude Include="Recomposer\Support.h" />
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="Encoding.h" />
     <ClInclude Include="Exception.h" />
     <ClInclude Include="IFF.h" />

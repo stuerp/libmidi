@@ -18,9 +18,9 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-void ProcessContainer(midi_container_t & container, bool asStream);
-void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents = false);
-void ProcessTracks(const midi_container_t & container);
+void ProcessContainer(midi::container_t & container, bool asStream);
+void ProcessStream(const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents = false);
+void ProcessTracks(const midi::container_t & container);
 
 std::vector<uint8_t> ReadFile(std::wstring & filePath);
 
@@ -38,10 +38,10 @@ int midmain(int argc, wchar_t * argv[])
     {
         std::vector<uint8_t> Data = ReadFile(FilePath);
 
-        midi_container_t Container;
-        midi_processor_options_t Options;
+        midi::container_t Container;
+        midi::processor_options_t Options;
 
-        midi_processor_t::Process(Data, FilePath.c_str(), Container, Options);
+        midi::processor_t::Process(Data, FilePath.c_str(), Container, Options);
 
         ProcessContainer(Container, false);
     }
@@ -56,7 +56,7 @@ int midmain(int argc, wchar_t * argv[])
 /// <summary>
 /// 
 /// </summary>
-void ProcessContainer(midi_container_t & Container, bool asStream)
+void ProcessContainer(midi::container_t & Container, bool asStream)
 {
     if (asStream)
     {
@@ -76,13 +76,13 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
 
             ::printf("Track %2d: %d channels, %8d ticks, %8.2fs\n", i + 1, ChannelCount, Duration, (float) DurationInMS / 1000.0f);
 
-            midi_metadata_table_t MetaData;
+            midi::metadata_table_t MetaData;
 
             Container.GetMetaData(SubsongIndex, MetaData);
 
             for (size_t j = 0; j < MetaData.GetCount(); ++j)
             {
-                const midi_metadata_item_t & Item = MetaData[j];
+                const midi::metadata_item_t & Item = MetaData[j];
 
                 ::printf("- %8d %s: %s\n", Item.Timestamp, Item.Name.c_str(), TextToUTF8(Item.Value.c_str()).c_str());
             }
@@ -94,8 +94,8 @@ void ProcessContainer(midi_container_t & Container, bool asStream)
         ::printf("Loop Begin: %d ticks\n", LoopBegin);
         ::printf("Loop End  : %d ticks\n", LoopEnd);
 
-        std::vector<midi_item_t> Stream;
-        sysex_table_t SysExMap;
+        std::vector<midi::message_t> Stream;
+        midi::sysex_table_t SysExMap;
         std::vector<uint8_t> PortNumbers;
 
         Container.SerializeAsStream(0, Stream, SysExMap, PortNumbers, LoopBegin, LoopEnd, 0);

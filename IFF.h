@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "framework.h"
+#include "pch.h"
 
 const FOURCC FOURCC_FORM = mmioFOURCC('F', 'O', 'R', 'M');
 const FOURCC FOURCC_CAT  = mmioFOURCC('C', 'A', 'T', ' ');

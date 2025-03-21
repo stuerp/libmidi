@@ -1,5 +1,5 @@
 ﻿
-/** $VER: main.cpp (2025.02.24) P. Stuer **/
+/** $VER: main.cpp (2025.03.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -29,7 +29,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
 int midmain(int argc, wchar_t * argv[]);
 
-const WCHAR * Filters[] = { L".mid", /*L".g36", */ L".rmi", L".mxmf", L".xmf" };
+const WCHAR * Filters[] = { L".mid", /*L".g36", */ L".rmi", L".mxmf", L".xmf", L".mmf" };
 
 int wmain(int argc, const wchar_t ** argv)
 {

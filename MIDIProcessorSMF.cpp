@@ -1,15 +1,18 @@
 
 /** $VER: MIDIProcessorSMF.cpp (2025.03.14) Standard MIDI File **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
+namespace midi
+{
+
 /// <summary>
 /// Returns true if the data contains an SMF file.
 /// </summary>
-bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 18)
         return false;
@@ -42,31 +45,31 @@ bool midi_processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes the data as an SMF file and returns an intialized container.
 /// </summary>
-bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessSMF(std::vector<uint8_t> const & data, container_t & container)
 {
     if (data.size() < 18)
-        throw midi_exception("Insufficient SMF data");
+        throw midi::exception("Insufficient SMF data");
 
     if (::memcmp(&data[0], "MThd", 4) != 0)
-        throw midi_exception("Invalid SMF header chunk type");
+        throw midi::exception("Invalid SMF header chunk type");
 
     if (data[4] != 0 || data[5] != 0 || data[6] != 0 || data[7] != 6)
-        throw midi_exception("Invalid SMF header chunk size");
+        throw midi::exception("Invalid SMF header chunk size");
 
     const int Format = (data[8] << 8) | data[9];
 
     if (Format > 2)
-        throw midi_exception(FormatText("Unrecognized MIDI format: %d", Format));
+        throw midi::exception(FormatText("Unrecognized MIDI format: %d", Format));
 
     const size_t TrackCount = (size_t) ((data[10] << 8) | data[11]);
 
     if ((TrackCount == 0) || ((Format == 0) && (TrackCount != 1)))
-        throw midi_exception("Invalid track count");
+        throw midi::exception("Invalid track count");
 
     const int TimeDivision = (data[12] << 8) | data[13];
 
     if ((TimeDivision == 0))
-        throw midi_exception("Invalid time division");
+        throw midi::exception("Invalid time division");
 
     container.Initialize((uint32_t) Format, (uint32_t) TimeDivision);
 
@@ -77,12 +80,12 @@ bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_contai
     for (size_t i = 0; i < TrackCount; ++i)
     {
         if (Tail - Data < 8)
-            throw midi_exception("Insufficient SMF data");
+            throw midi::exception("Insufficient SMF data");
 
         const ptrdiff_t ChunkSize = (ptrdiff_t)((Data[4] << 24) | (Data[5] << 16) | (Data[6] << 8) | Data[7]);
 
         if (Tail - Data < (ptrdiff_t) (8 + ChunkSize))
-            throw midi_exception("Insufficient SMF data");
+            throw midi::exception("Insufficient SMF data");
 
         if (::memcmp(&Data[0], "MTrk", 4) == 0)
         {
@@ -110,9 +113,9 @@ bool midi_processor_t::ProcessSMF(std::vector<uint8_t> const & data, midi_contai
 /// <summary>
 /// Processes an SMF track.
 /// </summary>
-bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, std::vector<uint8_t>::const_iterator tail, midi_container_t & container)
+bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, std::vector<uint8_t>::const_iterator tail, container_t & container)
 {
-    midi_track_t Track;
+    track_t Track;
 
     uint32_t RunningTime = 0;
     uint8_t RunningStatus = 0xFF;
@@ -134,7 +137,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
         int DeltaTime = DecodeVariableLengthQuantity(data, tail);
 
         if (data == tail)
-            throw midi_exception("Insufficient SMF data");
+            throw midi::exception("Insufficient SMF data");
 
         if (DeltaTime < 0)
             DeltaTime = -DeltaTime; // "Encountered negative delta: " << delta << "; flipping sign."
@@ -150,12 +153,12 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             // Flush any pending SysEx.
             if (SysExSize > 0)
             {
-                Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                Track.AddEvent(event_t(SysExTime, event_t::Extended, 0, Temp.data(), SysExSize));
                 SysExSize = 0;
             }
 
             if (RunningStatus == 0xFF)
-                throw midi_exception("Invalid first status code");
+                throw midi::exception("Invalid first status code");
 
             Temp.resize(3);
 
@@ -170,7 +173,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             // Flush any pending SysEx.
             if (SysExSize > 0)
             {
-                Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                Track.AddEvent(event_t(SysExTime, event_t::Extended, 0, Temp.data(), SysExSize));
                 SysExSize = 0;
             }
 
@@ -179,7 +182,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             if (BytesRead == 0)
             {
                 if (data == tail)
-                    throw midi_exception("Insufficient SMF data");
+                    throw midi::exception("Insufficient SMF data");
 
                 Temp.resize(3);
 
@@ -195,7 +198,7 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 default:
                 {
                     if (data == tail)
-                        throw midi_exception("Insufficient SMF data");
+                        throw midi::exception("Insufficient SMF data");
 
                     Temp[BytesRead++] = *data++;
                 }
@@ -208,14 +211,14 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             {
                 const uint8_t SysExUseForRhythmPartCh16[] = { 0xF0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x1F, 0x15, 0x02, 0x0A, 0xF7 }; // Use channel 16 for rhythm.
 
-                Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, SysExUseForRhythmPartCh16, _countof(SysExUseForRhythmPartCh16)));
+                Track.AddEvent(event_t(0, event_t::Extended, 0, SysExUseForRhythmPartCh16, _countof(SysExUseForRhythmPartCh16)));
 
                 container.SetExtraPercussionChannel(ChannelNumber);
 
                 DetectedPercussionText = false;
             }
 
-            Track.AddEvent(midi_event_t(RunningTime, (midi_event_t::event_type_t) ((StatusCode >> 4) - 8), ChannelNumber, Temp.data(), BytesRead));
+            Track.AddEvent(event_t(RunningTime, (event_t::event_type_t) ((StatusCode >> 4) - 8), ChannelNumber, Temp.data(), BytesRead));
         }
         else
         {
@@ -225,17 +228,17 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 // Flush any pending SysEx.
                 if (SysExSize > 0)
                 {
-                    Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                    Track.AddEvent(event_t(SysExTime, event_t::Extended, 0, Temp.data(), SysExSize));
                     SysExSize = 0;
                 }
 
                 const int Size = DecodeVariableLengthQuantity(data, tail);
 
                 if (Size < 0)
-                    throw midi_exception("Invalid System Exclusive event");
+                    throw midi::exception("Invalid System Exclusive event");
 
                 if (Size > tail - data)
-                    throw midi_exception("Insufficient data for System Exclusive event");
+                    throw midi::exception("Insufficient data for System Exclusive event");
 
                 {
                     Temp.resize((size_t) (Size + 1));
@@ -253,16 +256,16 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             if (StatusCode == StatusCodes::SysExEnd)
             {
                 if (SysExSize == 0)
-                    throw midi_exception("Invalid System Exclusive End event");
+                    throw midi::exception("Invalid System Exclusive End event");
 
                 // Add the SysEx continuation to the current SysEx message
                 const int Size = DecodeVariableLengthQuantity(data, tail);
 
                 if (Size < 0)
-                    throw midi_exception("Invalid System Exclusive event");
+                    throw midi::exception("Invalid System Exclusive event");
 
                 if (Size > tail - data)
-                    throw midi_exception("Insufficient data for System Exclusive event continuation");
+                    throw midi::exception("Insufficient data for System Exclusive event continuation");
 
                 {
                     Temp.resize((size_t) SysExSize + Size);
@@ -279,25 +282,25 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                 // Flush any pending SysEx.
                 if (SysExSize > 0)
                 {
-                    Track.AddEvent(midi_event_t(SysExTime, midi_event_t::Extended, 0, Temp.data(), SysExSize));
+                    Track.AddEvent(event_t(SysExTime, event_t::Extended, 0, Temp.data(), SysExSize));
                     SysExSize = 0;
                 }
 
                 if (data == tail)
-                    throw midi_exception("Insufficient data for meta data event");
+                    throw midi::exception("Insufficient data for meta data event");
 
                 const uint8_t MetaDataType = *data++;
 
                 if (MetaDataType > MetaDataTypes::SequencerSpecific)
-                    throw midi_exception("Invalid meta data type");
+                    throw midi::exception("Invalid meta data type");
 
                 int Size = DecodeVariableLengthQuantity(data, tail);
 
                 if (Size < 0)
-                    throw midi_exception("Invalid meta data event");
+                    throw midi::exception("Invalid meta data event");
 
                 if (Size > tail - data)
-                    throw midi_exception("Insufficient data for meta data event");
+                    throw midi::exception("Insufficient data for meta data event");
 
                 // Remember when the track or instrument name contains the word "drum". We'll need it later.
                 if ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName))
@@ -324,9 +327,9 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
                     data += Size;
 
                     if ((MetaDataType != MetaDataTypes::MIDIPort) || ((MetaDataType == MetaDataTypes::MIDIPort) && Track.IsPortSet()))
-                        Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                        Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
                     else
-                        Track.AddEventToStart(midi_event_t(0, midi_event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
+                        Track.AddEventToStart(event_t(0, event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
                 }
 
                 if (MetaDataType == MetaDataTypes::EndOfTrack) // Mandatory, Marks the end of the track.
@@ -342,10 +345,10 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
             {
                 Temp[0] = StatusCode;
 
-                Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, Temp.data(), 1));
+                Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), 1));
             }
             else
-                throw midi_exception("Invalid status code");
+                throw midi::exception("Invalid status code");
         }
     }
 
@@ -353,10 +356,12 @@ bool midi_processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & da
     {
         const uint8_t EventData[] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
 
-        Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, EventData, _countof(EventData)));
+        Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, EventData, _countof(EventData)));
     }
 
     container.AddTrack(Track);
 
     return true;
+}
+
 }

@@ -1,7 +1,7 @@
 
 /** $VER: RCPConverter.cpp (2024.05.16) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "RCP.h"
 #include "RunningNotes.h"
@@ -286,7 +286,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         MIDIStream.BeginWriteMIDITrack();
 
         if (RCPFile._Title.Len > 0)
-            MIDIStream.WriteMetaEvent(MetaDataTypes::TrackName, RCPFile._Title.Data, RCPFile._Title.Len);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._Title.Data, RCPFile._Title.Len);
 
         // Comments
         if (RCPFile._Comments.Len > 0)
@@ -301,7 +301,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
                 if (Size == 0)
                     Size = 1; // Some sequencers remove empty events, so keep at least 1 space.
 
-                MIDIStream.WriteMetaEvent(MetaDataTypes::Text, Text, Size);
+                MIDIStream.WriteMetaEvent(midi::MetaDataTypes::Text, Text, Size);
             }
         }
 
@@ -309,7 +309,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
             uint32_t Tempo = BPM2Ticks(RCPFile._Tempo, 64);
 
             MIDIStream.SetTempo(Tempo);
-            MIDIStream.WriteMetaEvent(MetaDataTypes::SetTempo, Tempo, 3);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::SetTempo, Tempo, 3);
 
             #ifdef _RCP_VERBOSE
             ::printf("Tempo: %u bpm, %u ticks.\n", RCPFile._Tempo, Tempo);
@@ -320,7 +320,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         {
             RCP2MIDITimeSignature(RCPFile._BPMNumerator, RCPFile._BPMDenominator, Temp);
 
-            MIDIStream.WriteMetaEvent(MetaDataTypes::TimeSignature, Temp, 4);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TimeSignature, Temp, 4);
 
             #ifdef _RCP_VERBOSE
             ::printf("Time signature: %u/%u.\n", RCPFile._BPMNumerator, RCPFile._BPMDenominator);
@@ -330,14 +330,14 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         {
             RCP2MIDIKeySignature(RCPFile._KeySignature, Temp);
 
-            MIDIStream.WriteMetaEvent(MetaDataTypes::KeySignature, Temp, 2);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::KeySignature, Temp, 2);
 
             #ifdef _RCP_VERBOSE
             ::printf("Key signature: %u.\n", RCPFile._KeySignature);
             #endif
         }
 
-        MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+        MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
         MIDIStream.EndWriteMIDITrack();
     }
@@ -352,7 +352,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(MetaDataTypes::TrackName, RCPFile._CM6FileName.Data, RCPFile._CM6FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._CM6FileName.Data, RCPFile._CM6FileName.Len);
 
             MIDIStream.WriteRolandSysEx(SysExHeaderMT32, 0x7F0000, nullptr, 0, 0); // MT-32 Reset
 
@@ -369,7 +369,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -380,19 +380,19 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(MetaDataTypes::TrackName, RCPFile._GSD1FileName.Data, RCPFile._GSD1FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._GSD1FileName.Data, RCPFile._GSD1FileName.Len);
 
             if (RCPFile._GSD2FileName.Len > 0)
             {
                 Temp[0] = 0x00; // Port A
-                MIDIStream.WriteMetaEvent(MetaDataTypes::MIDIPort, Temp, 1);
+                MIDIStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort, Temp, 1);
             }
 
             Convert(GSD1File, MIDIStream, 0x11);
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -403,16 +403,16 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
 
             MIDIStream.BeginWriteMIDITrack();
 
-            MIDIStream.WriteMetaEvent(MetaDataTypes::TrackName, RCPFile._GSD2FileName.Data, RCPFile._GSD2FileName.Len);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, RCPFile._GSD2FileName.Data, RCPFile._GSD2FileName.Len);
 
             Temp[0] = 0x01; // Port B
-            MIDIStream.WriteMetaEvent(MetaDataTypes::MIDIPort, Temp, 1);
+            MIDIStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort, Temp, 1);
 
             Convert(GSD2File, MIDIStream, 0x11);
 
             RunningTime += _MIDITickCount;
 
-            MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+            MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
             MIDIStream.EndWriteMIDITrack();
         }
@@ -493,7 +493,7 @@ void rcp_converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midDa
         #endif
         }
 
-        MIDIStream.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+        MIDIStream.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
         MIDIStream.EndWriteMIDITrack();
     }
@@ -549,7 +549,7 @@ void rcp_converter_t::ConvertControl(const buffer_t & ctrlData, buffer_t & midiD
         else
             Convert(GSDFile, MIDIFile, outMode);
 
-        MIDIFile.WriteEvent(StatusCodes::MetaData, MetaDataTypes::EndOfTrack, 0);
+        MIDIFile.WriteEvent(midi::StatusCodes::MetaData, midi::MetaDataTypes::EndOfTrack, 0);
 
         MIDIFile.EndWriteMIDITrack();
     }

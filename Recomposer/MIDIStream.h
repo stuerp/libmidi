@@ -5,7 +5,7 @@
 
 #include <CppCoreCheck/Warnings.h>
 
-#include "framework.h"
+#include "pch.h"
 
 #include <MIDI.h>
 
@@ -93,14 +93,14 @@ public:
         *p++ = (Size >>  0) & 0xFF;
     }
 
-    void WriteEvent(StatusCodes statusCode, uint8_t value1, uint8_t value2)
+    void WriteEvent(midi::StatusCodes statusCode, uint8_t value1, uint8_t value2)
     {
         _State.RunningStatus = 0;
 
         WriteEventInternal(statusCode, value1, value2);
     }
 
-    void WriteEvent(StatusCodes statusCode, const uint8_t * data, uint32_t size)
+    void WriteEvent(midi::StatusCodes statusCode, const uint8_t * data, uint32_t size)
     {
         WriteTimestamp();
 
@@ -115,7 +115,7 @@ public:
         Add(data, size);
     }
 
-    void WriteMetaEvent(MetaDataTypes type, uint32_t value, uint32_t size)
+    void WriteMetaEvent(midi::MetaDataTypes type, uint32_t value, uint32_t size)
     {
         uint8_t Data[4]
         {
@@ -128,7 +128,7 @@ public:
         WriteMetaEvent(type, Data + (4 - size), size);
     }
 
-    void WriteMetaEvent(MetaDataTypes type, const void * data, uint32_t size)
+    void WriteMetaEvent(midi::MetaDataTypes type, const void * data, uint32_t size)
     {
         WriteTimestamp();
 
@@ -136,7 +136,7 @@ public:
 
         _State.RunningStatus = 0x00;
 
-        Add(StatusCodes::MetaData);
+        Add(midi::StatusCodes::MetaData);
         Add((uint8_t) type);
 
         WriteVariableLengthQuantity(size);
@@ -144,7 +144,7 @@ public:
         Add((const uint8_t *) data, size);
     }
 
-    void WriteMetaEvent(MetaDataTypes type, const char * text)
+    void WriteMetaEvent(midi::MetaDataTypes type, const char * text)
     {
         WriteMetaEvent(type, text, (uint32_t) ::strlen(text));
     }
@@ -237,7 +237,7 @@ private:
         _State.Duration = 0;
     }
 
-    void WriteEventInternal(StatusCodes statusCode, uint8_t value1, uint8_t value2)
+    void WriteEventInternal(midi::StatusCodes statusCode, uint8_t value1, uint8_t value2)
     {
         WriteTimestamp();
 
@@ -247,11 +247,11 @@ private:
 
         switch (statusCode & 0xF0)
         {
-            case StatusCodes::NoteOff:
-            case StatusCodes::NoteOn:
-            case StatusCodes::KeyPressure:
-            case StatusCodes::ControlChange:
-            case StatusCodes::PitchBendChange:
+            case midi::StatusCodes::NoteOff:
+            case midi::StatusCodes::NoteOn:
+            case midi::StatusCodes::KeyPressure:
+            case midi::StatusCodes::ControlChange:
+            case midi::StatusCodes::PitchBendChange:
             {
                 // Only add the status if it is different from the running status.
                 if (_State.RunningStatus != Status)
@@ -266,8 +266,8 @@ private:
                 break;
             }
 
-            case StatusCodes::ProgramChange:
-            case StatusCodes::ChannelPressure:
+            case midi::StatusCodes::ProgramChange:
+            case midi::StatusCodes::ChannelPressure:
             {
                 // Only add the status if it is different from the running status.
                 if (_State.RunningStatus != Status)
@@ -281,7 +281,7 @@ private:
                 break;
             }
 
-            case StatusCodes::SysEx: // Meta Event: Track End
+            case midi::StatusCodes::SysEx: // Meta Event: Track End
             {
                 _State.RunningStatus = 0;
 

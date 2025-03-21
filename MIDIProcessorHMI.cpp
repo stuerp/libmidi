@@ -1,15 +1,18 @@
 
 /** $VER: MIDIProcessorHMI.cpp (2025.03.19) Human Machine Interface (http://www.vgmpf.com/Wiki/index.php?title=HMI) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
+namespace midi
+{
+
 /// <summary>
 /// Returns true if data points to an HMI sequence.
 /// </summary>
-bool midi_processor_t::IsHMI(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsHMI(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 12)
         return false;
@@ -22,7 +25,7 @@ bool midi_processor_t::IsHMI(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes the sequence data.
 /// </summary>
-bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & container)
 {
     auto it = data.begin() + 0xE4;
 
@@ -30,7 +33,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
     uint32_t Offsets    = (uint32_t) (it[4] | (it[5] << 8) | (it[6] << 16) | (it[7] << 24));
 
     if (Offsets >= data.size() || Offsets + (size_t) (TrackCount * 4) > data.size())
-        throw midi_exception("Insufficient data for track offsets");
+        throw midi::exception("Insufficient data for track offsets");
 
     // Read the track offsets.
     it = data.begin() + (int) Offsets;
@@ -47,7 +50,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
     container.Initialize(1, 0xC0);
 
     {
-        midi_track_t Track;
+        track_t Track;
 
         uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0, 0, 0 };
 
@@ -61,8 +64,8 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
         }
 
 
-        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Data, _countof(Data)));
-        Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
+        Track.AddEvent(event_t(0, event_t::Extended, 0, Data, _countof(Data)));
+        Track.AddEvent(event_t(0, event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
 
         container.AddTrack(Track);
     }
@@ -82,7 +85,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
             Size = (uint32_t) data.size() - Offs;
 
         if ((Size < 13) || (Offs >= data.size()) || ((size_t) (Offs + Size) > data.size()))
-            throw midi_exception(FormatText("Insufficient data for track %d", i + 1));
+            throw midi::exception(FormatText("Insufficient data for track %d", i + 1));
 
         auto Data = data.begin() + (int) Offs;
         auto Tail = Data + (int) Size;
@@ -90,9 +93,9 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
         const char Id[] = { 'H', 'M', 'I', '-', 'M', 'I', 'D', 'I', 'T', 'R', 'A', 'C', 'K' };
 
         if (::memcmp(&Data[0], Id, _countof(Id)) != 0)
-            throw midi_exception(FormatText("Invalid data for track %d", i + 1));
+            throw midi::exception(FormatText("Invalid data for track %d", i + 1));
 
-        midi_track_t Track;
+        track_t Track;
 
         uint32_t RunningTime = 0;
         uint8_t RunningStatus = 0xFF;
@@ -100,7 +103,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
         uint32_t LastTime = 0;
 
         if (Size < 0x4B + 4)
-            throw midi_exception("Insufficient data for metadata");
+            throw midi::exception("Insufficient data for metadata");
 
         // Convert the metadata.
         {
@@ -114,7 +117,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 uint32_t MetadataSize = Temp[1];
 
                 if (MetaOffset + 2 + MetadataSize > Size)
-                    throw midi_exception("Insufficient data for metadata");
+                    throw midi::exception("Insufficient data for metadata");
 
                 Temp.resize((size_t) (MetadataSize + 2));
                 std::copy(Data + (int) MetaOffset + 2, Data + (int) MetaOffset + 2 + (int) MetadataSize, Temp.begin() + 2);
@@ -128,13 +131,13 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                     Temp[0] = StatusCodes::MetaData;
                     Temp[1] = MetaDataTypes::Text;
 
-                    Track.AddEvent(midi_event_t(0, midi_event_t::Extended, 0, Temp.data(), MetadataSize + 2));
+                    Track.AddEvent(event_t(0, event_t::Extended, 0, Temp.data(), MetadataSize + 2));
                 }
             }
         }
 
         if (Size < 0x57 + 4)
-            throw midi_exception("Insufficient data for HMI events");
+            throw midi::exception("Insufficient data for HMI events");
 
         uint32_t TrackDataOffset = (uint32_t) (Data[0x57] | (Data[0x58] << 8) | (Data[0x59] << 16) | (Data[0x5A] << 24));
 
@@ -161,7 +164,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
             }
 
             if (it == Tail)
-                throw midi_exception("Insufficient data for HMI events");
+                throw midi::exception("Insufficient data for HMI events");
 
             Temp[0] = *it++;
 
@@ -170,17 +173,17 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 RunningStatus = 0xFF;
 
                 if (it == Tail)
-                    throw midi_exception("Insufficient data for HMI meta data event");
+                    throw midi::exception("Insufficient data for HMI meta data event");
 
                 Temp[1] = *it++;
 
                 int MetadataSize = DecodeVariableLengthQuantity(it, Tail);
 
                 if (MetadataSize < 0)
-                    throw midi_exception("Invalid HMI metadata event");
+                    throw midi::exception("Invalid HMI metadata event");
 
                 if (Tail - it < MetadataSize)
-                    throw midi_exception("Insufficient data for HMI metadata event");
+                    throw midi::exception("Insufficient data for HMI metadata event");
 
                 Temp.resize((size_t) (MetadataSize + 2));
                 std::copy(it, it + MetadataSize, Temp.begin() + 2);
@@ -190,7 +193,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 if ((Temp[1] == MetaDataTypes::EndOfTrack) && (LastTime > RunningTime))
                     RunningTime = LastTime;
 
-                Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, &Temp[0], (size_t) (MetadataSize + 2)));
+                Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, &Temp[0], (size_t) (MetadataSize + 2)));
 
                 if (Temp[1] == MetaDataTypes::EndOfTrack)
                     break;
@@ -203,16 +206,16 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 int SysExSize = DecodeVariableLengthQuantity(it, Tail);
 
                 if (SysExSize < 0)
-                    throw midi_exception("Invalid HMI SysEx event");
+                    throw midi::exception("Invalid HMI SysEx event");
 
                 if (Tail - it < SysExSize)
-                    throw midi_exception("Insufficient data for HMI SysEx event");
+                    throw midi::exception("Insufficient data for HMI SysEx event");
 
                 Temp.resize((size_t) (SysExSize + 1));
                 std::copy(it, it + SysExSize, Temp.begin() + 1);
 
                 it += SysExSize;
-                Track.AddEvent(midi_event_t(RunningTime, midi_event_t::Extended, 0, &Temp[0], (size_t) (SysExSize + 1)));
+                Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, &Temp[0], (size_t) (SysExSize + 1)));
             }
             else
             if (Temp[0] == StatusCodes::ActiveSensing)
@@ -220,20 +223,20 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 RunningStatus = 0xFF;
 
                 if (it == Tail)
-                    throw midi_exception("Insufficient data for HMI Active Sensing event");
+                    throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                 Temp[1] = *it++;
 
                 if (Temp[1] == 0x10)
                 {
                     if (Tail - it < 3)
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += 2;
                     Temp[2] = *it++;
 
                     if (Tail - it < ((long) Temp[2] + 4))
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += ((long) Temp[2] + 4);
                 }
@@ -241,7 +244,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 if (Temp[1] == 0x12)
                 {
                     if (Tail - it < 2)
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += 2;
                 }
@@ -249,7 +252,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 if (Temp[1] == 0x13)
                 {
                     if (Tail - it < 10)
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += 10;
                 }
@@ -257,22 +260,22 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 if (Temp[1] == 0x14)
                 {
                     if (Tail - it < 2)
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += 2;
-                    container.AddEventToTrack(0, midi_event_t(RunningTime, midi_event_t::Extended, 0, LoopBeginMarker, _countof(LoopBeginMarker)));
+                    container.AddEventToTrack(0, event_t(RunningTime, event_t::Extended, 0, LoopBeginMarker, _countof(LoopBeginMarker)));
                 }
                 else
                 if (Temp[1] == 0x15)
                 {
                     if (Tail - it < 6)
-                        throw midi_exception("Insufficient data for HMI Active Sensing event");
+                        throw midi::exception("Insufficient data for HMI Active Sensing event");
 
                     it += 6;
-                    container.AddEventToTrack(0, midi_event_t(RunningTime, midi_event_t::Extended, 0, LoopEndMarker, _countof(LoopEndMarker)));
+                    container.AddEventToTrack(0, event_t(RunningTime, event_t::Extended, 0, LoopEndMarker, _countof(LoopEndMarker)));
                 }
                 else
-                    throw midi_exception("Invalid HMI Active Sensing event");
+                    throw midi::exception("Invalid HMI Active Sensing event");
             }
             else
             if (Temp[0] < StatusCodes::SysEx)
@@ -282,7 +285,7 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 if (Temp[0] >= StatusCodes::NoteOff)
                 {
                     if (it == Tail)
-                        throw midi_exception("Insufficient data for HMI message");
+                        throw midi::exception("Insufficient data for HMI message");
 
                     Temp[1] = *it++;
                     RunningStatus = Temp[0];
@@ -290,51 +293,53 @@ bool midi_processor_t::ProcessHMI(std::vector<uint8_t> const & data, midi_contai
                 else
                 {
                     if (RunningStatus == 0xFF)
-                        throw midi_exception("Invalid shortened HMI event after metadata or SysEx event");
+                        throw midi::exception("Invalid shortened HMI event after metadata or SysEx event");
 
                     Temp[1] = Temp[0];
                     Temp[0] = RunningStatus;
                 }
 
-                midi_event_t::event_type_t Type = (midi_event_t::event_type_t) ((Temp[0] >> 4) - 8);
+                event_t::event_type_t Type = (event_t::event_type_t) ((Temp[0] >> 4) - 8);
 
                 uint32_t Channel = (uint32_t) (Temp[0] & 0x0F);
 
-                if ((Type != midi_event_t::ProgramChange) && (Type != midi_event_t::ChannelPressure))
+                if ((Type != event_t::ProgramChange) && (Type != event_t::ChannelPressure))
                 {
                     if (it == Tail)
-                        throw midi_exception("Insufficient data for HMI event");
+                        throw midi::exception("Insufficient data for HMI event");
 
                     Temp[2] = *it++;
                     BytesRead = 2;
                 }
 
-                Track.AddEvent(midi_event_t(RunningTime, Type, Channel, &Temp[1], BytesRead));
+                Track.AddEvent(event_t(RunningTime, Type, Channel, &Temp[1], BytesRead));
 
                 // Add a NoteOff event after a NoteOn event.
-                if (Type == midi_event_t::NoteOn)
+                if (Type == event_t::NoteOn)
                 {
                     Temp[2] = 0x00;
 
                     int DeltaTime = DecodeVariableLengthQuantity(it, Tail);
 
                     if (DeltaTime < 0)
-                        throw midi_exception("Invalid HMI note event");
+                        throw midi::exception("Invalid HMI note event");
 
                     uint32_t EndTime = RunningTime + DeltaTime;
 
                     if (EndTime > LastTime)
                         LastTime = EndTime;
 
-                    Track.AddEvent(midi_event_t(EndTime, midi_event_t::NoteOff, Channel, Temp.data() + 1, BytesRead));
+                    Track.AddEvent(event_t(EndTime, event_t::NoteOff, Channel, Temp.data() + 1, BytesRead));
                 }
             }
             else
-                throw midi_exception("Invalid status code");
+                throw midi::exception("Invalid status code");
         }
 
         container.AddTrack(Track);
     }
 
     return true;
+}
+
 }

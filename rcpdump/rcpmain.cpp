@@ -166,13 +166,13 @@ int rcpmain(int argc, wchar_t * argv[])
                         throw std::runtime_error(FormatText("Conversion error in \"%s\". File content mismatch.", WideToUTF8(FilePath).c_str()));
                 }
 
-                midi_container_t Container;
+                midi::container_t Container;
 
                 std::vector<uint8_t> Data;
 
                 Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
-                if (!midi_processor_t::Process(Data, FilePath, Container))
+                if (!midi::processor_t::Process(Data, FilePath, Container))
                     throw std::runtime_error(FormatText("MIDIProcesser failed: \"%s\".", WideToUTF8(FilePath).c_str()));
             }
             #endif

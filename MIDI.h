@@ -1,7 +1,10 @@
 
-/** $VER: MIDI.h (2025.03.09) **/
+/** $VER: MIDI.h (2025.03.20) **/
 
 #pragma once
+
+namespace midi
+{
 
 enum StatusCodes
 {
@@ -35,9 +38,9 @@ enum StatusCodes
 
 enum ControlChangeNumbers
 {
-    BankSelect    = 0x00,
+    BankSelect              = 0x00,
 
-    BankSelectLSB = 0x20,   // LSB for Control Changes 0 to 31
+    BankSelectLSB           = 0x20,   // LSB for Control Changes 0 to 31
 };
 
 enum ChannelModeMessages
@@ -79,3 +82,5 @@ enum MetaDataTypes
 
     SequencerSpecific = 0x7F    // An unprocessed sequencer specific message containing raw data.
 };
+
+}

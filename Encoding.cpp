@@ -1,7 +1,7 @@
 ﻿
 /** $VER: Encoding.cpp (2024.08.17) P. Stuer **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "Encoding.h"
 

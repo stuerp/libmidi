@@ -1,5 +1,5 @@
 
-/** $VER: framework.h (2025.02.24) P. Stuer **/
+/** $VER: framework.h (2024.05.18) P. Stuer **/
 
 #pragma once
 
@@ -27,6 +27,7 @@
 #include <cmath>
 #include <cassert>
 #include <format>
+#include <functional>
 #include <string>
 #include <vector>
 #include <stdexcept>

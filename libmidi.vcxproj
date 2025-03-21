@@ -20,8 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Encoding.cpp" />
-    <ClCompile Include="Exception.cpp" />
-    <ClCompile Include="framework.cpp">
+    <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -34,6 +33,7 @@
     <ClCompile Include="MIDIProcessorHMP.cpp" />
     <ClCompile Include="MIDIProcessorLDS.cpp" />
     <ClCompile Include="MIDIProcessorMDS.cpp" />
+    <ClCompile Include="MIDIProcessorMMF.cpp" />
     <ClCompile Include="MIDIProcessorMUS.cpp" />
     <ClCompile Include="MIDIProcessorRCP.cpp" />
     <ClCompile Include="MIDIProcessorRMI.cpp" />
@@ -50,7 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="pch.h" />
     <ClInclude Include="IFF.h" />
     <ClInclude Include="MIDI.h" />
     <ClInclude Include="MIDIContainer.h" />
@@ -159,7 +159,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>.;.\Recomposer;.\3rdParty\zlib</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>

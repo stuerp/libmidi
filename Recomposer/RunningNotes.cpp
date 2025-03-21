@@ -1,7 +1,7 @@
 
 /** $VER: RunningNotes.cpp (2024.05.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "RunningNotes.h"
 
@@ -71,13 +71,13 @@ size_t running_notes_t::Check(midi_stream_t & midiStream, uint32_t & duration)
 
                 if (n.NoteOffVelocity < 0x80)
                 {
-                    midiStream.Add((uint8_t) (StatusCodes::NoteOff | n.Channel));
+                    midiStream.Add((uint8_t) (midi::StatusCodes::NoteOff | n.Channel));
                     midiStream.Add(n.Note);
                     midiStream.Add(n.NoteOffVelocity);
                 }
                 else
                 {
-                    midiStream.Add((uint8_t) (StatusCodes::NoteOn | n.Channel));
+                    midiStream.Add((uint8_t) (midi::StatusCodes::NoteOn | n.Channel));
                     midiStream.Add(n.Note);
                     midiStream.Add(0);
                 }

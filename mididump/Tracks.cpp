@@ -23,85 +23,85 @@ inline static T InRange(T value, T minValue, T maxValue)
 /// <summary>
 /// Processes a metadata message.
 /// </summary>
-void ProcessMetaData(const midi_event_t & me)
+void ProcessMetaData(const midi::event_t & me)
 {
     ::printf("Meta Data                    ");
 
     switch (me.Data[1])
     {
-        case MetaDataTypes::SequenceNumber:
+        case midi::MetaDataTypes::SequenceNumber:
         {
             ::printf(" Sequence Number");
             break;
         }
 
-        case MetaDataTypes::Text:
+        case midi::MetaDataTypes::Text:
         {
             ::printf(" Text \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::Copyright:
+        case midi::MetaDataTypes::Copyright:
         {
             ::printf(" Copyright \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::TrackName:
+        case midi::MetaDataTypes::TrackName:
         {
             ::printf(" Track Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::InstrumentName:
+        case midi::MetaDataTypes::InstrumentName:
         {
             ::printf(" Instrument Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::Lyrics:
+        case midi::MetaDataTypes::Lyrics:
         {
             ::printf(" Lyrics \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::Marker:
+        case midi::MetaDataTypes::Marker:
         {
             ::printf(" Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::CueMarker:
+        case midi::MetaDataTypes::CueMarker:
         {
             ::printf(" Cue Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::DeviceName:
+        case midi::MetaDataTypes::DeviceName:
         {
             ::printf(" Device Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case MetaDataTypes::ChannelPrefix:
+        case midi::MetaDataTypes::ChannelPrefix:
         {
             ::printf(" Channel Prefix");
             break;
         }
 
-        case MetaDataTypes::MIDIPort:
+        case midi::MetaDataTypes::MIDIPort:
         {
             ::printf(" Set MIDI Port %d", me.Data[2]);
             break;
         }
 
-        case MetaDataTypes::EndOfTrack:
+        case midi::MetaDataTypes::EndOfTrack:
         {
             ::printf(" End of Track");
             break;
         }
 
-        case MetaDataTypes::SetTempo:
+        case midi::MetaDataTypes::SetTempo:
         {
 /*
             uint32_t Tempo = (uint32_t) (me.Data[2] & 0x7F); Tempo <<= 7;
@@ -115,25 +115,25 @@ void ProcessMetaData(const midi_event_t & me)
             break;
         }
 
-        case MetaDataTypes::SMPTEOffset:
+        case midi::MetaDataTypes::SMPTEOffset:
         {
             ::printf(" Set SMPTE Offset");
             break;
         }
 
-        case MetaDataTypes::TimeSignature:
+        case midi::MetaDataTypes::TimeSignature:
         {
             ::printf(" Time Signature");
             break;
         }
 
-        case MetaDataTypes::KeySignature:
+        case midi::MetaDataTypes::KeySignature:
         {
             ::printf(" Key Signature");
             break;
         }
 
-        case MetaDataTypes::SequencerSpecific:
+        case midi::MetaDataTypes::SequencerSpecific:
         {
             ::printf(" Sequencer Specific");
             break;
@@ -147,7 +147,7 @@ void ProcessMetaData(const midi_event_t & me)
 /// <summary>
 /// Processes a SysEx message.
 /// </summary>
-void ProcessSysEx(const midi_event_t & me)
+void ProcessSysEx(const midi::event_t & me)
 {
     sysex_t SysEx(me.Data);
 
@@ -159,7 +159,7 @@ void ProcessSysEx(const midi_event_t & me)
 /// <summary>
 /// Processes a Control Change message.
 /// </summary>
-void ProcessControlChange(const midi_event_t & me)
+void ProcessControlChange(const midi::event_t & me)
 {
     int Value = (int) me.Data[1];
 
@@ -277,7 +277,7 @@ void ProcessControlChange(const midi_event_t & me)
 /// <summary>
 /// Processes a Control Change message.
 /// </summary>
-void ProcessProgramChange(const midi_event_t & me)
+void ProcessProgramChange(const midi::event_t & me)
 {
     int Value = (int) me.Data[0] + 1;
 
@@ -294,7 +294,7 @@ void ProcessProgramChange(const midi_event_t & me)
 /// <summary>
 /// Processes MIDI events.
 /// </summary>
-uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
+uint32_t ProcessEvent(const midi::event_t & event, uint32_t time, size_t index)
 {
     char TimeInTicks[16];
     char TimeInMs[16];
@@ -307,12 +307,12 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
     else
         TimeInTicks[0] = TimeInMs[0] = '\0';
 
-    if (event.Type != midi_event_t::event_type_t::Extended)
+    if (event.Type != midi::event_t::event_type_t::Extended)
         ::printf("%8d %-14s %-10s (%2d) ", (int) index, TimeInTicks, TimeInMs, event.ChannelNumber + 1);
     else
         ::printf("%8d %-14s %-10s      ", (int) index, TimeInTicks, TimeInMs);
 
-    if (event.Type != midi_event_t::event_type_t::Extended)
+    if (event.Type != midi::event_t::event_type_t::Extended)
         ::printf(" %02X", (event.Type + 8) << 4);
 
     const int ByteCount = 16;
@@ -330,7 +330,7 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
         }
     }
 
-    if (event.Type == midi_event_t::event_type_t::Extended)
+    if (event.Type == midi::event_t::event_type_t::Extended)
         ::printf("   ");
 
     ::printf("%*.s", std::max(0, (ByteCount - (int) event.Data.size()) * 3), "");
@@ -339,69 +339,69 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 
     switch (event.Type)
     {
-        case midi_event_t::event_type_t::NoteOff:
+        case midi::event_t::event_type_t::NoteOff:
         {
             ::printf("Note Off                      Note %3d, Velocity %3d", event.Data[0], event.Data[1]);
             break;
         }
 
-        case midi_event_t::event_type_t::NoteOn:
+        case midi::event_t::event_type_t::NoteOn:
         {
             ::printf("Note On                       Note %3d, Velocity %3d", event.Data[0], event.Data[1]);
             break;
         }
 
-        case midi_event_t::event_type_t::KeyPressure:
+        case midi::event_t::event_type_t::KeyPressure:
         {
             ::printf("Key Pressure                  A0");
             break;
         }
 
-        case midi_event_t::event_type_t::ControlChange:
+        case midi::event_t::event_type_t::ControlChange:
         {
             ::printf("Control Change               "); ProcessControlChange(event); break;
         }
 
-        case midi_event_t::event_type_t::ProgramChange:
+        case midi::event_t::event_type_t::ProgramChange:
         {
             ::printf("Program Change               "); ProcessProgramChange(event); break;
             break;
         }
 
-        case midi_event_t::event_type_t::ChannelPressure:
+        case midi::event_t::event_type_t::ChannelPressure:
         {
             ::printf("Channel Pressure              D0");
             break;
         }
 
-        case midi_event_t::event_type_t::PitchBendChange:
+        case midi::event_t::event_type_t::PitchBendChange:
         {
             ::printf("Pitch Bend Change             Value %5d", 8192 - ((int) (event.Data[1] & 0x7F) << 7) | (event.Data[0] & 0x7F));
             break;
         }
 
-        case midi_event_t::event_type_t::Extended:
+        case midi::event_t::event_type_t::Extended:
         {
             switch (event.Data[0])
             {
-                case SysEx:                ::printf("SysEx                        "); ProcessSysEx(event); break;
+                case midi::SysEx:                ::printf("SysEx                        "); ProcessSysEx(event); break;
 
-                case MIDITimeCodeQtrFrame: ::printf("MIDI Time Code Qtr Frame     "); break;
-                case SongPositionPointer:  ::printf("Song PositionPointer         "); break;
-                case SongSelect:           ::printf("Song Select                  "); break;
+                case midi::MIDITimeCodeQtrFrame: ::printf("MIDI Time Code Qtr Frame     "); break;
+                case midi::SongPositionPointer:  ::printf("Song PositionPointer         "); break;
+                case midi::SongSelect:           ::printf("Song Select                  "); break;
 
-                case TuneRequest:          ::printf("Tune Request                 "); break;
-                case SysExEnd:             ::printf("SysEx End                    "); break;
-                case TimingClock:          ::printf("Timing Clock                 "); break;
+                case midi::TuneRequest:          ::printf("Tune Request                 "); break;
+                case midi::SysExEnd:             ::printf("SysEx End                    "); break;
+                case midi::TimingClock:          ::printf("Timing Clock                 "); break;
 
-                case Start:                ::printf("Start                        "); break;
-                case Continue:             ::printf("Continue                     "); break;
-                case Stop:                 ::printf("Stop                         "); break;
+                case midi::Start:                ::printf("Start                        "); break;
+                case midi::Continue:             ::printf("Continue                     "); break;
+                case midi::Stop:                 ::printf("Stop                         "); break;
 
-                case ActiveSensing:        ::printf("Active Sensing               "); break;
-                case MetaData:             ProcessMetaData(event); break;
+                case midi::ActiveSensing:        ::printf("Active Sensing               "); break;
+                case midi::MetaData:             ProcessMetaData(event); break;
 
-                default:                   ::printf("Unknown event type %02X      ", event.Data[0]); break;
+                default:                        ::printf("Unknown event type %02X      ", event.Data[0]); break;
             }
 
             break;
@@ -416,7 +416,7 @@ uint32_t ProcessEvent(const midi_event_t & event, uint32_t time, size_t index)
 /// <summary>
 /// Processes all tracks.
 /// </summary>
-void ProcessTracks(const midi_container_t & container)
+void ProcessTracks(const midi::container_t & container)
 {
     const uint32_t SubsongIndex = 0;
 

@@ -1,12 +1,15 @@
 
-/** $VER: MIDIProcessorRMI.cpp (2025.03.16) **/
+/** $VER: MIDIProcessorRMI.cpp (2025.03.19) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
 
 #include <map>
+
+namespace midi
+{
 
 static const std::map<const std::string, const std::string> RIFFToTagMap =
 {
@@ -43,13 +46,13 @@ static inline uint32_t toInt32LE(std::vector<uint8_t>::const_iterator data)
     return static_cast<uint32_t>(data[0]) | static_cast<uint32_t>(data[1] << 8) | static_cast<uint32_t>(data[2] << 16) | static_cast<uint32_t>(data[3] << 24);
 }
 
-static bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t size, midi_container_t & container, midi_metadata_table_t & MetaData) noexcept;
+static bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t size, container_t & container, metadata_table_t & MetaData) noexcept;
 static bool GetCodePage(std::vector<uint8_t>::const_iterator data, ptrdiff_t size, uint32_t & codePage) noexcept;
 
 /// <summary>
 /// Returns true if the data contains a RIFF file.
 /// </summary>
-bool midi_processor_t::IsRMI(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsRMI(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 20)
         return false;
@@ -57,7 +60,7 @@ bool midi_processor_t::IsRMI(std::vector<uint8_t> const & data) noexcept
     if (::memcmp(data.data(), "RIFF", 4) != 0)
         return false;
 
-    uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+    uint32_t Size = toInt32LE(&data[4]);
 
     if ((Size < 12) || (data.size() < (size_t) Size + 8))
         return false;
@@ -78,18 +81,18 @@ bool midi_processor_t::IsRMI(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes the data as an RIFF file and returns an intialized container.
 /// </summary>
-bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & container)
 {
     bool HasDataChunk = false;
     bool HasINFOChunk = false;
     bool IsDLS = false;
 
-    midi_metadata_table_t MetaData;
+    metadata_table_t MetaData;
 
-    const uint32_t Size = (uint32_t) (data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24));
+    uint32_t Size = toInt32LE(&data[4]);
 
     if ((Size < 8) || (data.size() < (size_t) Size + 8))
-        throw midi_exception("Insufficient RIFF data");
+        throw midi::exception("Insufficient RIFF data");
 
     const auto Tail = data.begin() + (ptrdiff_t) (8 + Size);
 
@@ -98,12 +101,12 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
     while (it < Tail)
     {
         if (Tail - it < 8)
-            break; // throw midi_exception("Insufficient RIFF data"); // 02 - Rock.rmi is malformed.
+            break; // throw midi::exception("Insufficient RIFF data"); // 02 - Rock.rmi is malformed.
 
         const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
 
         if ((Tail - it) < ChunkSize)
-            throw midi_exception("Insufficient RIFF data");
+            throw midi::exception("Insufficient RIFF data");
 
         const std::string ChunkId(it, it + 4);
 
@@ -111,7 +114,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
         if (ChunkId == "data")
         {
             if (HasDataChunk)
-                throw midi_exception("Multiple RIFF data chunks found");
+                throw midi::exception("Multiple RIFF data chunks found");
 
             std::vector<uint8_t> Data(it + 8, it + 8 + ChunkSize);
 
@@ -130,7 +133,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
             {
                 std::string DisplayName(it + 12, it + 12 + (ChunkSize - 4));
 
-                MetaData.AddItem(midi_metadata_item_t(0, "display_name", DisplayName.c_str()));
+                MetaData.AddItem(metadata_item_t(0, "display_name", DisplayName.c_str()));
             }
         }
         else
@@ -159,7 +162,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
 #ifdef _DEBUG
         else
         {
-            ::OutputDebugStringW(::FormatText(L"Unknown chunk \"%s\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            ::OutputDebugStringW(::FormatText(L"Unknown chunk \"%s\", %zu bytes\n", ChunkId.c_str(), ChunkSize).c_str());
         }
 #endif
         it += (ptrdiff_t) 8 + ChunkSize;
@@ -177,7 +180,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
         {
             for (const auto & Event : Track)
             {
-                if ((Event.Type == midi_event_t::ControlChange) && (Event.Data[0] == 0) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
+                if ((Event.Type == event_t::ControlChange) && (Event.Data[0] == 0) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
                 {
                     container.SetBankOffset(1);
                     break;
@@ -194,7 +197,7 @@ bool midi_processor_t::ProcessRMI(std::vector<uint8_t> const & data, midi_contai
 /// <summary>
 /// Processes a RIFF LIST chunk and update the metadata with it.
 /// </summary>
-bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize, midi_container_t & container, midi_metadata_table_t & MetaData) noexcept
+bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize, container_t & container, metadata_table_t & MetaData) noexcept
 {
     // Determine which code page to use before we encounter any text chunks.
     uint32_t CodePage = ~0u;
@@ -254,7 +257,7 @@ bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
 
             const std::string TagName = (Item != RIFFToTagMap.end()) ? Item->second : ChunkId;
 
-            MetaData.AddItem(midi_metadata_item_t(0, TagName.c_str(), Text.c_str()));
+            MetaData.AddItem(metadata_item_t(0, TagName.c_str(), Text.c_str()));
         }
 
         data += (ptrdiff_t) 8 + ChunkSize;
@@ -265,7 +268,7 @@ bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
 
     // Use the product name also as album name if no IALB chunk was found in the INFO list.
     if (!FoundIALBChunk && !ProductName.empty())
-        MetaData.AddItem(midi_metadata_item_t(0, "album", ProductName.c_str()));
+        MetaData.AddItem(metadata_item_t(0, "album", ProductName.c_str()));
 
     return true;
 }
@@ -306,4 +309,6 @@ bool GetCodePage(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
     }
 
     return false;
+}
+
 }

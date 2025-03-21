@@ -19,7 +19,7 @@ static uint8_t DELSB = 0;
 /// <summary>
 /// Processes MIDI stream events.
 /// </summary>
-uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index, const sysex_table_t & sysExMap)
+uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t index, const midi::sysex_table_t & sysExMap)
 {
     char Timestamp[16];
     char Time[16];
@@ -49,8 +49,8 @@ uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index
 
         const uint8_t StatusCode = (const uint8_t) (Event[0] & 0xF0u);
 
-        const uint32_t EventSize = (uint32_t) ((StatusCode >= StatusCodes::TimingClock && StatusCode <= StatusCodes::MetaData) ? 1 :
-                                              ((StatusCode == StatusCodes::ProgramChange || StatusCode == StatusCodes::ChannelPressure) ? 2 : 3));
+        const uint32_t EventSize = (uint32_t) ((StatusCode >= midi::StatusCodes::TimingClock   && StatusCode <= midi::StatusCodes::MetaData) ? 1 :
+                                              ((StatusCode == midi::StatusCodes::ProgramChange || StatusCode == midi::StatusCodes::ChannelPressure) ? 2 : 3));
 
         uint8_t PortNumber = (item.Data >> 24) & 0x7F;
 
@@ -74,19 +74,19 @@ uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index
 
         switch (StatusCode)
         {
-            case NoteOff:
+            case midi::NoteOff:
                 ::printf("Note Off, %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
-            case NoteOn:
+            case midi::NoteOn:
                 ::printf("Note On , %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
-            case KeyPressure:
+            case midi::KeyPressure:
                 ::printf("Key Pressure %3d (Aftertouch)\n", Event[1]);
                 break;
 
-            case ControlChange:
+            case midi::ControlChange:
             {
                 ::printf("Control Change %3d = %3d (%s)\n", Event[1], Event[2], WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
 
@@ -129,63 +129,63 @@ uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index
                 break;
             }
 
-            case ProgramChange:
+            case midi::ProgramChange:
                 ::printf("Program Change %3d, %s\n", Event[1] + 1, WideToUTF8(Instruments[Event[1]].Name).c_str());
                 break;
 
-            case ChannelPressure:
+            case midi::ChannelPressure:
                 ::printf("Channel Pressure %3d (Aftertouch)\n", Event[1]);
                 break;
 
-            case PitchBendChange:
+            case midi::PitchBendChange:
                 ::printf("Pitch Bend Change %02X:%02X\n", Event[1], Event[2]);
                 break;
 
-            case SysEx:
+            case midi::SysEx:
                 ::puts("SysEx");
                 break;
 
-            case MIDITimeCodeQtrFrame:
+            case midi::MIDITimeCodeQtrFrame:
                 ::puts("MIDI Time Code Qtr Frame");
                 break;
 
-            case SongPositionPointer:
+            case midi::SongPositionPointer:
                 ::puts("Song Position Pointer");
                 break;
 
-            case SongSelect:
+            case midi::SongSelect:
                 ::puts("Song Select");
                 break;
 
-            case TuneRequest:
+            case midi::TuneRequest:
                 ::puts("Tune Request");
                 break;
 
-            case SysExEnd:
+            case midi::SysExEnd:
                 ::puts("SysEx End");
                 break;
 
-            case TimingClock:
+            case midi::TimingClock:
                 ::puts("Timing Clock");
                 break;
 
-            case Start:
+            case midi::Start:
                 ::puts("Start");
                 break;
 
-            case Continue:
+            case midi::Continue:
                 ::puts("Continue");
                 break;
 
-            case Stop:
+            case midi::Stop:
                 ::puts("Stop");
                 break;
 
-            case ActiveSensing:
+            case midi::ActiveSensing:
                 ::puts("Active Sensing");
                 break;
 
-            case MetaData:
+            case midi::MetaData:
                 ::puts("Meta Data");
                 break;
 
@@ -233,7 +233,7 @@ uint32_t ProcessEvent(const midi_item_t & item, uint32_t timestamp, size_t index
 /// <summary>
 /// Processes the stream.
 /// </summary>
-void ProcessStream(const std::vector<midi_item_t> & stream, const sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents)
+void ProcessStream(const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents)
 {
     ::printf("%u messages, %u unique SysEx messages, %u ports\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size(), (uint32_t) portNumbers.size());
 

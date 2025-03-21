@@ -1,17 +1,17 @@
 ﻿
-/** $VER: RCP.cpp (2024.05.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.cpp (2025.03.20) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "RCP.h"
 #include "RunningNotes.h"
 
 extern running_notes_t RunningNotes;
 
-#define MCMD_INI_EXCLUDE	0x00 // exclude initial command
-#define MCMD_INI_INCLUDE	0x01 // include initial command
-#define MCMD_RET_CMDCOUNT	0x00 // return number of commands
-#define MCMD_RET_DATASIZE	0x02 // return number of data bytes
+constexpr uint8_t MCMD_INI_EXCLUDE  = 0x00; // exclude initial command
+constexpr uint8_t MCMD_INI_INCLUDE  = 0x01; // include initial command
+//constexpr uint8_t MCMD_RET_CMDCOUNT = 0x00; // return number of commands
+constexpr uint8_t MCMD_RET_DATASIZE = 0x02; // return number of data bytes
 
 static uint8_t DetermineShift(uint32_t value);
 static uint16_t ConvertRCPSysExToMIDISysEx(const uint8_t * srcData, uint16_t srcSize, uint8_t * dstData, uint8_t param1, uint8_t param2, uint8_t channel);
@@ -372,7 +372,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         midiStream.SetDuration(0); // Make sure all events on the conductor track have timestamp 0.
 
         if (TrackName.Len > 0)
-            midiStream.WriteMetaEvent(MetaDataTypes::TrackName, TrackName.Data, TrackName.Len);
+            midiStream.WriteMetaEvent(midi::MetaDataTypes::TrackName, TrackName.Data, TrackName.Len);
  
         // 0x00 == off, 0x01 == on. Others are undefined. Fall back to 'off'?
         if (TrackMute && !_Options._KeepDummyChannels)
@@ -385,8 +385,8 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
         if (DstChannel != 0xFF)
         {
-            midiStream.WriteMetaEvent(MetaDataTypes::MIDIPort,      &DstChannel, 1);
-            midiStream.WriteMetaEvent(MetaDataTypes::ChannelPrefix, &SrcChannel, 1);
+            midiStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort,      &DstChannel, 1);
+            midiStream.WriteMetaEvent(midi::MetaDataTypes::ChannelPrefix, &SrcChannel, 1);
         }
 
         // For RhythmMode, values 0 (melody channel) and 0x80 (rhythm channel) are common.
@@ -523,7 +523,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Note, CmdP2);
                 #endif
 
-                    midiStream.WriteEvent(StatusCodes::NoteOn, Note, CmdP2);
+                    midiStream.WriteEvent(midi::StatusCodes::NoteOn, Note, CmdP2);
 
                     RunningNotes.Add(midiStream.GetChannel(), Note, 0x80, CmdDuration);
                 }
@@ -563,10 +563,10 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         #endif
 
                         if ((us.Name.Len > 0) && _Options._WriteSysExNames)
-                            midiStream.WriteMetaEvent(MetaDataTypes::Text, us.Name.Data, us.Name.Len);
+                            midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, us.Name.Data, us.Name.Len);
 
                         if (Size > 1)
-                            midiStream.WriteEvent(StatusCodes::SysEx, Temp, Size);
+                            midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, Size);
                         #ifdef _RCP_VERBOSE
                         else
                             ::printf("Warning: Track %2u, 0x%04X: Using empty User SysEx command %u.\n", TrackId, CmdOffset, CmdType & 0x07);
@@ -599,7 +599,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, Size);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, Size);
                         break;
                     }
 
@@ -641,7 +641,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 6);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 6);
                         break;
                     }
 
@@ -669,7 +669,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 7);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 7);
                         break;
                     }
 
@@ -698,7 +698,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 7);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 7);
                         break;
                     }
 
@@ -747,7 +747,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 8);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 8);
                         break;
                     }
 
@@ -776,7 +776,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 8);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 8);
                         break;
                     }
 
@@ -803,7 +803,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 6);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 6);
                         break;
                     }
 
@@ -853,7 +853,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        midiStream.WriteEvent(StatusCodes::SysEx, Temp, 10);
+                        midiStream.WriteEvent(midi::StatusCodes::SysEx, Temp, 10);
                         break;
                     }
 
@@ -877,8 +877,8 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set XG instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP2, CmdP1);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::ControlChange, 0x20, CmdP2);
-                        midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0x00);
+                        midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x20, CmdP2);
+                        midiStream.WriteEvent(midi::StatusCodes::ProgramChange, CmdP1, 0x00);
                         break;
                     }
 
@@ -891,8 +891,8 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set GS instrument (Control Change 20 %02X, Program Change %02X 00)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP2, CmdP1);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::ControlChange, 0x00, CmdP2);
-                        midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0x00);
+                        midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x00, CmdP2);
+                        midiStream.WriteEvent(midi::StatusCodes::ProgramChange, CmdP1, 0x00);
                         break;
                     }
 
@@ -924,8 +924,8 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set MIDI channel (MIDI Port %02X, Channel Prefix %02X)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), DstChannel, SrcChannel);
                         #endif
 
-                            midiStream.WriteMetaEvent(MetaDataTypes::MIDIPort,      &DstChannel, 1);
-                            midiStream.WriteMetaEvent(MetaDataTypes::ChannelPrefix, &SrcChannel, 1);
+                            midiStream.WriteMetaEvent(midi::MetaDataTypes::MIDIPort,      &DstChannel, 1);
+                            midiStream.WriteMetaEvent(midi::MetaDataTypes::ChannelPrefix, &SrcChannel, 1);
                         }
 
                         midiStream.SetChannel(SrcChannel);
@@ -948,7 +948,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set tempo to %u bpm / %u ticks.\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), _Tempo, Ticks);
                     #endif
 
-                        midiStream.WriteMetaEvent(MetaDataTypes::SetTempo, Ticks, 3u);
+                        midiStream.WriteMetaEvent(midi::MetaDataTypes::SetTempo, Ticks, 3u);
                         break;
                     }
 
@@ -961,7 +961,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Channel Pressure %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::ChannelPressure, CmdP1, 0);
+                        midiStream.WriteEvent(midi::StatusCodes::ChannelPressure, CmdP1, 0);
                         break;
                     }
 
@@ -974,7 +974,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Control Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::ControlChange, CmdP1, CmdP2);
+                        midiStream.WriteEvent(midi::StatusCodes::ControlChange, CmdP1, CmdP2);
                         break;
                     }
 
@@ -989,7 +989,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Program Change %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1);
                         #endif
 
-                            midiStream.WriteEvent(StatusCodes::ProgramChange, CmdP1, 0);
+                            midiStream.WriteEvent(midi::StatusCodes::ProgramChange, CmdP1, 0);
                         }
                         else
                         if ((CmdP1 < 0xC0) && (SrcChannel >= 1 && SrcChannel < 9))
@@ -1020,7 +1020,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Pressure %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::KeyPressure, CmdP1, CmdP2);
+                        midiStream.WriteEvent(midi::StatusCodes::KeyPressure, CmdP1, CmdP2);
                         break;
                     }
 
@@ -1033,7 +1033,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Pitch Bend Change %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), CmdP1, CmdP2);
                     #endif
 
-                        midiStream.WriteEvent(StatusCodes::PitchBendChange, CmdP1, CmdP2);
+                        midiStream.WriteEvent(midi::StatusCodes::PitchBendChange, CmdP1, CmdP2);
                         break;
                     }
 
@@ -1045,7 +1045,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Key Signature %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Temp[0], Temp[1]);
                     #endif
 
-                        midiStream.WriteMetaEvent(MetaDataTypes::KeySignature, Temp, 2);
+                        midiStream.WriteMetaEvent(midi::MetaDataTypes::KeySignature, Temp, 2);
 
                         CmdP0 = 0;
                         break;
@@ -1065,7 +1065,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), TextToUTF8((const char *) Text.Data, Size).c_str());
                     #endif
 
-                        midiStream.WriteMetaEvent(MetaDataTypes::Text, Text.Data, Size);
+                        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, Text.Data, Size);
 
                         CmdP0 = 0;
                         break;
@@ -1099,7 +1099,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                     ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                                 #endif
 
-                                    midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
+                                    midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
                                 }
 
                                 if (LoopCounter[LoopCount] < track->LoopCount)
@@ -1115,7 +1115,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             {
                                 int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u End (%u/%u)", 1 + LoopCount, LoopCounter[LoopCount], CmdP0);
 
-                                midiStream.WriteMetaEvent(MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
+                                midiStream.WriteMetaEvent(midi::MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
                             }
 
                             if (TakeLoop)
@@ -1133,7 +1133,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         #endif
 
                             if (_Options._WriteBarMarkers)
-                                midiStream.WriteMetaEvent(MetaDataTypes::CueMarker, "Bad Loop End");
+                                midiStream.WriteMetaEvent(midi::MetaDataTypes::CueMarker, "Bad Loop End");
                         }
 
                         CmdP0 = 0;
@@ -1146,7 +1146,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         {
                             int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u Start", LoopCount + 1);
 
-                            midiStream.WriteMetaEvent(MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
+                            midiStream.WriteMetaEvent(midi::MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
                         }
 
                         if (LoopCount < 8)
@@ -1157,7 +1157,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                 ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                             #endif
 
-                                midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, 0);
+                                midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x6F, 0);
                             }
 
                             LoopParentOffs[LoopCount] = ParentOffs; // required by YS-2･018.RCP
@@ -1223,7 +1223,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                 {
                                     int Length = ::sprintf_s((char *) Temp, _countof(Temp), "Repeat Bar %u", 1 + BarID);
 
-                                    midiStream.WriteMetaEvent(MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
+                                    midiStream.WriteMetaEvent(midi::MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
                                 }
 
                                 if (BarID >= BarOffsets.size())
@@ -1292,7 +1292,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         {
                             int Length = ::sprintf_s((char *) Temp, _countof(Temp), "Bar %u", 1 + BarCount);
 
-                            midiStream.WriteMetaEvent(MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
+                            midiStream.WriteMetaEvent(midi::MetaDataTypes::CueMarker, Temp, (uint32_t) Length);
                         }
 
                         if (_Options._WolfteamLoopMode && (BarOffsets.size() == 2))
@@ -1300,7 +1300,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             LoopCount = 0;
 
                             if (DstChannel != 0xFF)
-                                midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, 0);
+                                midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x6F, 0);
 
                             LoopParentOffs[LoopCount] = ParentOffs;
                             LoopStartOffs[LoopCount] = Offset;
@@ -1323,7 +1323,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                             if (LoopCounter[LoopCount] < 0x80 && DstChannel != 0xFF)
                             {
-                                midiStream.WriteEvent(StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
+                                midiStream.WriteEvent(midi::StatusCodes::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
 
                             #ifdef _RCP_VERBOSE
                                 ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());

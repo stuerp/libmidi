@@ -1,7 +1,7 @@
 
 /** $VER: CM6File.cpp (2024.05.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "RCP.h"
 
@@ -43,53 +43,53 @@ void cm6_file_t::Read(const buffer_t & data)
 void rcp_converter_t::Convert(const cm6_file_t & cm6File, midi_stream_t & midiStream, uint8_t mode)
 {
     if (mode & 0x01)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, cm6File.Comment.Data, cm6File.Comment.Len);
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, cm6File.Comment.Data, cm6File.Comment.Len);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 System");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 System");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x100000, cm6File.laSystem, 0x17, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 Patch Temporary");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 Patch Temporary");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x030000, cm6File.laPatchTemp, 0x90, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 Rhythm Setup");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 Rhythm Setup");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x030110, cm6File.laRhythmTemp, 0x154, SYXOPT_DELAY, 0x100);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 Timbre Temporary");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 Timbre Temporary");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x040000, cm6File.laTimbreTemp, 0x7B0, SYXOPT_DELAY, 0x100);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 Patch Memory");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 Patch Memory");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x050000, cm6File.laPatchMem, 0x400, SYXOPT_DELAY, 0x100);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "MT-32 Timbre Memory");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "MT-32 Timbre Memory");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x080000, cm6File.laTimbreMem, 0x4000, SYXOPT_DELAY, 0x100);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "CM-32P Patch Temporary");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "CM-32P Patch Temporary");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x500000, cm6File.pcmPatchTemp, 0x7E, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "CM-32P Patch Memory");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "CM-32P Patch Memory");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x510000, cm6File.pcmPatchMem, 0x980, SYXOPT_DELAY, 0x100);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "CM-32P System");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "CM-32P System");
 
     midiStream.WriteRolandSysEx(SysExHeaderMT32, 0x520000, cm6File.pcmSystem, 0x11, SYXOPT_DELAY);
 
     if (mode & 0x10)
-        midiStream.WriteMetaEvent(MetaDataTypes::Text, "Setup Finished.");
+        midiStream.WriteMetaEvent(midi::MetaDataTypes::Text, "Setup Finished.");
 }

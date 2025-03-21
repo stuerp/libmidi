@@ -1,7 +1,7 @@
 
 /** $VER: MIDIProcessorRCP.cpp (2025.03.19) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 
@@ -9,10 +9,13 @@
 
 #include <filesystem>
 
+namespace midi
+{
+
 /// <summary>
 /// Returns true if data points to an RCP sequence.
 /// </summary>
-bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept
+bool processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * fileExtension) noexcept
 {
     if (fileExtension == nullptr)
         return false;
@@ -51,7 +54,7 @@ bool midi_processor_t::IsRCP(std::vector<uint8_t> const & data, const wchar_t * 
 /// <summary>
 /// Processes the sequence data.
 /// </summary>
-bool midi_processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, midi_container_t & container)
+bool processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar_t * filePath, container_t & container)
 {
     rcp_converter_t RCPConverter;
 
@@ -80,7 +83,9 @@ bool midi_processor_t::ProcessRCP(std::vector<uint8_t> const & data, const wchar
 
     Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
-    midi_processor_t::Process(Data, filePath, container);
+    processor_t::Process(Data, filePath, container);
 
     return true;
+}
+
 }

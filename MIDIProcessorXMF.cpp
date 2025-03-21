@@ -1,7 +1,7 @@
 
 /** $VER: MIDIProcessorXMF.cpp (2025.03.19) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
-#include "framework.h"
+#include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
@@ -9,6 +9,9 @@
 #undef WINAPI
 
 #include <zlib.h>
+
+namespace midi
+{
 
 enum StringFormatID
 {
@@ -182,7 +185,7 @@ const size_t MagicSize = 4;
 /// <summary>
 /// Returns true if the byte vector contains XMF data.
 /// </summary>
-bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsXMF(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < MagicSize)
         return false;
@@ -196,10 +199,10 @@ bool midi_processor_t::IsXMF(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes a byte vector with XMF data.
 /// </summary>
-bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_container_t & container)
+bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & container)
 {
     xmf_file_t File = { };
-    midi_metadata_table_t Metadata;
+    metadata_table_t Metadata;
 
     auto Head = data.begin();
     auto Tail = data.end();
@@ -210,7 +213,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
     File.XMFMetaFileVersion = std::string(Data, Data + 4);
     Data += 4;
 
-    Metadata.AddItem(midi_metadata_item_t(0, "xmf_meta_file_version", File.XMFMetaFileVersion.c_str()));
+    Metadata.AddItem(metadata_item_t(0, "xmf_meta_file_version", File.XMFMetaFileVersion.c_str()));
 
     // RP-043: XMF Meta File Format 2.0, September 2004
     if (std::atof(File.XMFMetaFileVersion.c_str()) >= 2.0f)
@@ -223,7 +226,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 
         ::sprintf_s(s, _countof(s), "%d", File.XMFFileTypeID);
 
-        Metadata.AddItem(midi_metadata_item_t(0, "xmf_file_type", s));
+        Metadata.AddItem(metadata_item_t(0, "xmf_file_type", s));
 
         // Read the XMFFileTypeRevisionID: Version 1 of Mobile XMF spec
         File.XMFFileTypeRevisionID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
@@ -231,7 +234,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 
         ::sprintf_s(s, _countof(s), "%d", File.XMFFileTypeRevisionID);
 
-        Metadata.AddItem(midi_metadata_item_t(0, "xmf_file_type_revision", s));
+        Metadata.AddItem(metadata_item_t(0, "xmf_file_type_revision", s));
     }
 
     File.Size = (uint32_t) DecodeVariableLengthQuantity(Data, Tail);
@@ -240,7 +243,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
     const uint32_t TableSize = (uint32_t) DecodeVariableLengthQuantity(Data, Tail); // Total node length in bytes, including NodeContents
 
     if (TableSize != 0)
-        throw midi_exception("XMF MetadataTypesTable is not yet supported");
+        throw midi::exception("XMF MetadataTypesTable is not yet supported");
 
     const auto TreeStart = DecodeVariableLengthQuantity(Data, Tail);
 //  const auto TreeEnd   = DecodeVariableLengthQuantity(Data, Tail);
@@ -259,7 +262,7 @@ bool midi_processor_t::ProcessXMF(std::vector<uint8_t> const & data, midi_contai
 /// <summary>
 /// Processes a tree node.
 /// </summary>
-bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, midi_metadata_table_t & metadata, midi_container_t & container)
+bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, metadata_table_t & metadata, container_t & container)
 {
     const std::vector<uint8_t>::const_iterator HeaderHead = data;
 
@@ -384,7 +387,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 }
                 else
                 {
-                    throw midi_exception("International XMF content is not yet supported");
+                    throw midi::exception("International XMF content is not yet supported");
 /*
                     // Get the international content.
                     for (int i = 0; i < InternationalContentsCount; ++i)
@@ -441,11 +444,11 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case UnpackerID::RegisteredUnpacker:
                 case UnpackerID::NonRegisteredUnpacker:
                 {
-                    throw midi_exception("Unsuppored XMF unpacker");
+                    throw midi::exception("Unsuppored XMF unpacker");
                 }
 
                 default:
-                    throw midi_exception("Unknown XMF unpacker");
+                    throw midi::exception("Unknown XMF unpacker");
             }
 
             Unpacker.UnpackedSize = (size_t) DecodeVariableLengthQuantity(data, tail);
@@ -473,11 +476,11 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
             case ReferenceTypeID::ExternalResourceFile:
             case ReferenceTypeID::ExternalXMFResource:
             case ReferenceTypeID::XMFFileURIandNodeID:
-                throw midi_exception("Unsupported XMF reference type");
+                throw midi::exception("Unsupported XMF reference type");
 
             case ReferenceTypeID::Invalid:
             default:
-                throw midi_exception("Unknown XMF reference type");
+                throw midi::exception("Unknown XMF reference type");
         }
     }
 
@@ -543,7 +546,7 @@ bool midi_processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, 
                 case ReferenceTypeID::XMFFileURIandNodeID:
                 case ReferenceTypeID::Invalid:
                 default:
-                    throw midi_exception("Unsupported XMF reference type");
+                    throw midi::exception("Unsupported XMF reference type");
             }
         }
     }
@@ -566,7 +569,7 @@ std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
     {
         UnpackedData.resize(Unpacker.UnpackedSize);
 
-        midi_processor_t::Inflate(data, UnpackedData);
+        processor_t::Inflate(data, UnpackedData);
     }
     else
     if (Unpacker.InternalUnpackerID != 0)
@@ -575,10 +578,10 @@ std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
         {
             UnpackedData.resize(Unpacker.UnpackedSize);
 
-            midi_processor_t::InflateRaw(data, UnpackedData);
+            processor_t::InflateRaw(data, UnpackedData);
         }
         else
-            throw midi_exception(FormatText("Unknown unpacker 0x%02X from MMA manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
+            throw midi::exception(FormatText("Unknown unpacker 0x%02X from MMA manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
     }
 
     return UnpackedData;
@@ -587,7 +590,7 @@ std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
 /// <summary>
 /// Inflates a zlib deflated data stream.
 /// </summary>
-int midi_processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
+int processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
 {
     z_stream Stream = { };
 
@@ -615,7 +618,7 @@ int midi_processor_t::Inflate(const std::vector<uint8_t> & src, std::vector<uint
 /// <summary>
 /// Inflates a raw deflated data stream.
 /// </summary>
-int midi_processor_t::InflateRaw(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
+int processor_t::InflateRaw(const std::vector<uint8_t> & src, std::vector<uint8_t> & dst) noexcept
 {
     z_stream Stream = { };
 
@@ -638,4 +641,6 @@ int midi_processor_t::InflateRaw(const std::vector<uint8_t> & src, std::vector<u
     ::inflateEnd(&Stream);
 
     return Status;
+}
+
 }
