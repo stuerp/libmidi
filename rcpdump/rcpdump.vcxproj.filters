@@ -6,5 +6,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="LICENSE" />
+    <None Include="Format.md" />
   </ItemGroup>
 </Project>

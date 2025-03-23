@@ -11,4 +11,7 @@
     <ClInclude Include="Tables.h" />
     <ClInclude Include="SysEx.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+  </ItemGroup>
 </Project>

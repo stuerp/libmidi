@@ -1,5 +1,5 @@
 
-/** $VER: MIDI.h (2025.03.20) **/
+/** $VER: MIDI.h (2025.03.22) **/
 
 #pragma once
 
@@ -38,17 +38,19 @@ enum StatusCodes
 
 enum ControlChangeNumbers
 {
-    BankSelect              = 0x00,
+    BankSelect              = 0x00, // CC 0
 
-    BankSelectLSB           = 0x20,   // LSB for Control Changes 0 to 31
+    // LSB for CC 0 to 31
+    BankSelectLSB           = 0x20, // CC 32
 };
 
 enum ChannelModeMessages
 {
-    AllSoundsOff            = 0x78,
-    ResetAllControllers     = 0x79,
+    AllSoundsOff            = 0x78, // Silences all notes current sounding on the specified MIDI channel. Upon receiving the message, all notes should be turned off, and the output set to zero as quickly as possible.
+    ResetAllControllers     = 0x79, // When the data byte is   0, the device will reset all controllers to their default values except the following controllers: Volume (Controller 7) and Pan Control (Controller 10)
+                                    // When the data byte is 127, the device will reset all controllers to their power-on default values. This should include all MIDI controllers and RPNs. It is left to the discretion of the device designer whether to reset any NRPNs used by the device. However, the behavior must be documented.
     LocalControl            = 0x7A,
-    AllNotesOff             = 0x7B,
+    AllNotesOff             = 0x7B, // Performs a Note-Off event for all notes on the specified MIDI channel. If the Sustain Pedal (MIDI Controller 64) is active, the notes should continue to sustain until a Sustain Pedal release event is sent.
     OmniOff                 = 0x7C,
     OmniOn                  = 0x7D,
     MonoOn                  = 0x7E,

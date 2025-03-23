@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.h (2024.05.15) P. Stuer **/
+/** $VER: SysEx.h (2025.03.22) P. Stuer **/
 
 #pragma once
 
@@ -31,8 +31,10 @@ const sysex_description_t SysExMessages[]
     { "\xF0\x7E" "\x00" "\x09\x02" "\xF7",                               6, L"GM1 System Off"},
     { "\xF0\x7E" "\x00" "\x09\x03" "\xF7",                               6, L"GM2 System On"},
 
-    { "\xF0\x7E" "\x00" "\x0A\x01" "\xF7",                               6, L"DLS On"},
-    { "\xF0\x7E" "\x00" "\x0A\x02" "\xF7",                               6, L"DLS Off"},
+    { "\xF0\x7E" "\x00" "\x0A\x01" "\xF7",                               6, L"DLS On"},                             // DLS Level 2.2, 1.16 DLS System Exclusive Messages
+    { "\xF0\x7E" "\x00" "\x0A\x02" "\xF7",                               6, L"DLS Off"},                            // DLS Level 2.2, 1.16 DLS System Exclusive Messages
+    { "\xF0\x7E" "\x00" "\x0A\x03" "\xF7",                               6, L"DLS Static Voice Allocation Off"},    // DLS Level 2.2, 1.16 DLS System Exclusive Messages
+    { "\xF0\x7E" "\x00" "\x0A\x04" "\xF7",                               6, L"DLS Static Voice Allocation On"},     // DLS Level 2.2, 1.16 DLS System Exclusive Messages
 
     // Universal Real Time
     { "\xF0\x7F" "\x00" "\x03\x01",                                      5, L"Bar Number" },

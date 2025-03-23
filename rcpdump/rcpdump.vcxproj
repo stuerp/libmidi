@@ -23,6 +23,8 @@
     <ClCompile Include="rcpmain.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Format.md" />
+    <None Include="LICENSE" />
     <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
