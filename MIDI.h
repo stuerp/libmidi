@@ -1,12 +1,12 @@
 
-/** $VER: MIDI.h (2025.03.22) **/
+/** $VER: MIDI.h (2025.03.26) **/
 
 #pragma once
 
 namespace midi
 {
 
-enum StatusCodes
+enum StatusCodes : uint8_t
 {
     NoteOff                 = 0x80,
     NoteOn                  = 0x90,
@@ -36,15 +36,19 @@ enum StatusCodes
     MetaData                = 0xFF
 };
 
-enum ControlChangeNumbers
+enum ControlChangeNumbers : uint8_t
 {
-    BankSelect              = 0x00, // CC 0
+    BankSelect              = 0x00, // CC   0
+    DataEntry               = 0x06, // CC   6, Sets the Value for NRPN or RPN parameters.
 
     // LSB for CC 0 to 31
-    BankSelectLSB           = 0x20, // CC 32
+    BankSelectLSB           = 0x20, // CC  32
+
+    NRPNLSB                 = 0x62, // CC  98, Select NRPN parameter (LSB)
+    NRPNMSB                 = 0x63, // CC  99, Select NRPN parameter (MSB)
 };
 
-enum ChannelModeMessages
+enum ChannelModeMessages : uint8_t
 {
     AllSoundsOff            = 0x78, // Silences all notes current sounding on the specified MIDI channel. Upon receiving the message, all notes should be turned off, and the output set to zero as quickly as possible.
     ResetAllControllers     = 0x79, // When the data byte is   0, the device will reset all controllers to their default values except the following controllers: Volume (Controller 7) and Pan Control (Controller 10)
@@ -57,7 +61,7 @@ enum ChannelModeMessages
     PolyOn                  = 0x7F,
 };
 
-enum MetaDataTypes
+enum MetaDataTypes : uint8_t
 {
     SequenceNumber = 0x00,      // Sequence number in type 0 and 1 MIDI files; pattern number in type 2 MIDI files. (0..65535, default 0, occurs at delta time 0)
     Text = 0x01,                // General "Text" Meta Message. Can be used for any text based data. (string)
