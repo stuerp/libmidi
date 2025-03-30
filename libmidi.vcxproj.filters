@@ -24,6 +24,7 @@
     <ClCompile Include="Encoding.cpp" />
     <ClCompile Include="MIDIProcessorXMF.cpp" />
     <ClCompile Include="MIDIProcessorMMF.cpp" />
+    <ClCompile Include="SMAF\exlayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MIDIContainer.h" />
@@ -39,6 +40,7 @@
     <ClInclude Include="Exception.h" />
     <ClInclude Include="IFF.h" />
     <ClInclude Include="Support.h" />
+    <ClInclude Include="SMAF\exlayer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

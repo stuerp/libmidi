@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.h (2025.03.22) P. Stuer **/
+/** $VER: SysEx.h (2025.03.30) P. Stuer **/
 
 #pragma once
 
@@ -52,7 +52,7 @@ const sysex_description_t SysExMessages[]
 
     { "\xF0\x7F" "\x00" "\x05",                                          4, L"Real-Time MTC Cueing Command" },
     { "\xF0\x7F" "\x00" "\x06",                                          4, L"MIDI Machine Control Command" },
-    { "\xF0\x7F" "\x00" "\x07",                                          4, L"MIDI Machine Control Resonse" },
+    { "\xF0\x7F" "\x00" "\x07",                                          4, L"MIDI Machine Control Response" },
 
     { "\xF0\x7F" "\x00" "\x08\x02",                                      5, L"Single Note Tuning Change" },
     { "\xF0\x7F" "\x00" "\x08\x07",                                      5, L"Single Note Tuning Change with Bank Select" },
@@ -143,10 +143,10 @@ const sysex_description_t SysExMessages[]
     { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x05",                              7, L"XG Master Attenuator" },
     { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x06",                              7, L"XG Master Transpose" },
 
-    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7D\x01\xF7",    9, L"XG Drum Setup 1 Reset" },
-    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7D\x02\xF7",    9, L"XG Drum Setup 2 Reset" },
-    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7E\x00\xF7",    9, L"XG System On" },
-    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7F\x00\xF7",    9, L"XG Reset" },
+    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7D\x01\xF7",                      9, L"XG Drum Setup 1 Reset" },
+    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7D\x02\xF7",                      9, L"XG Drum Setup 2 Reset" },
+    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7E\x00\xF7",                      9, L"XG System On" },
+    { "\xF0\x43" "\x00" "\x4C" "\x00\x00\x7F\x00\xF7",                      9, L"XG Reset" },
 
     { "\xF0\x43" "\x00" "\x4C" "\x02\x01\x00",            7, L"XG Reverb Type" },
     { "\xF0\x43" "\x00" "\x4C" "\x02\x01\x02",            7, L"XG Reverb Parameter 1" },

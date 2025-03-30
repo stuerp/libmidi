@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2025.03.21) **/
+/** $VER: MIDIContainer.cpp (2025.03.30) **/
 
 #include "pch.h"
 
@@ -248,6 +248,9 @@ void container_t::Initialize(uint32_t format, uint32_t timeDivision)
     }
 }
 
+/// <summary>
+/// Adds a track to the container.
+/// </summary>
 void container_t::AddTrack(const track_t & track)
 {
     _Tracks.push_back(track);
