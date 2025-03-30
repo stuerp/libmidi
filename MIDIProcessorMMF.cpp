@@ -1,5 +1,7 @@
 
-/** $VER: MIDIProcessorMMF.cpp (2025.03.30) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) () **/
+/** $VER: MIDIProcessorMMF.cpp (2025.03.30) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) (SMAF) **/
+
+/**######## WORK IN PROGRESS #########*/
 
 #include "pch.h"
 
@@ -8,7 +10,7 @@
 
 #include <span>
 
-#include "exlayer.h"
+#include "MMF.h"
 
 namespace midi
 {
@@ -20,7 +22,7 @@ struct state_t
     uint8_t DurationBase;
     uint8_t GateTimeBase;
 
-    bool    IsMTSU;
+    bool    IsMTSU;         // Is it a Setup track?
     uint8_t ChannelOffset;
 };
 
@@ -94,13 +96,6 @@ enum SequenceType : uint8_t
     SubSequence     // Sequence Data is a continuous representation of multiple phrase data. Phrase List is used to recognize individual phrases from the outside.
 };
 
-const int TimeBaseTable[] =
-{
-         1,  2,  4,  5,
-        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-        10, 20, 40, 50
-};
-
 class ChannelStatus
 {
 public:
@@ -154,18 +149,17 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
 {
     track_t Track;
 
+    uint32_t RunningTime = 0;
+    int8_t OctaveShift[4] = { }; // 4 HPS channels.
+
     auto it = data.begin();
     const auto Tail = data.end();
-
-    uint32_t CurrentTimestamp = 0;
-
-    int8_t OctaveShift[4] = { }; // 4 HPS channels.
 
     while (it < Tail)
     {
         uint32_t Delta = !state.IsMTSU ? GetHPSValue(it) * state.DurationBase : 0;
 
-        CurrentTimestamp += Delta;
+        RunningTime += Delta;
 
         if (it[0] == 0x00 && it[1] == 0x00 && it[2] == 0x00 && it[3] == 0x00)
         {
@@ -190,7 +184,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
 
                     size_t Size = setMA3Exclusive(Temp.data(), &chp, opp);
 
-                    Track.AddEvent(event_t(CurrentTimestamp, event_t::Extended, 0, Temp.data(), Size));
+                    Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), Size));
                 }
                 else
                 {
@@ -201,7 +195,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
 
                     std::copy(it + 1, it + 1 + (ptrdiff_t) (Size), Temp.begin());
 
-                    Track.AddEvent(event_t(CurrentTimestamp, event_t::Extended, 0, Temp.data(), Temp.size()));
+                    Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), Temp.size()));
                 }
             }
             else
@@ -212,7 +206,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
 
                 std::copy(it + 1, it + 1 + (ptrdiff_t) (Size), Temp.begin());
 
-                Track.AddEvent(event_t(CurrentTimestamp, event_t::Extended, 0, Temp.data(), Temp.size()));
+                Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), Temp.size()));
             }
 
             it += 2 + it[2] + 1;
@@ -228,133 +222,164 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
             // Note
             if (it[0] != 0x00)
             {
-                uint8_t ch      = (it[0] >> 6 & 0x03u);
-                uint8_t oct     =  it[0] >> 4 & 0x03u;
+                uint8_t Channel = (it[0] >> 6 & 0x03u);
+                uint8_t Octave  =  it[0] >> 4 & 0x03u;
                 uint8_t Note    =  it[0]      & 0x0Fu;
 
-                Note += 36u + ((oct + OctaveShift[ch]) * 12u); // MIDI's 69 = 440Hz(A) = Oct2,9
+                Note += 36u + ((Octave + OctaveShift[Channel]) * 12u); // MIDI's 69 = 440Hz(A) = Oct2,9
 
-                uint8_t Data[2] = { Note, 0x7Fu };
+                const uint8_t Data[2] = { Note, 0x7Fu };
 
-                {
-                    auto q = it + 1;
+                Track.AddEvent(event_t(RunningTime, event_t::NoteOn,  (uint32_t) Channel + state.ChannelOffset, Data, 2));
+                it += 1;
 
-//                  DWORD GateTime = GetVValAndForward4HPS(q) * state.GateTimeBase;
+                RunningTime += GetHPSValueEx(it) * state.GateTimeBase;
 
-//                  size_t Size = (q - it) + 2 + SetVValSize(GateTime);
-
-//                  SetVVal(Event->data + 2, GateTime);
-                }
-
-                Track.AddEvent(event_t(CurrentTimestamp, event_t::NoteOn, (uint32_t) ch + state.ChannelOffset, Data, 2));
+                Track.AddEvent(event_t(RunningTime, event_t::NoteOff, (uint32_t) Channel + state.ChannelOffset, Data, 2));
             }
             else
             {
-                uint8_t ch = (it[1] >> 6 & 0x03u);
+                uint8_t Channel = (it[1] >> 6 & 0x03u) + state.ChannelOffset;
 
                 if ((it[1] & 0x30) == 0x30)
                 {
-                    // Program Change
-                    if ((it[1] & 0x0F) == 0x00)
+                    switch (it[1] & 0x0F)
                     {
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ProgramChange, ch, &it[2], 1));
-                    }
-                    else
-                    // Bank Select
-                    if ((it[1] & 0x0F) == 0x01)
-                    {
-                        uint8_t Data[2] = { 0x00, (it[2] & 0x80u) ? 0x7Du : 0x7Cu };
+                        // Program Change
+                        case 0x00:
+                        {
+                            Track.AddEvent(event_t(RunningTime, event_t::ProgramChange, Channel, &it[2], 1));
+                            it += 3;
+                            break;
+                        }
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2)); // MSB
+                        // Bank Select
+                        case 0x01:
+                        {
+                            uint8_t Data[2] = { 0x00, (it[2] & 0x80u) ? 0x7Du : 0x7Cu };
 
-                        Data[0] = 0x20u;
-                        Data[1] = it[2] & 0x7Fu;
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // MSB
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2)); // LSB
-                    }
-                    else
-                    // Octave Shift
-                    if ((it[1] & 0x0F) == 0x02)
-                    {
-                        const size_t i = ((size_t) it[0] >> 6) & 0x03;
+                            Data[0] = 0x20u;
+                            Data[1] = it[2] & 0x7Fu;
 
-                        if (0x01 <= it[2] && it[2] <= 0x04)
-                            OctaveShift[i] = (int8_t) it[2];
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // LSB
 
-                        if (0x81 <= it[2] && it[2] <= 0x84)
-                            OctaveShift[i] = (int8_t) -(it[2] - 0x80);
-                    }
-                    else
-                    // Modulation
-                    if ((it[1] & 0x0F) == 0x03)
-                    {
-                        uint8_t Data[2] = { 0x01, it[2] };
+                            it += 3;
+                            break;
+                        }
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2));
-                    }
-                    else
-                    // Pitch Bend
-                    if ((it[1] & 0x0F) == 0x04)
-                    {
-                        uint8_t Data[2] = { 0x00, it[2] };
+                        // Octave Shift
+                        case 0x02:
+                        {
+                            const size_t i = ((size_t) it[0] >> 6) & 0x03u;
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::PitchBendChange, ch, Data, 2));
-                    }
-                    else
-                    // Volume
-                    if ((it[1] & 0x0F) == 0x07)
-                    {
-                        uint8_t Data[2] = { 0x07, it[2] };
+                            if (0x01 <= it[2] && it[2] <= 0x04)
+                                OctaveShift[i] = (int8_t) it[2];
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2));
-                    }
-                    else
-                    // Pan
-                    if ((it[1] & 0x0F) == 0x0A)
-                    {
-                        uint8_t Data[2] = { 0x0A, it[2] };
+                            if (0x81 <= it[2] && it[2] <= 0x84)
+                                OctaveShift[i] = (int8_t) -(it[2] - 0x80);
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2));
-                    }
-                    else
-                    // Expression
-                    if ((it[1] & 0x0F) == 0x0B)
-                    {
-                        uint8_t Data[2] = { 0x0B, it[2] };
+                            it += 3;
+                            break;
+                        }
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2));
+                        // Modulation
+                        case 0x03:
+                        {
+                            const uint8_t Data[2] = { 0x01, it[2] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 3;
+                            break;
+                        }
+
+                        // Pitch Bend
+                        case 0x04:
+                        {
+                            const uint8_t Data[2] = { 0x00, it[2] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::PitchBendChange, Channel, Data, 2));
+                            it += 3;
+                            break;
+                        }
+
+                        // Volume
+                        case 0x07:
+                        {
+                            const uint8_t Data[2] = { 0x07, it[2] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 3;
+                            break;
+                        }
+
+                        // Pan
+                        case 0x0A:
+                        {
+                            const uint8_t Data[2] = { 0x0A, it[2] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 3;
+                            break;
+                        }
+
+                        // Expression
+                        case 0x0B:
+                        {
+                            const uint8_t Data[2] = { 0x0B, it[2] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 3;
+                            break;
+                        }
+
+                        default:
+                            ::printf("Unknown opcode 0x%02X\n", it[1] & 0x0F);
                     }
                 }
                 else
                 {
-                    // Expression
-                    if ((it[1] & 0x30) == 0x00)
+                    switch (it[1] & 0x30)
                     {
-                        const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x00, 0x1F, 0x27, 0x2F, 0x37, 0x3F, 0x47, 0x4F, 0x57, 0x5F, 0x67, 0x6F, 0x77, 0x7F, 0x00 /* Reserved */ };
+                        // Expression
+                        case 0x00:
+                        {
+                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x00, 0x1F, 0x27, 0x2F, 0x37, 0x3F, 0x47, 0x4F, 0x57, 0x5F, 0x67, 0x6F, 0x77, 0x7F, 0x00 /* Reserved */ };
 
-                        const uint8_t Data[2] = { 0x0B, Lookup[it[1] & 0xF0] };
+                            const uint8_t Data[2] = { 0x0B, Lookup[it[1] & 0x0F] };
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::PitchBendChange, ch, Data, 2));
-                    }
-                    else
-                    // Pitch Bend
-                    if ((it[1] & 0x30) == 0x10)
-                    {
-                        const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x00 /* Reserved */ };
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 2;
+                            break;
+                        }
 
-                        const uint8_t Data[2] = { 0x00, Lookup[it[1] & 0xF0] };
+                        // Pitch Bend
+                        case 0x10:
+                        {
+                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x00 /* Reserved */ };
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::PitchBendChange, ch, Data, 2));
-                    }
-                    else
-                    // Modulation
-                    if ((it[1] & 0x30) == 0x20)
-                    {
-                        const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x60, 0x68, 0x70, 0x7F, 0x00 /* Reserved */ };
+                            const uint8_t Data[2] = { 0x00, Lookup[it[1] & 0xF0] };
 
-                        const uint8_t Data[2] = { 0x01, Lookup[it[1] & 0xF0] };
+                            Track.AddEvent(event_t(RunningTime, event_t::PitchBendChange, Channel, Data, 2));
+                            it += 2;
+                            break;
+                        }
 
-                        Track.AddEvent(event_t(CurrentTimestamp, event_t::ControlChange, ch, Data, 2));
+                        // Modulation
+                        case 0x20:
+                        {
+                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x60, 0x68, 0x70, 0x7F, 0x00 /* Reserved */ };
+
+                            const uint8_t Data[2] = { 0x01, Lookup[it[1] & 0xF0] };
+
+                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2));
+                            it += 2;
+                            break;
+                        }
+
+                        default:
+                            ::printf("Unknown opcode 0x%02X\n", it[1] & 0x30);
                     }
                 }
             }
@@ -396,6 +421,21 @@ static bool ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
             case 0x11: state.DurationBase = 20; break;
             case 0x12: state.DurationBase = 40; break;
             case 0x13: state.DurationBase = 50; break;
+
+            default:
+                return false;
+        }
+
+        switch (state.GateTimeBase)
+        {
+            case 0x00: state.GateTimeBase =  1; break;
+            case 0x01: state.GateTimeBase =  2; break;
+            case 0x02: state.GateTimeBase =  4; break;
+            case 0x03: state.GateTimeBase =  5; break;
+            case 0x10: state.GateTimeBase = 10; break;
+            case 0x11: state.GateTimeBase = 20; break;
+            case 0x12: state.GateTimeBase = 40; break;
+            case 0x13: state.GateTimeBase = 50; break;
 
             default:
                 return false;
@@ -517,7 +557,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
 
     state_t State = { };
 
-    container.Initialize(2u, 60);
+    container.Initialize(1u, 500);
 
     auto it = data.begin() + 8; // Skip past "MMMD" <size>.
 
@@ -659,7 +699,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
 #endif
     }
 
-    uint16_t CRC = (uint16_t) ((it[0] << 8) | it[1]);
+//  uint16_t CRC = (uint16_t) ((it[0] << 8) | it[1]);
 
     return true;
 }

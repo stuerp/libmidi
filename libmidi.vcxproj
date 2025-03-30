@@ -47,7 +47,7 @@
     <ClCompile Include="Recomposer\RCPConverter.cpp" />
     <ClCompile Include="Recomposer\RunningNotes.cpp" />
     <ClCompile Include="Recomposer\Support.cpp" />
-    <ClCompile Include="SMAF\exlayer.cpp" />
+    <ClCompile Include="SMAF\MMF.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
@@ -62,7 +62,7 @@
     <ClInclude Include="Recomposer\RunningNotes.h" />
     <ClInclude Include="Recomposer\Support.h" />
     <ClInclude Include="Encoding.h" />
-    <ClInclude Include="SMAF\exlayer.h" />
+    <ClInclude Include="SMAF\MMF.h" />
     <ClInclude Include="Support.h" />
   </ItemGroup>
   <ItemGroup>

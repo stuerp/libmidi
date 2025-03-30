@@ -1618,6 +1618,9 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
 
             for (const auto & Track : _Tracks)
             {
+                if (Track.GetLength() == 0)
+                    continue;
+
                 uint32_t Timestamp = Track.back().Time;
 
                 if (Timestamp > EndOfSongTimestamp)
@@ -1651,6 +1654,9 @@ void container_t::EncodeVariableLengthQuantity(std::vector<uint8_t> & data, uint
     data.push_back((uint8_t) (quantity & 0x7F));
 }
 
+/// <summary>
+/// Converts the timestamp (in ticks) to ms for the specified subsong.
+/// </summary>
 uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) const
 {
     uint32_t TimestampInMS = 0;
@@ -1674,8 +1680,9 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
     }
 
     uint32_t Timestamp = 0;
-    uint32_t HalfDivision = _TimeDivision * 500;
-    uint32_t Division = HalfDivision * 2;
+
+    const uint32_t Rounding = _TimeDivision * 500;
+    const uint32_t TicksPerMS = Rounding * 2;
 
     if (subSongIndex < TempoMapCount)
     {
@@ -1688,7 +1695,7 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
         {
             uint32_t Delta = TempoEntries[Index].Time - Timestamp;
 
-            TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + HalfDivision) / Division;
+            TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + Rounding) / TicksPerMS;
 
             Tempo = TempoEntries[Index].Tempo;
             ++Index;
@@ -1698,7 +1705,7 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
         }
     }
 
-    TimestampInMS += ((uint64_t) Tempo * (uint64_t) timestamp + HalfDivision) / Division;
+    TimestampInMS += ((uint64_t) Tempo * (uint64_t) timestamp + Rounding) / TicksPerMS;
 
     return TimestampInMS;
 }

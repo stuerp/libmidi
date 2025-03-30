@@ -1,5 +1,5 @@
 ﻿
-/** $VER: exlayer.cpp (2025.03.30) Convert exclusive CHPARAM/OPPARAM (Taken from mmftool) **/
+/** $VER: MMF.cpp (2025.03.30) Convert exclusive CHPARAM/OPPARAM (Taken from mmftool) **/
 
 #include "pch.h"
 
@@ -7,7 +7,7 @@
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
 
-#include "exlayer.h"
+#include "MMF.h"
 
 #define SwapDword(data) (*((uint8_t *)(data) + 0) << 24 | *((uint8_t *)(data) + 1) << 16 | *((uint8_t *)(data) + 2) << 8 | *((uint8_t *)(data) + 3))
 #define SwapWord(data)  (*((uint8_t *)(data) + 0) << 8 | *((uint8_t *)(data) + 1))

@@ -1,3 +1,6 @@
+
+/** $VER: MMF.h (2025.03.30) Convert exclusive CHPARAM/OPPARAM (Taken from mmftool) **/
+
 #pragma once
 
 #define VOICE_FM    0
