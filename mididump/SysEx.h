@@ -113,7 +113,7 @@ const sysex_description_t SysExMessages[]
     { "\xF0\x41" "\x00" "\x00\x00\x00\x65",                              7, L"Roland Jupiter X-specific" },
 
     // Roland MC-707
-    { "\xF0\x41" "\x00" "\x00\x00\x00\xC0",                              7, L"Roland Jupiter X-specific" },
+    { "\xF0\x41" "\x00" "\x00\x00\x00\xC0",                              7, L"Roland MC-707-specific" },
 
     // Roland Verselab MV-1
     { "\xF0\x41" "\x00" "\x00\x00\x00\x00\xCF",                          8, L"Roland Verselab MV-1-specific" },

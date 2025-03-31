@@ -25,6 +25,7 @@
     <ClCompile Include="MIDIProcessorXMF.cpp" />
     <ClCompile Include="MIDIProcessorMMF.cpp" />
     <ClCompile Include="SMAF\MMF.cpp" />
+    <ClCompile Include="MIDIProcessorTST.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MIDIContainer.h" />

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.03.21) **/
+/** $VER: MIDIProcessor.h (2025.03.31) **/
 
 #pragma once
 
@@ -55,7 +55,9 @@ private:
     static bool IsRCP(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
     static bool IsXMF(std::vector<uint8_t> const & data) noexcept;
     static bool IsMMF(std::vector<uint8_t> const & data) noexcept;
-
+#ifdef _DEBUG
+    static bool IsTST(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
+#endif
     static bool IsSysEx(std::vector<uint8_t> const & data) noexcept;
 
     static bool ProcessSMF(std::vector<uint8_t> const & data, container_t & container);
@@ -70,7 +72,9 @@ private:
     static bool ProcessRCP(std::vector<uint8_t> const & data, const std::wstring & filePath, container_t & container);
     static bool ProcessXMF(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessMMF(std::vector<uint8_t> const & data, container_t & container);
-
+#ifdef _DEBUG
+    static bool ProcessTST(std::vector<uint8_t> const & data, container_t & container);
+#endif
     static bool ProcessSysEx(std::vector<uint8_t> const & data, container_t & container);
 
     static bool ProcessSMFTrack(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, container_t & container);
