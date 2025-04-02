@@ -159,11 +159,11 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
     {
         uint32_t Delta = !state.IsMTSU ? GetHPSValue(it) * state.DurationBase : 0;
 
-        RunningTime += Delta;
-
         if (it[0] == 0x00 && it[1] == 0x00 && it[2] == 0x00 && it[3] == 0x00)
         {
-            // End of sequence
+            const uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
+
+            Track.AddEvent(event_t(RunningTime, event_t::Extended, (uint32_t) 0, Data, 2));
             break;
         }
 
@@ -233,9 +233,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 Track.AddEvent(event_t(RunningTime, event_t::NoteOn,  (uint32_t) Channel + state.ChannelOffset, Data, 2));
                 it += 1;
 
-                RunningTime += GetHPSValueEx(it) * state.GateTimeBase;
-
-                Track.AddEvent(event_t(RunningTime, event_t::NoteOff, (uint32_t) Channel + state.ChannelOffset, Data, 2));
+                Track.AddEvent(event_t(RunningTime + Delta + (GetHPSValueEx(it) * state.GateTimeBase), event_t::NoteOff, (uint32_t) Channel + state.ChannelOffset, Data, 2));
             }
             else
             {
@@ -276,7 +274,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
 
                             if (0x01 <= it[2] && it[2] <= 0x04)
                                 OctaveShift[i] = (int8_t) it[2];
-
+                            else
                             if (0x81 <= it[2] && it[2] <= 0x84)
                                 OctaveShift[i] = (int8_t) -(it[2] - 0x80);
 
@@ -345,7 +343,18 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                         // Expression
                         case 0x00:
                         {
-                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x00, 0x1F, 0x27, 0x2F, 0x37, 0x3F, 0x47, 0x4F, 0x57, 0x5F, 0x67, 0x6F, 0x77, 0x7F, 0x00 /* Reserved */ };
+                            const uint8_t Lookup[] =
+                            {
+                                0x00 /* Reserved */,
+                                0x00, 0x1F,
+                                0x27, 0x2F,
+                                0x37, 0x3F,
+                                0x47, 0x4F,
+                                0x57, 0x5F,
+                                0x67, 0x6F,
+                                0x77, 0x7F,
+                                0x00 /* Reserved */
+                            };
 
                             const uint8_t Data[2] = { 0x0B, Lookup[it[1] & 0x0F] };
 
@@ -357,7 +366,18 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                         // Pitch Bend
                         case 0x10:
                         {
-                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x00 /* Reserved */ };
+                            const uint8_t Lookup[] =
+                            {
+                                0x00 /* Reserved */,
+                                0x08, 0x10,
+                                0x18, 0x20,
+                                0x28, 0x30,
+                                0x38, 0x40,
+                                0x48, 0x50,
+                                0x58, 0x60,
+                                0x68, 0x70,
+                                0x00 /* Reserved */
+                            };
 
                             const uint8_t Data[2] = { 0x00, Lookup[it[1] & 0xF0] };
 
@@ -369,7 +389,18 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                         // Modulation
                         case 0x20:
                         {
-                            const uint8_t Lookup[] = { 0x00 /* Reserved */, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x60, 0x68, 0x70, 0x7F, 0x00 /* Reserved */ };
+                            const uint8_t Lookup[] =
+                            {
+                                0x00 /* Reserved */,
+                                0x08, 0x10,
+                                0x18, 0x20,
+                                0x28, 0x30,
+                                0x38, 0x40,
+                                0x48, 0x50,
+                                0x60, 0x68,
+                                0x70, 0x7F,
+                                0x00 /* Reserved */
+                            };
 
                             const uint8_t Data[2] = { 0x01, Lookup[it[1] & 0xF0] };
 
@@ -384,6 +415,8 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 }
             }
         }
+
+        RunningTime += Delta;
     }
 
     container.AddTrack(Track);

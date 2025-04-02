@@ -41,10 +41,14 @@ bool processor_t::ProcessTST(std::vector<uint8_t> const & data, container_t & co
 
     Track.AddEvent(event_t(   2000, event_t::NoteOn, (uint32_t) 0, Data, 2));
 
+    Data[0] = 60;
+
+    Track.AddEvent(event_t(   3000, event_t::NoteOn, (uint32_t) 0, Data, 2));
+
     Data[0] = StatusCodes::MetaData;
     Data[1] = MetaDataTypes::EndOfTrack;
 
-    Track.AddEvent(event_t(   2500, event_t::Extended, (uint32_t) 0, Data, 2));
+    Track.AddEvent(event_t(   4000, event_t::Extended, (uint32_t) 0, Data, 2));
 
     container.AddTrack(Track);
 
