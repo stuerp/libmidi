@@ -1,7 +1,5 @@
 
-/** $VER: MIDIProcessorMMF.cpp (2025.03.31) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) (SMAF) **/
-
-/**######## WORK IN PROGRESS #########*/
+/** $VER: MIDIProcessorMMF.cpp (2025.04.05) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) (SMAF) **/
 
 #include "pch.h"
 
@@ -15,52 +13,20 @@
 namespace midi
 {
 
-struct state_t
-{
-    uint8_t Format;
-    uint8_t SequenceType;
-    uint8_t DurationBase;
-    uint8_t GateTimeBase;
-
-    bool    IsMTSU;         // Is it a Setup track?
-    uint8_t ChannelOffset;
-};
-
 template <class T> inline static uint32_t toInt32LE(T data)
 {
     return static_cast<uint32_t>(data[0] << 24) | static_cast<uint32_t>(data[1] << 16) | static_cast<uint32_t>(data[2] << 8) | static_cast<uint32_t>(data[3]);
 }
 
-/// <summary>
-/// Gets an HPS-encoded value.
-/// </summary>
-static uint32_t GetHPSValue(std::span<const uint8_t>::iterator data)
-{
-    uint32_t Value = 0;
+static void ProcessMetadata(const std::span<const uint8_t> & data, state_t & state, container_t & container);
+static void ProcessOPDA(const std::span<const uint8_t> & data, state_t & state, container_t & container);
+static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, container_t & container);
+static void ProcessHPSTrack(const std::span<const uint8_t> & data, state_t & state, container_t & container);
 
-    if (data[0] & 0x80)
-        Value = (uint32_t) (((*data++ & 0x7F) + 1) << 7);
+static uint32_t GetHPSValue(std::span<const uint8_t>::iterator data) noexcept;
+static uint32_t GetHPSValueEx(std::span<const uint8_t>::iterator & data) noexcept;
 
-    Value |= *data++;
-
-    return Value;
-}
-
-/// <summary>
-/// Gets an HPS-encoded value.
-/// </summary>
-static uint32_t GetHPSValueEx(std::span<const uint8_t>::iterator & data)
-{
-    uint32_t Value = 0;
-
-    if (data[0] & 0x80)
-        Value = (uint32_t) (((*data++ & 0x7F) + 1) << 7);
-
-    Value |= *data++;
-
-    return Value;
-}
-
+static std::string GetEncodingDescription(uint8_t encoding) noexcept;
 /// <summary>
 /// Returns true if the byte vector contains MMF data.
 /// </summary>
@@ -80,72 +46,430 @@ bool processor_t::IsMMF(std::vector<uint8_t> const & data) noexcept
     return true;
 };
 
-enum Format : uint8_t
+/// <summary>
+/// Processes a byte vector with MMF data.
+/// </summary>
+bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & container)
 {
-    HandyPhoneStandard,         // Size:  2, Compressed: No
+    if (data.size() < 8)
+        throw midi::exception("Insufficient SMAF data");
 
-    MobileStandard_Compress,    // Size: 16, Compressed: Yes (Huffman encoding)
-    MobileStandard_NoCompress,  // Size: 16, Compressed: No
+    const uint32_t Size = toInt32LE(data.data() + 4);
 
-    SEQU,                       // Size: 32, Compressed: No
-};
+    if (data.size() < (size_t) Size + 8)
+        throw midi::exception("Insufficient SMAF data");
 
-enum SequenceType : uint8_t
-{
-    StreamSequence, // Sequence Data is one continuous sequence data. Seek Point and Phrase List are used to refer to meaningful positions in a sequence from the outside.
-    SubSequence     // Sequence Data is a continuous representation of multiple phrase data. Phrase List is used to recognize individual phrases from the outside.
-};
+    state_t State = { };
 
-class ChannelStatus
-{
-public:
-    enum ChannelType : uint8_t
+    container.Initialize(1u, 500);
+
+    auto it = data.begin() + 8; // Skip past "MMMD" <size>.
+
+    const auto Tail = data.begin() + (ptrdiff_t) Size;
+
+    while (it < Tail)
     {
-        NoCare,
-        Melody,
-        NoMelody,
-        Rhythm
-    };
+        if (Tail - it < 8)
+            break;
 
-    int Channel; // SMAF channel
+        const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
 
-    bool KeyControlStatus;
-    bool VibrationStatus;
-    bool LED;
-    ChannelType Type;
+        if ((Tail - it) < ChunkSize)
+            throw midi::exception("Insufficient SMAF data");
 
-    ChannelStatus(int channel, bool keyControlstatus, bool vibrationStatus, int type) noexcept
-    {
-        Channel = channel;
+        const std::string ChunkId(it, it + 4);
 
-        KeyControlStatus = keyControlstatus;
-        VibrationStatus  = vibrationStatus;
-        LED              = false;
-        Type             = (ChannelType) type;
+        // Is it a "Contents Info" chunk?
+        if (::memcmp(&it[0], "CNTI", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"CNTI\", %zu bytes (Contents Information)", ChunkSize).c_str());
 
-        _Format = Format::HandyPhoneStandard;
+            it += (ptrdiff_t) 8;
+
+            uint8_t Class      = it[0]; // 0: "Yamaha"
+            uint8_t Type       = it[1];
+            uint8_t Encoding   = it[2];
+            uint8_t CopyStatus = it[3];
+            uint8_t CopyCounts = it[4];
+
+            ::printf("- Class: %s\n", (Class == 0x00) ? "Yamaha" : "Other");
+
+            if ((0x00 <= Type && Type <= 0x0F) || (0x30 <= Type && Type <= 0x33))
+                ::printf("- Type: Ringtone (0x%02X)\n", Type);
+            else
+            if ((0x10 <= Type && Type <= 0x1F) || (0x40 <= Type && Type <= 0x42))
+                ::printf("- Type: Karaoke (0x%02X)\n", Type);
+            else
+            if ((0x20 <= Type && Type <= 0x2F) || (0x50 <= Type && Type <= 0x53))
+                ::printf("- Type: CM (0x%02X)\n", Type);
+            else
+                ::printf("- Type: Reserved (0x%02X)\n", Type);
+
+            ::printf("- Encoding: 0x%02X (%s)\n", Encoding, GetEncodingDescription(Encoding).c_str());
+            
+            ::printf("- Status: ");
+
+            if ((CopyStatus & 0x01) == 0x00)
+                ::printf("Transferable, ");
+
+            if ((CopyStatus & 0x02) == 0x00)
+                ::printf("Can be saved, ");
+
+            if ((CopyStatus & 0x04) == 0x00)
+                ::printf("Editable, ");
+
+            ::puts("");
+
+            ::printf("- Copy Count: %d\n", CopyCounts);
+
+            it += (ptrdiff_t) 5;
+
+            ProcessMetadata(std::span<const uint8_t>(&it[0], (size_t) ChunkSize - 5), State, container);
+
+            it += (ptrdiff_t) ChunkSize - 5;
+        }
+        else
+        // Is it a "Optional Data" chunk?
+        if (::memcmp(&it[0], "OPDA", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"OPDA\", %zu bytes (Optional Data)", ChunkSize).c_str());
+
+            it += (ptrdiff_t) 8;
+
+            ProcessOPDA(std::span<const uint8_t>(&it[0], (size_t) ChunkSize), State, container);
+
+            it += (ptrdiff_t) ChunkSize;
+        }
+        else
+        // Is it a "Score Track" chunk?
+        if (::memcmp(&it[0], "MTR", 3) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"MTR_\", %zu bytes (Score Track)", ChunkSize).c_str());
+
+            it += (ptrdiff_t) 8;
+
+            ProcessMTR(std::span<const uint8_t>(&it[0], (size_t) ChunkSize), State, container);
+            State.ChannelOffset += 4;
+
+            it += (ptrdiff_t) ChunkSize;
+        }
+
+        else
+        // Is it an "PCM Audio Track" chunk? Stores PCM audio sounds such as ADPCM, MP3, and TwinVQ in event format.
+        if (::memcmp(&it[0], "ATR", 3) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"ATR_\", %zu bytes (PCM Audio Track)", ChunkSize).c_str());
+
+            it += (ptrdiff_t) 8 + ChunkSize;
+        }
+        else
+        // Is it a "Graphics Track" chunk? Stores background images, inserted still images, text data, and sequence data for playing these.
+        if (::memcmp(&it[0], "GTR", 3) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"ATR_\", %zu bytes (Graphics Track)", ChunkSize).c_str());
+
+            it += (ptrdiff_t) 8 + ChunkSize;
+        }
+        else
+        // Is it a "Master Track" chunk? Stores music information sequences synchronized with playback sequences such as the Score Track, and sequence data for controlling the SMAF playback system.
+        if (::memcmp(&it[0], "MSTR", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"MSTR\", %zu bytes (Master Track)", ChunkSize).c_str());
+
+            it += (ptrdiff_t) 8 + ChunkSize;
+        }
+#ifdef _DEBUG
+        else
+        {
+            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            it += (ptrdiff_t) 8 + ChunkSize;
+        }
+#endif
     }
 
-    ChannelStatus(int channel, int value) noexcept
+//  uint16_t CRC = (uint16_t) ((it[0] << 8) | it[1]);
+
+    // Convert the metadata.
+    if (!State.Metadata.empty())
     {
-        Channel = channel;
+        metadata_table_t MetaData;
 
-        KeyControlStatus = false;
-        VibrationStatus  = (((value & 0x20) >> 5) != 0);
-        LED              = (((value & 0x10) >> 4) != 0);
-        Type             = (ChannelType) (value & 0x03);
+        const std::unordered_map<std::string, std::string> MetadataMap =
+        {
+            { "ST", "title" },  // Song Title
+            { "CR", "copyright" },
+            { "WW", "lyricist" },
+            { "VN", "vendor" },
+            { "CN", "carrier" },
+            { "CA", "category" },
+            { "AN", "artist" },
+            { "SW", "composer" },
+            { "AW", "arranger" },
+            { "GR", "group" },
+            { "MI", "management_info" },
+            { "CD", "creation_date" },
+            { "UP", "modification_date" },
+            { "ES", "edit_status" },
+            { "VC", "vcard" },
+        };
 
-        _Format = Format::MobileStandard_NoCompress;
+        for (const auto & md : State.Metadata)
+        {
+            auto Pair = MetadataMap.find(md.first);
+
+            if (Pair != MetadataMap.end())
+                MetaData.AddItem(metadata_item_t(0, Pair->second.c_str(), md.second.c_str()));
+            else
+                MetaData.AddItem(metadata_item_t(0, md.first.c_str(), md.second.c_str()));
+        }
+
+        container.SetExtraMetaData(MetaData);
     }
 
-private:
-    Format _Format; // Internal use
-};
+    return true;
+}
 
 /// <summary>
-/// Converts HPS data.
+/// Processes metadata in the CNTI chunk.
 /// </summary>
-static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, container_t & container)
+static void ProcessMetadata(const std::span<const uint8_t> & data, state_t & state, container_t & container)
+{
+    auto it = data.begin();
+    const auto Tail = data.end();
+
+    auto Anchor = it;
+
+    while (it < Tail)
+    {
+        std::string Name = std::string(&it[0], &it[2]);
+
+        it += 3; // Skip past name and ':'.
+
+        std::string Value;
+
+        while (it < Tail)
+        {
+            // Escape character
+            if (it[0] == '\\')
+            {
+                it++;
+                Value += (char) *it++;
+            }
+            else
+            if (it[0] == ',')
+            {
+                state.Metadata.insert({ Name, Value });
+
+                it++;
+                break;
+            }
+            else
+                Value += (char) *it++;
+        }
+    }
+}
+
+/// <summary>
+/// Processes an OPDA chunk.
+/// </summary>
+static void ProcessOPDA(const std::span<const uint8_t> & data, state_t & state, container_t & container)
+{
+    auto it = data.begin();
+    const auto Tail = data.end();
+
+    while (it < Tail)
+    {
+        if (Tail - it < 8)
+            break;
+
+        const uint32_t ChunkSize = toInt32LE(it + 4);
+
+        if ((Tail - it) < (ptrdiff_t) ChunkSize)
+            throw midi::exception("Insufficient SMAF data");
+
+        const std::string ChunkId(it, it + 4);
+
+        if (::memcmp(&it[0], "Dch", 3) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"Dch_\", %zu bytes (Data)", ChunkSize).c_str());
+
+            uint8_t Encoding = it[3];
+
+            ::printf("- Encoding: 0x%02X (%s)\n", Encoding, GetEncodingDescription(Encoding).c_str());
+        }
+#ifdef _DEBUG
+        else
+            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+#endif
+        it += (ptrdiff_t) 8 + ChunkSize;
+    }
+}
+
+/// <summary>
+/// Processes an MTR chunk.
+/// </summary>
+static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, container_t & container)
+{
+    auto it = data.begin();
+    const auto Tail = data.end();
+
+    // Decode the track header.
+    {
+        state.FormatType   = it[0];
+        state.SequenceType = it[1];
+        state.DurationBase = it[2];
+        state.GateTimeBase = it[3];
+
+        ::printf("- Format        : %02X\n", state.FormatType);
+        ::printf("- Sequence      : %02X\n", state.SequenceType);
+        ::printf("- Duration base : %02X\n", state.DurationBase);
+        ::printf("- Gate Time base: %02X\n", state.GateTimeBase);
+
+        switch (state.DurationBase)
+        {
+            case 0x00: state.DurationBase =  1; break;
+            case 0x01: state.DurationBase =  2; break;
+            case 0x02: state.DurationBase =  4; break;
+            case 0x03: state.DurationBase =  5; break;
+            case 0x10: state.DurationBase = 10; break;
+            case 0x11: state.DurationBase = 20; break;
+            case 0x12: state.DurationBase = 40; break;
+            case 0x13: state.DurationBase = 50; break;
+
+            default:
+                throw midi::exception("Unknown duration base");
+        }
+
+        switch (state.GateTimeBase)
+        {
+            case 0x00: state.GateTimeBase =  1; break;
+            case 0x01: state.GateTimeBase =  2; break;
+            case 0x02: state.GateTimeBase =  4; break;
+            case 0x03: state.GateTimeBase =  5; break;
+            case 0x10: state.GateTimeBase = 10; break;
+            case 0x11: state.GateTimeBase = 20; break;
+            case 0x12: state.GateTimeBase = 40; break;
+            case 0x13: state.GateTimeBase = 50; break;
+
+            default:
+                throw midi::exception("Unknown gate time base");
+        }
+
+        switch (state.FormatType)
+        {
+            case HandyPhoneStandard: // HPS
+            {
+                std::vector<channel_t> Channels;
+
+                Channels.push_back(channel_t(0, (it[0] & 0x80) == 0x80, (it[0] & 0x40) == 0x40, (it[0] >> 4) & 0x03, TrackFormat::MA2));
+                Channels.push_back(channel_t(1, (it[0] & 0x08) == 0x08, (it[0] & 0x04) == 0x04, (it[0]     ) & 0x03, TrackFormat::MA2));
+                Channels.push_back(channel_t(2, (it[1] & 0x80) == 0x80, (it[1] & 0x40) == 0x40, (it[1] >> 4) & 0x03, TrackFormat::MA2));
+                Channels.push_back(channel_t(3, (it[1] & 0x08) == 0x08, (it[1] & 0x04) == 0x04, (it[1]     ) & 0x03, TrackFormat::MA2));
+
+                it += (ptrdiff_t) 2;
+                break;
+            }
+
+            case MobileStandard_Compress: // SMF
+            {
+                uint8_t Buffer[16] = { };
+
+                std::vector<channel_t> Channels;
+
+                for (int i = 0; i < 16; ++i)
+                    Channels.push_back(channel_t(i, (int) Buffer[i]));
+
+                it += (ptrdiff_t) 16;
+
+                throw midi::exception("SMAF Format 1 not supported yet");
+                break;
+            }
+
+            case MobileStandard_NoCompress: // SMF
+            {
+                uint8_t Buffer[16] = { };
+
+                std::vector<channel_t> Channels;
+
+                for (int i = 0; i < 16; ++i)
+                    Channels.push_back(channel_t(i, (int) Buffer[i]));
+
+                it += (ptrdiff_t) 16;
+                throw midi::exception("SMAF Format 2 not supported yet");
+                break;
+            }
+
+            case SEQU: // ???
+            {
+                uint8_t Buffer[32] = { };
+
+                std::vector<channel_t> Channels;
+
+                for (int i = 0; i < 32; ++i)
+                    Channels.push_back(channel_t(i, (int) Buffer[i]));
+
+                it += (ptrdiff_t) 32;
+                throw midi::exception("SMAF Format 3 not supported yet");
+                break;
+            }
+
+            default:
+                throw midi::exception("Unknown SMAF Format");
+        }
+
+        it += (ptrdiff_t) 4;
+    }
+
+    if (state.FormatType != SMAFFormat::HandyPhoneStandard)
+        return;
+
+    while (it < Tail)
+    {
+        if (Tail - it < 8)
+            break;
+
+        const uint32_t ChunkSize = toInt32LE(it + 4);
+
+        if ((Tail - it) < (ptrdiff_t) ChunkSize)
+            throw midi::exception("Insufficient SMAF data");
+
+        const std::string ChunkId(it, it + 4);
+
+        if (::memcmp(&it[0], "Mtsu", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Setup Data", ChunkId.c_str(), ChunkSize).c_str());
+
+            state.IsMTSU = true;
+
+            if (state.FormatType == 0)
+                ProcessHPSTrack(std::span<const uint8_t>(&it[8], ChunkSize), state, container);
+        }
+        else
+        if (::memcmp(&it[0], "Mtsq", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Sequence Data", ChunkId.c_str(), ChunkSize).c_str());
+
+            state.IsMTSU = false;
+
+            if (state.FormatType == 0)
+                ProcessHPSTrack(std::span<const uint8_t>(&it[8], ChunkSize), state, container);
+        }
+        else
+        if (::memcmp(&it[0], "MspI", 4) == 0)
+        {
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Seek & Phrase Info", ChunkId.c_str(), ChunkSize).c_str());
+        }
+        else
+            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+
+        it += (ptrdiff_t) 8 + ChunkSize;
+    }
+}
+
+/// <summary>
+/// Processes an HPS (Handy Phone Standard) track.
+/// </summary>
+static void ProcessHPSTrack(const std::span<const uint8_t> & data, state_t & state, container_t & container)
 {
     track_t Track;
 
@@ -155,10 +479,20 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
     auto it = data.begin();
     const auto Tail = data.end();
 
+    if (state.IsMTSU)
+    {
+        const uint8_t XGSystemOn[] = { 0xF0, 0x43, 0x00, 0x4C, 0x00, 0x00, 0x7E, 0x00, 0xF7 };
+
+        Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, XGSystemOn, _countof(XGSystemOn)));
+    }
+
     while (it < Tail)
     {
-        uint32_t Delta = !state.IsMTSU ? GetHPSValue(it) * state.DurationBase : 0;
+        uint32_t Duration = !state.IsMTSU ? GetHPSValue(it) * state.DurationBase : 0;
 
+        RunningTime += Duration;
+
+        // End of Sequence
         if (it[0] == 0x00 && it[1] == 0x00 && it[2] == 0x00 && it[3] == 0x00)
         {
             const uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
@@ -178,18 +512,18 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 CHPARAM chp = { };
                 OPPARAM opp[4] = { };
 
-                if (GetHPSExclusiveFM(&it[2], &chp, opp))
+                if (GetHPSExclusiveFMMessage(&it[2], &chp, opp))
                 {
                     std::vector<uint8_t> Temp(48);
 
-                    size_t Size = setMA3Exclusive(Temp.data(), &chp, opp);
+                    size_t Size = SetMA3ExclusiveMessage(Temp.data(), &chp, opp);
 
                     Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), Size));
                 }
                 else
                 {
                     // Conversion failed. Just copy the SysEx.
-                    const size_t Size = it[2] + 2u;
+                    const size_t Size = (size_t) it[2] + 2u;
 
                     std::vector<uint8_t> Temp(Size);
 
@@ -200,7 +534,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
             }
             else
             {
-                const size_t Size = it[2] + 2u;
+                const size_t Size = (size_t) it[2] + 2u;
 
                 std::vector<uint8_t> Temp(Size);
 
@@ -209,7 +543,7 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), Temp.size()));
             }
 
-            it += 2 + it[2] + 1;
+            it += (ptrdiff_t) 2 + it[2] + 1;
         }
         else
         // NOP
@@ -233,7 +567,9 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 Track.AddEvent(event_t(RunningTime, event_t::NoteOn,  (uint32_t) Channel + state.ChannelOffset, Data, 2));
                 it += 1;
 
-                Track.AddEvent(event_t(RunningTime + Delta + (GetHPSValueEx(it) * state.GateTimeBase), event_t::NoteOff, (uint32_t) Channel + state.ChannelOffset, Data, 2));
+                uint32_t GateTime = GetHPSValueEx(it) * state.GateTimeBase;
+
+                Track.AddEvent(event_t(RunningTime + GateTime, event_t::NoteOff, (uint32_t) Channel + state.ChannelOffset, Data, 2));
             }
             else
             {
@@ -254,14 +590,28 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                         // Bank Select
                         case 0x01:
                         {
-                            uint8_t Data[2] = { 0x00, (it[2] & 0x80u) ? 0x7Du : 0x7Cu };
+                            bool IsDrum  = (it[2] & 0x80u) == 0x80;
 
-                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // MSB
+                            if (IsDrum)
+                            {
+                                const uint8_t Part = Channel;
+                                const uint8_t Mode = 0x02; // Drum Setup 1
 
-                            Data[0] = 0x20u;
-                            Data[1] = it[2] & 0x7Fu;
+                                const uint8_t XGPartMode[] = { 0xF0, 0x43, 0x10, 0x4C, 0x08, Part, 0x07, Mode, 0xF7 };
 
-                            Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // LSB
+                                Track.AddEvent(event_t(0, event_t::Extended, 0, XGPartMode, _countof(XGPartMode)));
+                            }
+                            else
+                            {
+                                uint8_t Data[2] = { 0x00, it[2] & 0x7Fu };
+
+                                Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // MSB
+
+                                Data[0] = 0x20u;
+                                Data[1] = 0x00u;
+
+                                Track.AddEvent(event_t(RunningTime, event_t::ControlChange, Channel, Data, 2)); // LSB
+                            }
 
                             it += 3;
                             break;
@@ -415,326 +765,67 @@ static bool ConvertHPS(const std::span<const uint8_t> & data, state_t & state, c
                 }
             }
         }
-
-        RunningTime += Delta;
     }
 
     container.AddTrack(Track);
-
-    return true;
 }
 
 /// <summary>
-/// Processes an MTR chunk.
+/// Gets an HPS-encoded value.
 /// </summary>
-static bool ProcessMTR(const std::span<const uint8_t> & data, state_t & state, container_t & container)
+static uint32_t GetHPSValue(std::span<const uint8_t>::iterator data) noexcept
 {
-    auto it = data.begin();
-    const auto Tail = data.end();
+    uint32_t Value = 0;
 
-    // Decode the track header.
-    {
-        state.Format       = it[0];
-        state.SequenceType = it[1];
-        state.DurationBase = it[2];
-        state.GateTimeBase = it[3];
+    if (data[0] & 0x80)
+        Value = (uint32_t) (((*data++ & 0x7F) + 1) << 7);
 
-        ::printf("- Format        : %02X\n", state.Format);
-        ::printf("- Sequence      : %02X\n", state.SequenceType);
-        ::printf("- Duration base : %02X\n", state.DurationBase);
-        ::printf("- Gate Time base: %02X\n", state.GateTimeBase);
+    Value |= *data++;
 
-        switch (state.DurationBase)
-        {
-            case 0x00: state.DurationBase =  1; break;
-            case 0x01: state.DurationBase =  2; break;
-            case 0x02: state.DurationBase =  4; break;
-            case 0x03: state.DurationBase =  5; break;
-            case 0x10: state.DurationBase = 10; break;
-            case 0x11: state.DurationBase = 20; break;
-            case 0x12: state.DurationBase = 40; break;
-            case 0x13: state.DurationBase = 50; break;
-
-            default:
-                return false;
-        }
-
-        switch (state.GateTimeBase)
-        {
-            case 0x00: state.GateTimeBase =  1; break;
-            case 0x01: state.GateTimeBase =  2; break;
-            case 0x02: state.GateTimeBase =  4; break;
-            case 0x03: state.GateTimeBase =  5; break;
-            case 0x10: state.GateTimeBase = 10; break;
-            case 0x11: state.GateTimeBase = 20; break;
-            case 0x12: state.GateTimeBase = 40; break;
-            case 0x13: state.GateTimeBase = 50; break;
-
-            default:
-                return false;
-        }
-
-        switch (state.Format)
-        {
-            case HandyPhoneStandard:
-            {
-                std::vector<ChannelStatus> ChannelStatuses;
-
-                ChannelStatuses.push_back(ChannelStatus(0, (it[0] & 0x80) == 0x80, (it[0] & 0x40) == 0x40, (it[0] >> 4) & 0x03));
-                ChannelStatuses.push_back(ChannelStatus(1, (it[0] & 0x08) == 0x08, (it[0] & 0x04) == 0x04, (it[0]     ) & 0x03));
-                ChannelStatuses.push_back(ChannelStatus(2, (it[1] & 0x80) == 0x80, (it[1] & 0x40) == 0x40, (it[1] >> 4) & 0x03));
-                ChannelStatuses.push_back(ChannelStatus(3, (it[1] & 0x08) == 0x08, (it[1] & 0x04) == 0x04, (it[1]     ) & 0x03));
-
-                it += (ptrdiff_t) 2;
-                break;
-            }
-
-            case MobileStandard_Compress:
-            {
-                uint8_t Buffer[16];
-
-                std::vector<ChannelStatus> ChannelStatuses;
-
-                for (int i = 0; i < 16; ++i)
-                    ChannelStatuses.push_back(ChannelStatus(i, (int) Buffer[i]));
-
-                it += (ptrdiff_t) 16;
-                break;
-            }
-
-            case MobileStandard_NoCompress:
-            {
-                uint8_t Buffer[16];
-
-                std::vector<ChannelStatus> ChannelStatuses;
-
-                for (int i = 0; i < 16; ++i)
-                    ChannelStatuses.push_back(ChannelStatus(i, (int) Buffer[i]));
-
-                it += (ptrdiff_t) 16;
-                break;
-            }
-
-            case SEQU:
-            {
-                uint8_t Buffer[32];
-
-                std::vector<ChannelStatus> ChannelStatuses;
-
-                for (int i = 0; i < 32; ++i)
-                    ChannelStatuses.push_back(ChannelStatus(i, (int) Buffer[i]));
-
-                it += (ptrdiff_t) 32;
-                break;
-            }
-        }
-
-        it += (ptrdiff_t) 4;
-    }
-
-    while (it < Tail)
-    {
-        if (Tail - it < 8)
-            break;
-
-        const uint32_t ChunkSize = toInt32LE(it + 4);
-
-        if ((Tail - it) < (ptrdiff_t) ChunkSize)
-            throw midi::exception("Insufficient SMAF data");
-
-        const std::string ChunkId(it, it + 4);
-
-        if (::memcmp(&it[0], "Mtsu", 4) == 0)
-        {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
-
-            state.IsMTSU = true;
-
-            if (state.Format == 0)
-                ConvertHPS(std::span<const uint8_t>(&it[8], ChunkSize), state, container);
-        }
-        else
-        if (::memcmp(&it[0], "Mtsq", 4) == 0)
-        {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
-
-            state.IsMTSU = false;
-
-            if (state.Format == 0)
-                ConvertHPS(std::span<const uint8_t>(&it[8], ChunkSize), state, container);
-        }
-#ifdef _DEBUG
-        else
-        {
-            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
-        }
-#endif
-        it += (ptrdiff_t) 8 + ChunkSize;
-    }
-
-    return true;
+    return Value;
 }
 
 /// <summary>
-/// Processes a byte vector with MMF data.
+/// Gets an HPS-encoded value and advances the data pointer.
 /// </summary>
-bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & container)
+static uint32_t GetHPSValueEx(std::span<const uint8_t>::iterator & data) noexcept
 {
-    if (data.size() < 8)
-        throw midi::exception("Insufficient SMAF data");
+    uint32_t Value = 0;
 
-    const uint32_t Size = toInt32LE(data.data() + 4);
+    if (data[0] & 0x80)
+        Value = (uint32_t) (((*data++ & 0x7F) + 1) << 7);
 
-    if (data.size() < (size_t) Size + 8)
-        throw midi::exception("Insufficient SMAF data");
+    Value |= *data++;
 
-    state_t State = { };
+    return Value;
+}
 
-    container.Initialize(1u, 500);
-
-    auto it = data.begin() + 8; // Skip past "MMMD" <size>.
-
-    const auto Tail = data.begin() + (ptrdiff_t) Size;
-
-    while (it < Tail)
+/// <summary>
+/// Gets the description of an encoding type.
+/// </summary>
+static std::string GetEncodingDescription(uint8_t encoding) noexcept
+{
+    switch (encoding)
     {
-        if (Tail - it < 8)
-            break;
+        case 0x00: return std::string("Shift-JIS");             // Japanese
+        case 0x01: return std::string("ISO 8859-1 (Latin-1)");
+        case 0x02: return std::string("EUC-KR (KS)");           // Korean
+        case 0x03: return std::string("HZ-GB-2312");            // Chinese (Simplified)
+        case 0x04: return std::string("Big5");                  // Chinese (Simplified)
+        case 0x05: return std::string("KOI8-R");                // Russian etc.
+        case 0x06: return std::string("TCVN-5773:1993");        // Vietnamese
 
-        const ptrdiff_t ChunkSize = (ptrdiff_t) toInt32LE(it + 4);
+        case 0x20: return std::string("UCS-2");                 // Unicode
+        case 0x21: return std::string("UCS-4");                 // Unicode
+        case 0x22: return std::string("UTF-7");                 // Unicode
+        case 0x23: return std::string("UTF-8");                 // Unicode
+        case 0x24: return std::string("UTF-16");                // Unicode
+        case 0x25: return std::string("UTF-32");                // Unicode
 
-        if ((Tail - it) < ChunkSize)
-            throw midi::exception("Insufficient SMAF data");
+        case 0xFF: return std::string("Binary");                // Only used in OPDA chunk
 
-        const std::string ChunkId(it, it + 4);
-
-        // Is it a "Contents Info" chunk?
-        if (::memcmp(&it[0], "CNTI", 4) == 0)
-        {
-            it += (ptrdiff_t) 8;
-
-            uint8_t Class    = it[0]; // 0: "Yamaha"
-            uint8_t Type     = it[1];
-            uint8_t Encoding = it[2];
-            uint8_t Status   = it[3];
-            uint8_t Counts   = it[4];
-
-            ::puts("Contents:");
-
-            ::printf("- Class: %s\n", (Class == 0x00) ? "Yamaha" : "Other");
-
-            if ((0x00 <= Type && Type <= 0x0F) || (0x30 <= Type && Type <= 0x33))
-                ::printf("- Type: Ringtone (0x%02X)\n", Type);
-            else
-            if ((0x10 <= Type && Type <= 0x1F) || (0x40 <= Type && Type <= 0x42))
-                ::printf("- Type: Karaoke (0x%02X)\n", Type);
-            else
-            if ((0x20 <= Type && Type <= 0x2F) || (0x50 <= Type && Type <= 0x53))
-                ::printf("- Type: CM (0x%02X)\n", Type);
-            else
-                ::printf("- Type: Reserved (0x%02X)\n", Type);
-
-            switch (Encoding)
-            {
-                case 0x00: ::puts("- Encoding Shift-JIS"); break;
-                case 0x01: ::puts("- Encoding Latin-1"); break;
-                case 0x02: ::puts("- Encoding EUC-KR"); break;
-                case 0x03: ::puts("- Encoding GB-2312"); break;
-                case 0x04: ::puts("- Encoding Big5"); break;
-                case 0x05: ::puts("- Encoding KOI8-R"); break;
-                case 0x06: ::puts("- Encoding TCVN-5773:1993"); break;
-                case 0x20: ::puts("- Encoding UCS-2"); break;
-                case 0x21: ::puts("- Encoding UCS-4"); break;
-                case 0x22: ::puts("- Encoding UTF-7"); break;
-                case 0x23: ::puts("- Encoding UTF-8"); break;
-                case 0x24: ::puts("- Encoding UTF-16"); break;
-                case 0x25: ::puts("- Encoding UTF-32"); break;
-                default:   ::printf("- Encoding Unknown (0x%02X)\n", Encoding); break;
-            }
-
-            if (Status & 0x04)
-                ::printf("- Status: Edit NG, ");
-            else
-                ::printf("- Status: Edit OK, ");
-
-            if (Status & 0x02)
-                ::printf("Save NG, ");
-            else
-                ::printf("Save OK, ");
-
-            if (Status & 0x01)
-                ::printf("Trans NG\n");
-            else
-                ::printf("Trans OK\n");
-
-            ::printf("- Copy Count: %d\n", Counts);
-
-            it += (ptrdiff_t) 5;
-
-            std::string Text(&it[0], &it[ChunkSize - 5]);
-
-            ::printf("Optional data: %s\n", Text.c_str());
-
-            it += (ptrdiff_t) ChunkSize - 5;
-        }
-        else
-        // Is it a "Optional Data" chunk?
-        if (::memcmp(&it[0], "OPDA", 4) == 0)
-        {
-            ::puts("OPDA chunk");
-
-            it += (ptrdiff_t) 8 + ChunkSize;
-        }
-        else
-        // Is it a "Score Track" chunk?
-        if (::memcmp(&it[0], "MTR", 3) == 0)
-        {
-            ::_putws(::FormatText(L"Chunk \"MTR_\", %zu bytes", ChunkSize).c_str());
-
-            it += (ptrdiff_t) 8;
-
-            ProcessMTR(std::span<const uint8_t>(&it[0], (size_t) ChunkSize), State, container);
-            State.ChannelOffset += 4;
-
-            it += (ptrdiff_t) ChunkSize;
-        }
-
-        else
-        // Is it an "PCM Audio Track" chunk?
-        if (::memcmp(&it[0], "ATR", 3) == 0)
-        {
-            ::puts("ATRx chunk");
-
-            it += (ptrdiff_t) 8 + ChunkSize;
-        }
-        else
-        // Is it a "Graphics Track" chunk?
-        if (::memcmp(&it[0], "GTR", 3) == 0)
-        {
-            ::puts("GTRx chunk");
-
-            it += (ptrdiff_t) 8 + ChunkSize;
-        }
-        else
-        // Is it a "Master Track" chunk?
-        if (::memcmp(&it[0], "MSTR", 4) == 0)
-        {
-            ::puts("MSTR chunk");
-
-            it += (ptrdiff_t) 8 + ChunkSize;
-        }
-#ifdef _DEBUG
-        else
-        {
-            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
-            it += (ptrdiff_t) 8 + ChunkSize;
-        }
-#endif
+        default:   return ::FormatText("Unknown (0x%02X)\n", encoding);
     }
-
-//  uint16_t CRC = (uint16_t) ((it[0] << 8) | it[1]);
-
-    return true;
 }
 
 }

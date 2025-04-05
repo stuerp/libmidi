@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.03.20) **/
+/** $VER: MIDIContainer.h (2025.04.05) **/
 
 #pragma once
 
@@ -65,8 +65,10 @@ struct event_t
         Data.assign(data, data + size);
     }
 
-    bool IsEndOfTrack() const noexcept  { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::EndOfTrack); }
+    bool IsSetTempo() const noexcept    { return (Type == event_t::Extended) && (Data.size() >= 5) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::SetTempo); }
+    bool IsMarker() const noexcept      { return (Type == event_t::Extended) && (Data.size() >= 9) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::Marker); }
     bool IsPort() const noexcept        { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::MIDIPort); }
+    bool IsEndOfTrack() const noexcept  { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::EndOfTrack); }
 };
 
 /// <summary>

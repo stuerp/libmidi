@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorGMF.cpp (2023.08.14) Game Music Format (http://www.vgmpf.com/Wiki/index.php?title=GMF) **/
+/** $VER: MIDIProcessorGMF.cpp (2025.04.05) Game Music Format (http://www.vgmpf.com/Wiki/index.php?title=GMF) **/
 
 #include "pch.h"
 
@@ -21,8 +21,6 @@ bool processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
 
 bool processor_t::ProcessGMF(std::vector<uint8_t> const & data, container_t & container)
 {
-    uint8_t Data[10] = { };
-
     container.Initialize(0, 0xC0);
 
     uint16_t Tempo = (uint16_t) (((uint16_t) data[4] << 8) | data[5]);
@@ -30,20 +28,16 @@ bool processor_t::ProcessGMF(std::vector<uint8_t> const & data, container_t & co
 
     track_t Track;
 
-    Data[0] = StatusCodes::MetaData;
-    Data[1] = MetaDataTypes::SetTempo;
-    Data[2] = (uint8_t) (ScaledTempo >> 16);
-    Data[3] = (uint8_t) (ScaledTempo >>  8);
-    Data[4] = (uint8_t)  ScaledTempo;
+    uint8_t Data[10] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, (uint8_t) (ScaledTempo >> 16), (uint8_t) (ScaledTempo >>  8), (uint8_t)  ScaledTempo };
 
     Track.AddEvent(event_t(0, event_t::Extended, 0, Data, 5));
 
-    // Roland MT-32 Owner's Manual
+    // Roland MT-32 Owner's Manual: Reset all MT-32 parameters.
     Data[0] = StatusCodes::SysEx;
     Data[1] = 0x41; // Roland manufacturer Id
     Data[2] = 0x10; // Device Id
     Data[3] = 0x16; // Model Id (MT-32)
-    Data[4] = 0x12; // Command Id: Send
+    Data[4] = 0x12; // Command Id: Send (DT1)
     Data[5] = 0x7F; // All parameter reset
     Data[6] = 0x00;
     Data[7] = 0x00;

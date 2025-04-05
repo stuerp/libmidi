@@ -253,7 +253,7 @@ void sysex_t::Identify()
         {
             for (const auto & Message : SysExMessages)
             {
-                if ((Message.KeySize <= _Data.size()) && (::memcmp(Message.KeyData + 3, _Data.data() + 3, (size_t) Message.KeySize - 3) == 0))
+                if ((Message.KeySize <= _Data.size()) && (::memcmp(Message.KeyData, _Data.data(), 2u) == 0) && (::memcmp(Message.KeyData + 3, _Data.data() + 3, (size_t) Message.KeySize - 3) == 0))
                 {
                     _Description = Message.Description;
                     break;

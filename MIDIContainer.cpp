@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.cpp (2025.03.30) **/
+/** $VER: MIDIContainer.cpp (2025.04.05) **/
 
 #include "pch.h"
 
@@ -359,7 +359,7 @@ void container_t::AddEventToTrack(size_t trackNumber, const event_t & event)
 
     Track.AddEvent(event);
 
-    if ((event.Type == event_t::Extended) && (event.Data.size() >= 5) && (event.Data[0] == StatusCodes::MetaData) && (event.Data[1] == MetaDataTypes::SetTempo))
+    if (event.IsSetTempo())
     {
         uint32_t Tempo = (uint32_t)((event.Data[2] << 16) | (event.Data[3] << 8) | event.Data[4]);
 
@@ -1392,8 +1392,8 @@ void container_t::SplitByInstrumentChanges(SplitCallback callback)
 
                             std::vector<uint8_t> Data(Name.length() + 2);
 
-                            Data[0] = 0xFF;
-                            Data[1] = 0x03;
+                            Data[0] = StatusCodes::MetaData;
+                            Data[1] = MetaDataTypes::TrackName;
 
                             std::copy(Name.begin(), Name.end(), Data.begin() + 2);
 
@@ -1580,7 +1580,7 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
             {
                 const event_t & Event = Track[j];
 
-                if ((Event.Type == event_t::Extended) && (Event.Data.size() >= 9) && (Event.Data[0] == 0xFF) && (Event.Data[1] == 0x06))
+                if (Event.IsMarker())
                 {
                     size_t Size = Event.Data.size() - 2;
 

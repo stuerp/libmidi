@@ -1,5 +1,5 @@
 ﻿
-/** $VER: MMF.cpp (2025.03.30) Convert exclusive CHPARAM/OPPARAM (Taken from mmftool) **/
+/** $VER: MMF.cpp (2025.04.05) Convert exclusive CHPARAM/OPPARAM (Adapted from mmftool) **/
 
 #include "pch.h"
 
@@ -12,7 +12,9 @@
 #define SwapDword(data) (*((uint8_t *)(data) + 0) << 24 | *((uint8_t *)(data) + 1) << 16 | *((uint8_t *)(data) + 2) << 8 | *((uint8_t *)(data) + 3))
 #define SwapWord(data)  (*((uint8_t *)(data) + 0) << 8 | *((uint8_t *)(data) + 1))
 
-UINT PutSMFValueEx(uint8_t ** data, DWORD value)
+#ifdef Unused
+
+static UINT PutSMFValueEx(uint8_t ** data, DWORD value)
 {
     UINT BytesWritten = 0;
 
@@ -30,7 +32,7 @@ UINT PutSMFValueEx(uint8_t ** data, DWORD value)
     return BytesWritten;
 }
 
-UINT PutSMFValue(uint8_t * data, DWORD value)
+static UINT PutSMFValue(uint8_t * data, DWORD value)
 {
     UINT BytesWritten = 0;
 
@@ -48,7 +50,7 @@ UINT PutSMFValue(uint8_t * data, DWORD value)
     return BytesWritten;
 }
 
-UINT CalcSMFValueSize(DWORD value)
+static UINT CalcSMFValueSize(DWORD value)
 {
     UINT BytesWritten = 0;
 
@@ -66,7 +68,7 @@ UINT CalcSMFValueSize(DWORD value)
     return BytesWritten;
 }
 
-DWORD GetSMFValueEx(uint8_t ** data)
+static DWORD GetSMFValueEx(uint8_t ** data)
 {
     DWORD Value = 0;
 
@@ -81,7 +83,7 @@ DWORD GetSMFValueEx(uint8_t ** data)
     return Value;
 }
 
-DWORD GetSMFValue(const uint8_t * data)
+static DWORD GetSMFValue(const uint8_t * data)
 {
     DWORD Value = 0;
 
@@ -95,7 +97,7 @@ DWORD GetSMFValue(const uint8_t * data)
     return Value;
 }
 
-ptrdiff_t GetSMFValueSize(const uint8_t * data)
+static ptrdiff_t GetSMFValueSize(const uint8_t * data)
 {
     const uint8_t * p = data;
 
@@ -108,123 +110,6 @@ ptrdiff_t GetSMFValueSize(const uint8_t * data)
     return p - data;
 }
 
-static void setExclusiveFMCh(uint8_t * data, CHPARAM * chp)
-{
-    data[ 0]  = 0xF0;
-    data[ 1]  = 0x43;
-    data[ 2]  = 0x79;
-    data[ 3]  = 0x07;
-    data[ 4]  = 0x7F;
-    data[ 5]  = 0x01;
-    data[ 6]  = chp->bm;
-    data[ 7]  = chp->bl;
-    data[ 8]  = chp->pc;
-    data[ 9]  = chp->na;
-    data[12]  = chp->dk;
-    data[11] &= ~0x30;
-    data[11] |= ((chp->lfo & 0x02) ? 0x10 : 0) | ((chp->pan & 0x10) ? 0x20 : 0);
-    data[13] &= ~0x78;
-    data[13] |= ((chp->pan & 0x0F) << 3);
-    data[14] |= ((chp->lfo & 0x01) ? 0x40 : 0) | ((chp->pe) ? 0x20 : 0) | (chp->alg);
-}
-
-static void setExclusiveFMOp(uint8_t * data, OPPARAM * opp)
-{
-    // X1 XX XX XX 23 45 67 89 AX BC DE FG
-
-    data[ 0] &= ~0x0F;
-    data[ 0] |= ((opp->sr & 0x08) ? 8 : 0) | ((opp->rr & 0x08) ? 4 : 0) | ((opp->ar & 0x08) ? 2 : 0) | ((opp->tl & 0x20) ? 1 : 0);
-
-    data[ 4]  = ((opp->sr & 0x07u) << 4) | (opp->xof ? 8 : 0) | (opp->sus ? 2 : 0) | (opp->ksr ? 1 : 0);
-    data[ 5]  = ((opp->rr & 0x07u) << 4) | (opp->dr);
-    data[ 6]  = ((opp->ar & 0x07u) << 4) | (opp->sl);
-    data[ 7]  = ((opp->tl & 0x1Fu) << 2) | (opp->ksl);
-    data[ 8] &= ~0x30;
-    data[ 8] |= ((opp->multi & 0x08u) ? 0x20 : 0) | ((opp->ws & 0x10u) ? 0x10 : 0);
-    data[ 9]  = ((opp->dam) << 5) | ((opp->eam) ? 0x10u : 0) | ((opp->dvb) << 1) | ((opp->evb) ? 1 : 0);
-    data[10]  = ((opp->multi & 0x07u) << 4) | (opp->dt);
-    data[11]  = ((opp->ws & 0x0Fu) << 3) | opp->fb;
-}
-
-static size_t setExclusiveFMAll(uint8_t * data, CHPARAM * chp, OPPARAM * opps)
-{
-    setExclusiveFMCh(data, chp);
-
-    setExclusiveFMOp(data + 11, opps + 0);
-    setExclusiveFMOp(data + 19, opps + 1);
-
-    size_t size;
-
-    if (chp->alg <= 1)
-    {
-        size = 0x20;
-    }
-    else
-    {
-        setExclusiveFMOp(data + 27, opps + 2);
-        setExclusiveFMOp(data + 35, opps + 3);
-
-        size = 0x30;
-    }
-
-    data[size - 1] = 0xF7;
-
-    return size;
-}
-
-static size_t setExclusivePCMAll(uint8_t * data, CHPARAM * chp, OPPARAM * opp)
-{
-    data[ 0]  = 0xF0;   // Exclusive event
-
-    data[ 1]  = 0x43;
-    data[ 2]  = 0x79;
-    data[ 3]  = 0x07;
-    data[ 4]  = 0x7F;
-    data[ 5]  = 0x01;
-    data[ 6]  = chp->bm;
-    data[ 7]  = chp->bl;
-    data[ 8]  = chp->pc;
-    data[ 9]  = chp->na;
-    data[10]  = 0x01;
-    data[11] |= ((chp->pan & 0x10) ? 0x10 : 0) | ((chp->fs & 0x80) ? 0x20 : 0) | ((chp->fs & 0x8000) ? 0x40 : 0);
-    data[11] |= ((opp->ar & 0x08) ? 1 : 0) | ((opp->rr & 0x08) ? 2 : 0) | ((opp->sr & 0x08) ? 4 : 0) | ((chp->lfo & 0x02) ? 8 : 0);
-    data[12]  = (uint8_t)((chp->fs >> 8) & 0x7F);
-    data[13]  = (uint8_t)(chp->fs & 0x7F);
-    data[14]  = ((chp->pan & 0x0Fu) << 3) | ((chp->pe) ? 1 : 0);
-    data[15]  = (chp->lfo & 0x01u) ? 0x40u : 0;
-
-    data[16]  = ((opp->sr & 0x07u) << 4) | ((opp->xof) ? 8 : 0) | ((opp->sus) ? 2 : 0);
-    data[17]  = ((opp->rr & 0x07u) << 4) | (opp->dr);
-    data[18]  = ((opp->ar & 0x07u) << 4) | (opp->sl);
-    data[19] |= ((opp->tl & 0x20u) ? 0x40 : 0);
-    data[19] |= ((chp->lp & 0x80u) ? 2 : 0);
-    data[20]  = ((opp->tl) & 0x1Fu) << 2;
-    data[21]  = ((opp->dam) << 5) | ((opp->eam) ? 0x10u : 0) | ((opp->dvb) << 1) | ((opp->evb) ? 1 : 0);
-    data[24]  = (uint8_t)((chp->lp >> 8) & 0x7F);
-    data[25]  = (uint8_t)(chp->lp & 0x7F);
-    data[26]  = (uint8_t)((chp->ep >> 8) & 0x7F);
-    data[27]  = ((chp->rm) ? 0x20u : 0) | ((chp->ep & 0x80u) ? 0x40u : 0);
-    data[28]  = (uint8_t)(chp->ep & 0x7F);
-    data[29]  = chp->wavno;
-
-    data[30]  = 0xF7;   // SysEx End
-
-    return 31;
-}
-
-size_t setMA3Exclusive(uint8_t * data, CHPARAM * chp, OPPARAM * opp)
-{
-    switch (chp->type)
-    {
-        case VOICE_FM:
-            return setExclusiveFMAll(data, chp, opp);
-
-        case VOICE_PCM:
-            return setExclusivePCMAll(data, chp, opp);
-    }
-
-    return 0;
-}
 
 static bool readMA3Exclusive(CHPARAM * chp, OPPARAM * opp, const uint8_t * data)
 {
@@ -424,6 +309,112 @@ static bool readMA5Exclusive(CHPARAM * chp, OPPARAM * opp, const uint8_t * exdat
     return false;
 }
 
+#endif
+
+static void setExclusiveFMCh(uint8_t * data, CHPARAM * chp)
+{
+    data[ 0]  = 0xF0;
+    data[ 1]  = 0x43;
+    data[ 2]  = 0x79;
+    data[ 3]  = 0x07;
+    data[ 4]  = 0x7F;
+    data[ 5]  = 0x01;
+    data[ 6]  = chp->bm;
+    data[ 7]  = chp->bl;
+    data[ 8]  = chp->pc;
+    data[ 9]  = chp->na;
+    data[12]  = chp->dk;
+    data[11] &= ~0x30;
+    data[11] |= ((chp->lfo & 0x02) ? 0x10 : 0) | ((chp->pan & 0x10) ? 0x20 : 0);
+    data[13] &= ~0x78;
+    data[13] |= ((chp->pan & 0x0F) << 3);
+    data[14] |= ((chp->lfo & 0x01) ? 0x40 : 0) | ((chp->pe) ? 0x20 : 0) | (chp->alg);
+}
+
+static void setExclusiveFMOp(uint8_t * data, OPPARAM * opp)
+{
+    // X1 XX XX XX 23 45 67 89 AX BC DE FG
+
+    data[ 0] &= ~0x0F;
+    data[ 0] |= ((opp->sr & 0x08) ? 8 : 0) | ((opp->rr & 0x08) ? 4 : 0) | ((opp->ar & 0x08) ? 2 : 0) | ((opp->tl & 0x20) ? 1 : 0);
+
+    data[ 4]  = ((opp->sr & 0x07u) << 4) | (opp->xof ? 8 : 0) | (opp->sus ? 2 : 0) | (opp->ksr ? 1 : 0);
+    data[ 5]  = ((opp->rr & 0x07u) << 4) | (opp->dr);
+    data[ 6]  = ((opp->ar & 0x07u) << 4) | (opp->sl);
+    data[ 7]  = ((opp->tl & 0x1Fu) << 2) | (opp->ksl);
+    data[ 8] &= ~0x30;
+    data[ 8] |= ((opp->multi & 0x08u) ? 0x20 : 0) | ((opp->ws & 0x10u) ? 0x10 : 0);
+    data[ 9]  = ((opp->dam) << 5) | ((opp->eam) ? 0x10u : 0) | ((opp->dvb) << 1) | ((opp->evb) ? 1 : 0);
+    data[10]  = ((opp->multi & 0x07u) << 4) | (opp->dt);
+    data[11]  = ((opp->ws & 0x0Fu) << 3) | opp->fb;
+}
+
+static size_t setExclusiveFMAll(uint8_t * data, CHPARAM * chp, OPPARAM * opps)
+{
+    setExclusiveFMCh(data, chp);
+
+    setExclusiveFMOp(data + 11, opps + 0);
+    setExclusiveFMOp(data + 19, opps + 1);
+
+    size_t size;
+
+    if (chp->alg <= 1)
+    {
+        size = 0x20;
+    }
+    else
+    {
+        setExclusiveFMOp(data + 27, opps + 2);
+        setExclusiveFMOp(data + 35, opps + 3);
+
+        size = 0x30;
+    }
+
+    data[size - 1] = 0xF7;
+
+    return size;
+}
+
+static size_t setExclusivePCMAll(uint8_t * data, CHPARAM * chp, OPPARAM * opp)
+{
+    data[ 0]  = 0xF0;   // Exclusive event
+
+    data[ 1]  = 0x43;
+    data[ 2]  = 0x79;
+    data[ 3]  = 0x07;
+    data[ 4]  = 0x7F;
+    data[ 5]  = 0x01;
+    data[ 6]  = chp->bm;
+    data[ 7]  = chp->bl;
+    data[ 8]  = chp->pc;
+    data[ 9]  = chp->na;
+    data[10]  = 0x01;
+    data[11] |= ((chp->pan & 0x10) ? 0x10 : 0) | ((chp->fs & 0x80) ? 0x20 : 0) | ((chp->fs & 0x8000) ? 0x40 : 0);
+    data[11] |= ((opp->ar & 0x08) ? 1 : 0) | ((opp->rr & 0x08) ? 2 : 0) | ((opp->sr & 0x08) ? 4 : 0) | ((chp->lfo & 0x02) ? 8 : 0);
+    data[12]  = (uint8_t)((chp->fs >> 8) & 0x7F);
+    data[13]  = (uint8_t)(chp->fs & 0x7F);
+    data[14]  = ((chp->pan & 0x0Fu) << 3) | ((chp->pe) ? 1 : 0);
+    data[15]  = (chp->lfo & 0x01u) ? 0x40u : 0;
+
+    data[16]  = ((opp->sr & 0x07u) << 4) | ((opp->xof) ? 8 : 0) | ((opp->sus) ? 2 : 0);
+    data[17]  = ((opp->rr & 0x07u) << 4) | (opp->dr);
+    data[18]  = ((opp->ar & 0x07u) << 4) | (opp->sl);
+    data[19] |= ((opp->tl & 0x20u) ? 0x40 : 0);
+    data[19] |= ((chp->lp & 0x80u) ? 2 : 0);
+    data[20]  = ((opp->tl) & 0x1Fu) << 2;
+    data[21]  = ((opp->dam) << 5) | ((opp->eam) ? 0x10u : 0) | ((opp->dvb) << 1) | ((opp->evb) ? 1 : 0);
+    data[24]  = (uint8_t)((chp->lp >> 8) & 0x7F);
+    data[25]  = (uint8_t)(chp->lp & 0x7F);
+    data[26]  = (uint8_t)((chp->ep >> 8) & 0x7F);
+    data[27]  = ((chp->rm) ? 0x20u : 0) | ((chp->ep & 0x80u) ? 0x40u : 0);
+    data[28]  = (uint8_t)(chp->ep & 0x7F);
+    data[29]  = chp->wavno;
+
+    data[30]  = 0xF7;   // SysEx End
+
+    return 31;
+}
+
 static void GetHPSExclusiveFMOp(const uint8_t * data, OPPARAM * opp)
 {
     opp->multi = (data[0] >> 4) & 0x0Fu;
@@ -447,13 +438,15 @@ static void GetHPSExclusiveFMOp(const uint8_t * data, OPPARAM * opp)
 }
 
 /// <summary>
-/// Gets an HPS exclusive FM event.
+/// Gets an HPS exclusive FM message.
 /// </summary>
-bool GetHPSExclusiveFM(const uint8_t * data, CHPARAM * chp, OPPARAM * opp)
+bool GetHPSExclusiveFMMessage(const uint8_t * data, CHPARAM * chp, OPPARAM * opp)
 {
+    // Maker ID
     if (data[0] != 0x12 && data[0] != 0x1C)
         return false;
 
+    // Format ID
     if (data[1] != 0x43 || data[2] != 0x03 || data[7] != 0x01)
         return false;
 
@@ -487,4 +480,18 @@ bool GetHPSExclusiveFM(const uint8_t * data, CHPARAM * chp, OPPARAM * opp)
     }
 
     return true;
+}
+
+size_t SetMA3ExclusiveMessage(uint8_t * data, CHPARAM * chp, OPPARAM * opp)
+{
+    switch (chp->type)
+    {
+        case VOICE_FM:
+            return setExclusiveFMAll(data, chp, opp);
+
+        case VOICE_PCM:
+            return setExclusivePCMAll(data, chp, opp);
+    }
+
+    return 0;
 }
