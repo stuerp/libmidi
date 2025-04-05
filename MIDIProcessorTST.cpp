@@ -9,6 +9,8 @@
 namespace midi
 {
 
+#ifdef _DEBUG
+
 /// <summary>
 /// Returns true if the byte vector contains TST data.
 /// </summary>
@@ -93,5 +95,7 @@ bool processor_t::ProcessTST(std::vector<uint8_t> const & data, container_t & co
 
     return true;
 }
+
+#endif
 
 }
