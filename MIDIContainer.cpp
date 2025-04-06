@@ -1,4 +1,4 @@
-
+﻿
 /** $VER: MIDIContainer.cpp (2025.04.05) **/
 
 #include "pch.h"
@@ -22,7 +22,7 @@ void track_t::AddEvent(const event_t & newEvent)
     {
         event_t & Event = *(it - 1);
 
-        // Make sure the new event gets inserted for the End of Track event and that the End of Track event has a timestamp no less than the new event.
+        // Make sure the new event gets inserted before the End of Track event and that the End of Track event has a timestamp greater or equal to the one of the new event.
         if (Event.IsEndOfTrack())
         {
             --it;
@@ -57,6 +57,9 @@ void track_t::AddEventToStart(const event_t & newEvent)
         _IsPortSet = true;
 }
 
+/// <summary>
+/// Removes an event at the specified index.
+/// </summary>
 void track_t::RemoveEvent(size_t index)
 {
     _Events.erase(_Events.begin() + (ptrdiff_t) index);
@@ -90,33 +93,34 @@ void tempo_map_t::Add(uint32_t tempo, uint32_t time)
         _Items.insert(it, tempo_item_t(time, tempo));
 }
 
-uint32_t tempo_map_t::TimestampToMS(uint32_t time, uint32_t division) const
+/// <summary>
+/// Converts a timestamp to a time in milliseconds taking into account any tempo changes during the sequence.
+/// </summary>
+uint32_t tempo_map_t::TimestampToMS(uint32_t timestamp, uint32_t timeDivision) const
 {
     uint32_t TimestampInMS = 0;
-
     uint32_t Time = 0;
-    uint32_t Tempo = 500000;
+    uint32_t Tempo = 500000; // Default: 500000 μs per beat / 120 beats per minute
+    const uint32_t RoundingFactor = timeDivision * 500;
 
-    const uint32_t HalfDivision = division * 500;
-
-    division = HalfDivision * 2;
+    const uint32_t TicksPerMS = RoundingFactor * 2;
 
     auto it = _Items.begin();
 
-    while ((it < _Items.end()) && (Time + time >= (*it).Time))
+    while ((it < _Items.end()) && (Time + timestamp >= (*it).Time))
     {
         uint32_t Delta = (*it).Time - Time;
 
-        TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + HalfDivision) / division;
+        TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + RoundingFactor) / TicksPerMS;
 
         Tempo = (*it).Tempo;
         ++it;
 
         Time += Delta;
-        time -= Delta;
+        timestamp -= Delta;
     }
 
-    TimestampInMS += ((uint64_t) Tempo * (uint64_t) time + HalfDivision) / division;
+    TimestampInMS += ((uint64_t) Tempo * (uint64_t) timestamp + RoundingFactor) / TicksPerMS;
 
     return TimestampInMS;
 }
@@ -1660,8 +1664,11 @@ void container_t::EncodeVariableLengthQuantity(std::vector<uint8_t> & data, uint
 uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) const
 {
     uint32_t TimestampInMS = 0;
+    uint32_t Time = 0;
+    uint32_t Tempo = 500000; // Default: 500000 μs per beat / 120 beats per minute
+    const uint32_t RoundingFactor = _TimeDivision * 500;
 
-    uint32_t Tempo = 500000;
+    const uint32_t TicksPerMS = RoundingFactor * 2;
 
     size_t TempoMapCount = _TempoMaps.size();
 
@@ -1679,11 +1686,6 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
         }
     }
 
-    uint32_t Timestamp = 0;
-
-    const uint32_t Rounding = _TimeDivision * 500;
-    const uint32_t TicksPerMS = Rounding * 2;
-
     if (subSongIndex < TempoMapCount)
     {
         const tempo_map_t & TempoEntries = _TempoMaps[subSongIndex];
@@ -1691,21 +1693,21 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
         size_t Index = 0;
         size_t Count = TempoEntries.Size();
 
-        while ((Index < Count) && (Timestamp + timestamp >= TempoEntries[Index].Time))
+        while ((Index < Count) && (Time + timestamp >= TempoEntries[Index].Time))
         {
-            uint32_t Delta = TempoEntries[Index].Time - Timestamp;
+            uint32_t Delta = TempoEntries[Index].Time - Time;
 
-            TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + Rounding) / TicksPerMS;
+            TimestampInMS += ((uint64_t) Tempo * (uint64_t) Delta + RoundingFactor) / TicksPerMS;
 
             Tempo = TempoEntries[Index].Tempo;
             ++Index;
 
-            Timestamp += Delta;
+            Time += Delta;
             timestamp -= Delta;
         }
     }
 
-    TimestampInMS += ((uint64_t) Tempo * (uint64_t) timestamp + Rounding) / TicksPerMS;
+    TimestampInMS += ((uint64_t) Tempo * (uint64_t) timestamp + RoundingFactor) / TicksPerMS;
 
     return TimestampInMS;
 }

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIStream.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIStream.cpp (2025.04.06) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -70,7 +70,7 @@ void midi_stream_t::WriteRolandSysEx(const uint8_t * syxHdr, uint32_t address, c
     _Offs += Size;
 
     if (opts & SYXOPT_DELAY)
-        _State.Duration += MulDivCeil(1 + Size, _TicksPerQuarter * 320, _Tempo); // F0 status code + data size
+        _State.Duration += MulDivCeil(1 + Size, _TicksPerBeat * 320, _Tempo); // F0 status code + data size
 }
 
 }

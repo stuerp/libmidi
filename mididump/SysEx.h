@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.h (2025.03.30) P. Stuer **/
+/** $VER: SysEx.h (2025.04.06) P. Stuer **/
 
 #pragma once
 
@@ -29,6 +29,8 @@ const sysex_description_t SysExMessages[]
     // Universal Non-Real Time (General MIDI, 1991)
     { "\xF0\x7E" "\x00" "\x09\x01" "\xF7",                               6, L"GM1 System On"},
     { "\xF0\x7E" "\x00" "\x09\x02" "\xF7",                               6, L"GM1 System Off"},
+
+    // Universal Non-Real Time (General MIDI Level 2, 1999)
     { "\xF0\x7E" "\x00" "\x09\x03" "\xF7",                               6, L"GM2 System On"},
 
     { "\xF0\x7E" "\x00" "\x0A\x01" "\xF7",                               6, L"DLS On"},                             // DLS Level 2.2, 1.16 DLS System Exclusive Messages
@@ -41,6 +43,7 @@ const sysex_description_t SysExMessages[]
     { "\xF0\x7F" "\x00" "\x03\x02",                                      5, L"Time Signature (Immediate)" },
     { "\xF0\x7F" "\x00" "\x03\x03",                                      5, L"Time Signature (Delayed)" },
 
+    // Universal Real Time (General MIDI Level 2, 1999)
     { "\xF0\x7F" "\x00" "\x04\x01",                                      5, L"Master Volume" },
     { "\xF0\x7F" "\x00" "\x04\x02",                                      5, L"Master Balance" },
     { "\xF0\x7F" "\x00" "\x04\x03",                                      5, L"Master Fine Tune" },

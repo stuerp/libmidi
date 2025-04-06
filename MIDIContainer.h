@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.04.05) **/
+/** $VER: MIDIContainer.h (2025.04.06) **/
 
 #pragma once
 
@@ -430,9 +430,10 @@ private:
 
 private:
     uint32_t _Format;
-    uint32_t _TimeDivision;
+    uint32_t _TimeDivision;             // 0x0000 - 0x7FFF: "Ticks per Beat" or "Pulses per Quarter Note (PPQ)" / 0x8000 - 0xFFFF: Frames per Second
+
     uint32_t _ExtraPercussionChannel;
-    int _BankOffset; // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
+    int _BankOffset;                    // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
 
     std::vector<uint64_t> _ChannelMask;
     std::vector<tempo_map_t> _TempoMaps;

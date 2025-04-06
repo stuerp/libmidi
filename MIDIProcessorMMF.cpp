@@ -437,7 +437,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
 
         if (::memcmp(&it[0], "Mtsu", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Setup Data", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Setup Data)", ChunkId.c_str(), ChunkSize).c_str());
 
             state.IsMTSU = true;
 
@@ -447,7 +447,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
         else
         if (::memcmp(&it[0], "Mtsq", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Sequence Data", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Sequence Data)", ChunkId.c_str(), ChunkSize).c_str());
 
             state.IsMTSU = false;
 
@@ -457,7 +457,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
         else
         if (::memcmp(&it[0], "MspI", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes, Seek & Phrase Info", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Seek & Phrase Info)", ChunkId.c_str(), ChunkSize).c_str());
         }
         else
             ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());

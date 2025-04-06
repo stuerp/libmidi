@@ -1,5 +1,5 @@
-
-/** $VER: Tracks.cpp (2025.03.19) P. Stuer **/
+ï»¿
+/** $VER: Tracks.cpp (2025.04.06) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -23,7 +23,7 @@ inline static T InRange(T value, T minValue, T maxValue)
 /// <summary>
 /// Processes a metadata message.
 /// </summary>
-void ProcessMetaData(const midi::event_t & me)
+static void ProcessMetaData(const midi::event_t & me) noexcept
 {
     ::printf("Meta Data                    ");
 
@@ -103,15 +103,9 @@ void ProcessMetaData(const midi::event_t & me)
 
         case midi::MetaDataTypes::SetTempo:
         {
-/*
-            uint32_t Tempo = (uint32_t) (me.Data[2] & 0x7F); Tempo <<= 7;
+            const uint32_t Tempo = ((uint32_t) me.Data[2] << 16) | ((uint32_t) me.Data[3] << 8) | (uint32_t) me.Data[4];
 
-            Tempo |= me.Data[3] & 0x7F; Tempo <<= 7;
-            Tempo |= me.Data[4] & 0x7F;
-*/
-            uint32_t Tempo = ((uint32_t) me.Data[2] << 16) | ((uint32_t) me.Data[3] << 8) | (uint32_t) me.Data[4];
-
-            ::printf(" Set Tempo (%d us/quarter note, %d bpm)", Tempo, (int) ((60 * 1000 * 1000) / Tempo));
+            ::printf(" Set Tempo (%d Î¼s/quarter note, %d bpm)", Tempo, (int) ((60 * 1000 * 1000) / Tempo));
             break;
         }
 
@@ -123,13 +117,55 @@ void ProcessMetaData(const midi::event_t & me)
 
         case midi::MetaDataTypes::TimeSignature:
         {
-            ::printf(" Time Signature");
+            ::printf(" Time Signature %d/%d, %d ticks per beat, %d 32nd notes per MIDI quarter note", me.Data[2], 1 << me.Data[3], me.Data[4], me.Data[5]);
             break;
         }
 
         case midi::MetaDataTypes::KeySignature:
         {
-            ::printf(" Key Signature");
+            static const char * MajorScales[] =
+            {
+                "Cb", "Db", "Eb", "Fb", "Gb", "Ab", "Bb",   // 7 flats
+                "Gb", "Ab", "Bb", "Cb", "Db", "Eb", "F",    // 6 flats
+                "Db", "Eb", "F",  "Gb", "Ab", "Bb", "C",    // 5 flats
+                "Ab", "Bb", "C",  "Db", "Eb", "F",  "G",    // 4 flats
+                "Eb", "F",  "G",  "Ab", "Bb", "C",  "D",    // 3 flats
+                "Bb", "C",  "D",  "Eb", "F",  "G",  "A",    // 2 flats
+                "F",  "G",  "A",  "Bb", "C",  "D",  "E",    // 1 flat
+
+                "C",  "D",  "E",  "F",  "G",  "A",  "B",    // No flats or sharps
+
+                "G",  "A",  "B",  "C",  "D",  "E",  "F#",   // 1 sharp
+                "D",  "E",  "F#", "G",  "A",  "B",  "C#",   // 2 sharps
+                "A",  "B",  "C#", "D",  "E",  "F#", "G#",   // 3 sharps
+                "E",  "F#", "G#", "A",  "B",  "C#", "D#",   // 4 sharps
+                "B",  "C#", "D#", "E",  "F#", "G#", "A#",   // 5 sharps
+                "F#", "G#", "A#", "B",  "C#", "D#", "E#",   // 6 sharps
+                "C#", "D#", "E#", "F#", "G#", "A#", "B#",   // 7 sharps
+            };
+
+            static const char * MinorScales[] =
+            {
+                "Ab", "Bb", "Cb", "Db", "Eb", "Fb", "Gb",   // 7 flats
+                "Eb", "F",  "Gb", "Ab", "Bb", "Cb", "Db",   // 6 flats
+                "Bb", "C",  "Db", "Eb", "F",  "Gb", "Ab",   // 5 flats
+                "F",  "G",  "Ab", "Bb", "C",  "Db", "Eb",   // 4 flats
+                "C",  "D",  "Eb", "F",  "G",  "Ab", "Bb",   // 3 flats
+                "G",  "A",  "Bb", "C",  "D",  "Eb", "F",    // 2 flats
+                "D",  "E",  "F",  "G",  "A",  "Bb", "C",    // 1 flat
+
+                "A",  "B",  "C",  "D",  "E",  "F",  "G",    // No flats or sharps
+
+                "E",  "F#", "G",  "A",  "B",  "C",  "D",    // 1 sharp
+                "B",  "C#", "D",  "E",  "F#", "G",  "A",    // 2 sharps
+                "F#", "G#", "A",  "B",  "C#", "D",  "E",    // 3 sharps
+                "C#", "D#", "E",  "F#", "G#", "A",  "B",    // 4 sharps
+                "G#", "A#", "B",  "C#", "D#", "E",  "F#",   // 5 sharps
+                "D#", "E#", "F#", "G#", "A#", "B",  "C#",   // 6 sharps
+                "A#", "B#", "C#", "D#", "E#", "F#", "G#",   // 7 sharps
+            };
+
+            ::printf(" Key Signature %s %s", (me.Data[3] == 0) ? MajorScales[49 + (((char) me.Data[2]) * 7)] : MinorScales[49 + (((char) me.Data[2]) * 7)], (me.Data[3] == 0) ? "major" : "minor");
             break;
         }
 
@@ -147,7 +183,7 @@ void ProcessMetaData(const midi::event_t & me)
 /// <summary>
 /// Processes a SysEx message.
 /// </summary>
-void ProcessSysEx(const midi::event_t & me)
+static void ProcessSysEx(const midi::event_t & me) noexcept
 {
     sysex_t SysEx(me.Data);
 
@@ -159,7 +195,7 @@ void ProcessSysEx(const midi::event_t & me)
 /// <summary>
 /// Processes a Control Change message.
 /// </summary>
-void ProcessControlChange(const midi::event_t & me)
+static void ProcessControlChange(const midi::event_t & me) noexcept
 {
     int Value = (int) me.Data[1];
 
@@ -179,8 +215,10 @@ void ProcessControlChange(const midi::event_t & me)
         case 0x0B: ::printf(" Expression (MSB) %d", Value); break; // Expression is a percentage of volume (CC7).
         case 0x0C: ::printf(" Effect Controller 1 (MSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
         case 0x0D: ::printf(" Effect Controller 2 (MSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+
         case 0x0E: ::printf(" Undefined"); break;
         case 0x0F: ::printf(" Undefined"); break;
+
         case 0x10: ::printf(" General Purpose Controller 1 (MSB)"); break;
         case 0x11: ::printf(" General Purpose Controller 2 (MSB)"); break;
         case 0x12: ::printf(" General Purpose Controller 3 (MSB)"); break;
@@ -200,8 +238,10 @@ void ProcessControlChange(const midi::event_t & me)
         case 0x2B: ::printf(" Expression (LSB) %d", Value); break; // Expression is a percentage of volume (CC7).
         case 0x2C: ::printf(" Effect Controller 1 (LSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
         case 0x2D: ::printf(" Effect Controller 2 (LSB) %d", Value); break; // Usually used to control a parameter of an effect within the synth/workstation.
+
         case 0x2E: ::printf(" Undefined"); break;
         case 0x2F: ::printf(" Undefined"); break;
+
         case 0x30: ::printf(" General Purpose Controller 1 (LSB)"); break;
         case 0x31: ::printf(" General Purpose Controller 2 (LSB)"); break;
         case 0x32: ::printf(" General Purpose Controller 3 (LSB)"); break;
@@ -209,20 +249,22 @@ void ProcessControlChange(const midi::event_t & me)
 
         case 0x40: ::printf(" Damper Pedal / Sustain Pedal %s", (Value < 64 ? "off" : "on")); break; // On/Off switch that controls sustain. (See also Sostenuto CC 66) 0 to 63 = Off, 64 to 127 = On
         case 0x41: ::printf(" Portamento %s", (Value < 64 ? "off" : "on")); break; // On/Off switch 0 to 63 = Off, 64 to 127 = On
-        case 0x42: ::printf(" Sostenuto %s", (Value < 64 ? "off" : "on")); break; // On/Off switch. Like the Sustain controller (CC 64), However it only holds notes that were “On” when the pedal was pressed. People use it to “hold” chords” and play melodies over the held chord. 0 to 63 = Off, 64 to 127 = On
+        case 0x42: ::printf(" Sostenuto %s", (Value < 64 ? "off" : "on")); break; // On/Off switch. Like the Sustain controller (CC 64), However it only holds notes that were â€œOnâ€ when the pedal was pressed. People use it to â€œholdâ€ chordsâ€ and play melodies over the held chord. 0 to 63 = Off, 64 to 127 = On
         case 0x43: ::printf(" Soft Pedal %s", (Value < 64 ? "off" : "on")); break; // Lowers the volume of notes played. 0 to 63 = Off, 64 to 127 = On
         case 0x44: ::printf(" Legato Footswitch: %s", (Value < 64 ? "Normal" : "Legato")); break; // Turns Legato effect between 2 subsequent notes On or Off. 0 to 63 = Off, 64 to 127 = On
-        case 0x45: ::printf(" Hold 2 %s", (Value < 64 ? "off" : "on")); break; // Another way to “hold notes” (see MIDI CC 64 and MIDI CC 66). However notes fade out according to their release parameter rather than when the pedal is released.
+        case 0x45: ::printf(" Hold 2 %s", (Value < 64 ? "off" : "on")); break; // Another way to â€œhold notesâ€ (see MIDI CC 64 and MIDI CC 66). However notes fade out according to their release parameter rather than when the pedal is released.
+
+        // GM2
         case 0x46: ::printf(" Sound Controller 1 (Sound Variation) %d", Value); break; // Usually controls the way a sound is produced. Default = Sound Variation.
         case 0x47: ::printf(" Sound Controller 2 (Timbre /Harmonic Intensity) %d", Value); break; // Allows shaping the Voltage Controlled Filter (VCF). Default = Resonance - also(Timbre or Harmonics)
         case 0x48: ::printf(" Sound Controller 3 (Release Time) %s", (Value < 64 ? "shorter" : "longer")); break; // Controls release time of the Voltage controlled Amplifier (VCA). Default = Release Time.
-        case 0x49: ::printf(" Sound Controller 4 (Attack Time) %s", (Value < 64 ? "shorter" : "longer")); break; // Controls the “Attack’ of a sound. The attack is the amount of time it takes forthe sound to reach maximum amplitude.
+        case 0x49: ::printf(" Sound Controller 4 (Attack Time) %s", (Value < 64 ? "shorter" : "longer")); break; // Controls the â€œAttackâ€™ of a sound. The attack is the amount of time it takes forthe sound to reach maximum amplitude.
         case 0x4A: ::printf(" Sound Controller 5 (Brightness) %s", (Value < 64 ? "lower" : "higher")); break; // Controls VCFs cutoff frequency of the filter.
-        case 0x4B: ::printf(" Sound Controller 6 (Decay Time) %s", (Value < 64 ? "shorter" : "longer")); break; // Generic – Some manufacturers may use to further shave their sounds.
-        case 0x4C: ::printf(" Sound Controller 7 (Vibrato Rate) %s", (Value < 64 ? "slower" : "faster")); break; // Generic – Some manufacturers may use to further shave their sounds.
-        case 0x4D: ::printf(" Sound Controller 8 (Vibrato Depth) %s", (Value < 64 ? "reduced" : "increased")); break; // Generic – Some manufacturers may use to further shave their sounds.
-        case 0x4E: ::printf(" Sound Controller 9 (Vibrato Delay) %s", (Value < 64 ? "shorter" : "longer")); break; // Generic – Some manufacturers may use to further shave their sounds.
-        case 0x4F: ::printf(" Sound Controller 10 %d", Value); break; // Generic – Some manufacturers may use to further shave their sounds.
+        case 0x4B: ::printf(" Sound Controller 6 (Decay Time) %s", (Value < 64 ? "shorter" : "longer")); break; // Generic â€“ Some manufacturers may use to further shave their sounds.
+        case 0x4C: ::printf(" Sound Controller 7 (Vibrato Rate) %s", (Value < 64 ? "slower" : "faster")); break; // Generic â€“ Some manufacturers may use to further shave their sounds.
+        case 0x4D: ::printf(" Sound Controller 8 (Vibrato Depth) %s", (Value < 64 ? "reduced" : "increased")); break; // Generic â€“ Some manufacturers may use to further shave their sounds.
+        case 0x4E: ::printf(" Sound Controller 9 (Vibrato Delay) %s", (Value < 64 ? "shorter" : "longer")); break; // Generic â€“ Some manufacturers may use to further shave their sounds.
+        case 0x4F: ::printf(" Sound Controller 10 (Metronome Rate) %d", Value); break; // Generic â€“ Some manufacturers may use to further shave their sounds.
 
         case 0x50: ::printf(" Generic On/Off switch: %s", (Value < 64 ? "off" : "one")); break;
         case 0x51: ::printf(" Generic On/Off switch: %s", (Value < 64 ? "off" : "one")); break;
@@ -275,9 +317,9 @@ void ProcessControlChange(const midi::event_t & me)
 }
 
 /// <summary>
-/// Processes a Control Change message.
+/// Processes a Program Change message.
 /// </summary>
-void ProcessProgramChange(const midi::event_t & me)
+static void ProcessProgramChange(const midi::event_t & me) noexcept
 {
     int Value = (int) me.Data[0] + 1;
 
@@ -285,7 +327,7 @@ void ProcessProgramChange(const midi::event_t & me)
     {
         if (it.Id == Value)
         {
-            ::printf(" %s", ::WideToUTF8(it.Name).c_str());
+            ::printf(" \"%s\"", ::WideToUTF8(it.Name).c_str());
             break;
         }
     }
@@ -294,7 +336,7 @@ void ProcessProgramChange(const midi::event_t & me)
 /// <summary>
 /// Processes MIDI events.
 /// </summary>
-uint32_t ProcessEvent(const midi::event_t & event, uint32_t time, size_t index)
+static uint32_t ProcessEvent(const midi::event_t & event, uint32_t time, size_t index) noexcept
 {
     char TimeInTicks[16];
     char TimeInMs[16];
@@ -376,7 +418,7 @@ uint32_t ProcessEvent(const midi::event_t & event, uint32_t time, size_t index)
 
         case midi::event_t::event_type_t::PitchBendChange:
         {
-            ::printf("Pitch Bend Change             Value %5d", 8192 - ((int) (event.Data[1] & 0x7F) << 7) | (event.Data[0] & 0x7F));
+            ::printf("Pitch Bend Change             Value %d", 8192 - ((int) (event.Data[1] & 0x7F) << 7) | (event.Data[0] & 0x7F));
             break;
         }
 

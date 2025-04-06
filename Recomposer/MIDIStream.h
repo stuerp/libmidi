@@ -1,5 +1,5 @@
 
-/** $VER: MIDIStream.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIStream.h (2025.04.06) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -21,12 +21,12 @@ class midi_stream_t
 public:
     typedef uint8_t (* duration_handler_t)(midi_stream_t * fileInfo, uint32_t & duration);
 
-    midi_stream_t() : _Data(), _Size(), _Offs(), _TicksPerQuarter(), _Tempo(500000)
+    midi_stream_t() : _Data(), _Size(), _Offs(), _TicksPerBeat(), _Tempo(500000)
     {
         SetDurationHandler(nullptr);
     }
 
-    midi_stream_t(uint32_t size) : _Size(size), _Offs(), _TicksPerQuarter(), _Tempo(500000)
+    midi_stream_t(uint32_t size) : _Size(size), _Offs(), _TicksPerBeat(), _Tempo(500000)
     {
         _Data = (uint8_t *) ::malloc(_Size);
     }
@@ -47,7 +47,7 @@ public:
 
     void SetDurationHandler(duration_handler_t durationHandler) { _HandleDuration = durationHandler; }
 
-    uint32_t GetTicksPerQuarter() const noexcept { return _TicksPerQuarter; }
+    uint32_t GetTicksPerQuarter() const noexcept { return _TicksPerBeat; }
 
     uint32_t GetTempo() const noexcept { return _Tempo; }
     void SetTempo(uint32_t tempo) noexcept { _Tempo = tempo; }
@@ -58,18 +58,18 @@ public:
     uint8_t GetChannel() const noexcept { return _State.Channel; }
     void SetChannel(uint8_t channel) noexcept { _State.Channel = channel; }
 
-    void WriteMIDIHeader(uint16_t format, uint16_t trackCount, uint16_t ticksPerQuarter)
+    void WriteMIDIHeader(uint16_t format, uint16_t trackCount, uint16_t ticksPerBeat)
     {
         Ensure(0x08 + 0x06);
 
-        WriteBE32(0x4D546864);  // write 'MThd'
-        WriteBE32(0x00000006);  // Header Length
+        WriteBE32(0x4D546864);      // write 'MThd'
+        WriteBE32(0x00000006);      // Header Length
 
-        WriteBE16(format);      // MIDI Format (0/1/2)
-        WriteBE16(trackCount);  // number of tracks
-        WriteBE16(ticksPerQuarter);  // Ticks per Quarter
+        WriteBE16(format);          // MIDI Format (0/1/2)
+        WriteBE16(trackCount);      // number of tracks
+        WriteBE16(ticksPerBeat);    // Ticks per Quarter Note
 
-        _TicksPerQuarter = ticksPerQuarter;
+        _TicksPerBeat = ticksPerBeat;
     }
 
     void BeginWriteMIDITrack()
@@ -324,7 +324,7 @@ private:
     uint32_t _Size;
     uint32_t _Offs;
 
-    uint32_t _TicksPerQuarter;
+    uint32_t _TicksPerBeat; // Ticks per beat or quarter note
     uint32_t _Tempo;
 
     struct midi_state_t

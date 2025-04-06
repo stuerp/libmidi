@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.cpp (2025.03.19) P. Stuer **/
+/** $VER: SysEx.cpp (2025.04.06) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -9,7 +9,7 @@
 #include "Tables.h"
 #include "SysEx.h"
 
-static const wchar_t * IdentifyGSReverbMacro(uint8_t value)
+static const wchar_t * IdentifyGSReverbMacro(uint8_t value) noexcept
 {
     switch (value)
     {
@@ -26,7 +26,7 @@ static const wchar_t * IdentifyGSReverbMacro(uint8_t value)
     }
 }
 
-static const wchar_t * IdentifyGSChorusMacro(uint8_t value)
+static const wchar_t * IdentifyGSChorusMacro(uint8_t value) noexcept
 {
     switch (value)
     {
@@ -43,7 +43,7 @@ static const wchar_t * IdentifyGSChorusMacro(uint8_t value)
     }
 }
 
-static const wchar_t * IdentifyGSDelayMacro(uint8_t value)
+static const wchar_t * IdentifyGSDelayMacro(uint8_t value) noexcept
 {
     switch (value)
     {
@@ -63,9 +63,9 @@ static const wchar_t * IdentifyGSDelayMacro(uint8_t value)
 }
 
 /// <summary>
-/// Converts  block number to a part number.
+/// Converts a block number to a part number.
 /// </summary>
-static int GSBlockToPart(int value)
+static int GSBlockToPart(int value) noexcept
 {
     if (value < 10)
         return value;
@@ -76,7 +76,7 @@ static int GSBlockToPart(int value)
     return value + 1;
 }
 
-static const wchar_t * IdentifyGSRhythmPart(uint8_t value)
+static const wchar_t * IdentifyGSRhythmPart(uint8_t value) noexcept
 {
     switch (value)
     {
@@ -88,14 +88,15 @@ static const wchar_t * IdentifyGSRhythmPart(uint8_t value)
     }
 }
 
-static const wchar_t * IdentifyGSToneMap(uint8_t value)
+static const wchar_t * IdentifyGSToneMap(uint8_t value) noexcept
 {
     switch (value)
     {
         case 0x00: return L"Selected"; break;
         case 0x01: return L"SC-55 Map"; break;
         case 0x02: return L"SC-88 Map"; break;
-        case 0x03: return L"Native Map"; break;
+        case 0x03: return L"SC-88Pro Map"; break;
+        case 0x04: return L"SC-8820 Map"; break;
 
         default: return L"<Unknown>";
     }
@@ -114,23 +115,25 @@ void sysex_t::IdentifyGSMessage()
         case 0x00007F: _Description = L"GS System Mode Set"; break;
 
         // Patch parameters (Patch Common)
-        case 0x400000: _Description = FormatText(L"GS Master Tune %d", (int) _Data[8]); break; // -100.0 .. +100.0
-        case 0x400004: _Description = FormatText(L"GS Master Volume %d", (int) _Data[8]); break; // 0 .. 127
-        case 0x400006: _Description = FormatText(L"GS Master Key Shift %d semitones", (int) _Data[8]); break; // -24 .. +24 semitones
-        case 0x400005: _Description = FormatText(L"GS Master Pan", (int) _Data[8]); break; // -63 .. +63 (Left to right)
+        case 0x400000: _Description = FormatText(L"GS Master Tune %d", (int) _Data[8]); break;                                                  // MASTER TUNE (-100.0 .. +100.0 cents)
+        case 0x400004: _Description = FormatText(L"GS Master Volume %d", (int) _Data[8]); break;                                                // MASTER VOLUME (0 .. 127)
+        case 0x400006: _Description = FormatText(L"GS Master Key Shift %d semitones", (int) _Data[8]); break;                                   // MASTER KEY-SHIFT (-24 .. +24 semitones)
+        case 0x400005: _Description = FormatText(L"GS Master Pan", (int) _Data[8]); break;                                                      // MASTER PAN (-63 .. +63) (Left to right)
 
-        case 0x40007F: _Description = L"GS Reset"; break; // Data: 0
+        case 0x40007F: _Description = L"GS Reset"; break;                                                                                       // MODE SET (0 = GS Reset)
 
-        case 0x401000: _Description = L"GS Patch Name"; break; // ASCII characters
+        case 0x400100: _Description = L"GS Patch Name"; break;                                                                                  // PATCH NAME (16 ASCII characters)
 
-        case 0x400130: _Description = FormatText(L"GS Reverb Macro %s", IdentifyGSReverbMacro(_Data[8])); break;
-        case 0x400131: _Description = FormatText(L"GS Reberb Character %s", IdentifyGSReverbMacro(_Data[8])); break;
-        case 0x400132: _Description = FormatText(L"GS Reverb Pre-LPF %d", (int) _Data[8]); break; // 0 .. 7
-        case 0x400133: _Description = FormatText(L"GS Reverb Level %d", (int) _Data[8]); break; // 0 .. 127
-        case 0x400134: _Description = FormatText(L"GS Reverb Time %d", (int) _Data[8]); break; // 0 .. 127
-        case 0x400135: _Description = FormatText(L"GS Reverb Delay Feedback %d", (int) _Data[8]); break; // 0 .. 127
+        case 0x400110: _Description = L"GS Reserved"; break;
 
-        case 0x400137: _Description = FormatText(L"GS Reverb Predelay Time %d", (int) _Data[8]); break; // 0 .. 127 ms
+        case 0x400130: _Description = FormatText(L"GS Reverb Macro %s", IdentifyGSReverbMacro(_Data[8])); break;                                // REVERB MACRO (0 .. 7)
+        case 0x400131: _Description = FormatText(L"GS Reberb Character %s", IdentifyGSReverbMacro(_Data[8])); break;                            // REVERB CHARACTER (0 .. 7)
+        case 0x400132: _Description = FormatText(L"GS Reverb Pre-LPF %d", (int) _Data[8]); break;                                               // REVERB PRE-LPF (0 .. 7)
+        case 0x400133: _Description = FormatText(L"GS Reverb Level %d", (int) _Data[8]); break;                                                 // REVERB LEVEL (0 .. 127)
+        case 0x400134: _Description = FormatText(L"GS Reverb Time %d", (int) _Data[8]); break;                                                  // REVERB TIME (0 .. 127)
+        case 0x400135: _Description = FormatText(L"GS Reverb Delay Feedback %d", (int) _Data[8]); break;                                        // REVERB DELAY FEEDBACK (0 .. 127)
+
+        case 0x400137: _Description = FormatText(L"GS Reverb Predelay Time %d", (int) _Data[8]); break;                                         // REVERB PREdelay TIME (0 .. 127 ms)
 
         case 0x400138: _Description = FormatText(L"GS Chorus Macro %s", IdentifyGSChorusMacro(_Data[8])); break;
         case 0x400139: _Description = FormatText(L"GS Chorus Pre-LPF %d", (int) _Data[8]); break; // 0 .. 7
@@ -169,27 +172,27 @@ void sysex_t::IdentifyGSMessage()
         case 0x400318: _Description = FormatText(L"GS EFX Send Level to Chorus: %d", (int) _Data[8]); break; // 0 .. 127
         case 0x400319: _Description = FormatText(L"GS EFX Send Level to Delay: %d", (int) _Data[8]); break; // 0 .. 127
 
-        // Patch parameters (Patch Part)
+        // Patch Part Parameters. The Sound Canvas VA has 16 Parts. Parameters that can be set individually for each Part are called Patch Part parameters.
         default:
         {
             int PartNumber = GSBlockToPart(_Data[6] & 0x0F);
 
             switch (Address & 0xFFF0FF)
             {
-                case 0x401014: _Description = FormatText(L"GS Assign Mode %d to channel %d", (int) _Data[8], PartNumber); break;
-                case 0x401015: _Description = FormatText(L"GS Use channel %d for Rhythm Part: %s", PartNumber, IdentifyGSRhythmPart(_Data[8])); break;
+                case 0x401014: _Description = FormatText(L"GS Assign Mode %d to channel %d", (int) _Data[8], PartNumber); break;                            // ASSIGN MODE
+                case 0x401015: _Description = FormatText(L"GS Use channel %d for Rhythm Part: %s", PartNumber, IdentifyGSRhythmPart(_Data[8])); break;      // USE FOR RHYTHM PART
 
-                case 0x401030: _Description = FormatText(L"GS Tone Modify 1, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401031: _Description = FormatText(L"GS Tone Modify 2, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401032: _Description = FormatText(L"GS Tone Modify 3, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401033: _Description = FormatText(L"GS Tone Modify 4, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401034: _Description = FormatText(L"GS Tone Modify 5, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401035: _Description = FormatText(L"GS Tone Modify 6, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401036: _Description = FormatText(L"GS Tone Modify 7, channel %d: %d", PartNumber, (int) _Data[8]); break;
-                case 0x401037: _Description = FormatText(L"GS Tone Modify 8, channel %d: %d", PartNumber, (int) _Data[8]); break;
+                case 0x401030: _Description = FormatText(L"GS Tone Modify 1, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY1 Vibrato Rate
+                case 0x401031: _Description = FormatText(L"GS Tone Modify 2, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY2 Vibrato Depth
+                case 0x401032: _Description = FormatText(L"GS Tone Modify 3, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY3 TVF Cutoff Frequency
+                case 0x401033: _Description = FormatText(L"GS Tone Modify 4, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY4 TVF Resonance
+                case 0x401034: _Description = FormatText(L"GS Tone Modify 5, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY5 TVF & TVA Envelope Attack
+                case 0x401035: _Description = FormatText(L"GS Tone Modify 6, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY6 TVF & TVA Envelope Decay
+                case 0x401036: _Description = FormatText(L"GS Tone Modify 7, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY7 TVF & TVA Envelope Release
+                case 0x401037: _Description = FormatText(L"GS Tone Modify 8, channel %d: %d", PartNumber, (int) _Data[8]); break;                           // TONE MODIFY8 Vibrato Delay
 
-                case 0x404000: _Description = FormatText(L"GS Tone Map Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
-                case 0x404001: _Description = FormatText(L"GS Tone Map-0 Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;
+                case 0x404000: _Description = FormatText(L"GS Tone Map Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;            // TONE MAP NUMBER
+                case 0x404001: _Description = FormatText(L"GS Tone Map-0 Number: channel %d, %s", PartNumber, IdentifyGSToneMap(_Data[8])); break;          // TONE MAP-0 NUMBER
 
                 case 0x402010: _Description = FormatText(L"GS Bend Pitch Control: Channel %d, %d semitones", GSBlockToPart(_Data[6] & 0x0F), (int) _Data[8]); break;
 
