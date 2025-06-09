@@ -20,7 +20,7 @@ void running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t velocityOff, ui
     running_note_t & rn = _Notes[_Count];
 
     rn.Channel = channel;
-    rn.Note = note;
+    rn.Code = note;
     rn.NoteOffVelocity = velocityOff;
     rn.Duration = duration;
 
@@ -75,13 +75,13 @@ size_t running_notes_t::Check(midi_stream_t & midiStream, uint32_t & duration)
                 if (n.NoteOffVelocity < 0x80)
                 {
                     midiStream.Add((uint8_t) (midi::NoteOff | n.Channel));
-                    midiStream.Add(n.Note);
+                    midiStream.Add(n.Code);
                     midiStream.Add(n.NoteOffVelocity);
                 }
                 else
                 {
                     midiStream.Add((uint8_t) (midi::NoteOn | n.Channel));
-                    midiStream.Add(n.Note);
+                    midiStream.Add(n.Code);
                     midiStream.Add(0);
                 }
             }

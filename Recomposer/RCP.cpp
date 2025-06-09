@@ -1,5 +1,5 @@
 ﻿
-/** $VER: RCP.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.cpp (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -13,7 +13,6 @@ extern running_notes_t RunningNotes;
 
 constexpr uint8_t MCMD_INI_EXCLUDE  = 0x00; // exclude initial command
 constexpr uint8_t MCMD_INI_INCLUDE  = 0x01; // include initial command
-//constexpr uint8_t MCMD_RET_CMDCOUNT = 0x00; // return number of commands
 constexpr uint8_t MCMD_RET_DATASIZE = 0x02; // return number of data bytes
 
 static uint8_t DetermineShift(uint32_t value);
@@ -344,7 +343,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
     if (SrcChannel & 0x80)
     {
         // When the KeepMutedChannels option is off, prevent events from being written to the MIDI file by setting DstChannel to 0xFF.
-        DstChannel = _Options._KeepDummyChannels ? (uint8_t) 0x00 : (uint8_t) 0xFF;
+        DstChannel = _Options._KeepMutedChannels ? (uint8_t) 0x00 : (uint8_t) 0xFF;
         SrcChannel = 0x00;
     }
     else
@@ -378,7 +377,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
             midiStream.WriteMetaEvent(midi::TrackName, TrackName.Data, TrackName.Len);
  
         // 0x00 == off, 0x01 == on. Others are undefined. Fall back to 'off'?
-        if (TrackMute && !_Options._KeepDummyChannels)
+        if (TrackMute && !_Options._KeepMutedChannels)
         {
             // Ignore muted tracks.
             *offset = TrackHead + TrackSize;
@@ -495,7 +494,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
             if (CmdType < 0x80)
             {
                 // It's a note.
-                uint8_t Note = (uint8_t) ((CmdType + Transposition) & 0x7F);
+                uint8_t Code = (uint8_t) ((CmdType + Transposition) & 0x7F);
 
                 {
                     {
@@ -506,33 +505,33 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         midiStream.SetDuration(Duration);
                     }
 
-                    for (uint16_t i = 0; i < RunningNotes._Count; ++i)
+                    for (auto & Note : RunningNotes._Notes)
                     {
-                        if (RunningNotes._Notes[i].Note == Note)
+                        if (Note.Code == Code)
                         {
-                            // The note is already playing. Remember its new duration.
-                            RunningNotes._Notes[i].Duration = midiStream.GetDuration() + CmdDuration;
+                            // The note is already playing. Increase its duration.
+                            Note.Duration = midiStream.GetDuration() + CmdDuration;
 
-                            CmdDuration = 0; // Prevents the note from being added.
+                            CmdDuration = 0; // Prevents the note from being added to the MIDI stream yet.
                             break;
                         }
                     }
                 }
 
-                // Duration == 0 means "no note".
+                // Should we add the note to the stream?
                 if ((CmdDuration > 0) && (DstChannel != 0xFF))
                 {
                 #ifdef _RCP_VERBOSE
-                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Note, CmdP2);
+                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Code, CmdP2);
                 #endif
 
-                    midiStream.WriteEvent(midi::NoteOn, Note, CmdP2);
+                    midiStream.WriteEvent(midi::NoteOn, Code, CmdP2);
 
-                    RunningNotes.Add(midiStream.GetChannel(), Note, 0x80, CmdDuration);
+                    RunningNotes.Add(midiStream.GetChannel(), Code, 0x80, CmdDuration);
                 }
             #ifdef _RCP_VERBOSE
                 else
-                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X (Skipped)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Note, CmdP2);
+                    ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X (Skipped)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Code, CmdP2);
             #endif
             }
             else
@@ -912,7 +911,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (CmdP1 & 0x80)
                         {
                             // Ignore the message when the KeepMutedChannels option is off. Else set midiDev to 0xFF to prevent events from being written.
-                            if (!_Options._KeepDummyChannels)
+                            if (!_Options._KeepMutedChannels)
                             {
                                 DstChannel = 0xFF;
                                 SrcChannel = 0x00;
@@ -1353,22 +1352,22 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
             }
 
             {
-                uint32_t Timestamp = midiStream.GetDuration() + CmdP0;
+                uint32_t Duration = midiStream.GetDuration() + CmdP0;
 
-                if ((StartTick < 0) && (Timestamp > 0))
+                if ((StartTick < 0) && (Duration > 0))
                 {
-                    StartTick += Timestamp;
+                    StartTick += Duration;
 
                     if (StartTick >= 0)
                     {
-                        Timestamp = (uint32_t) StartTick;
+                        Duration = (uint32_t) StartTick;
                         StartTick = 0;
                     }
                     else
-                        Timestamp = 0;
+                        Duration = 0;
                 }
 
-                midiStream.SetDuration(Timestamp);
+                midiStream.SetDuration(Duration);
             }
         }
     }

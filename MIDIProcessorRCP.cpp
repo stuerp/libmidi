@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRCP.cpp (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIProcessorRCP.cpp (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -68,7 +68,7 @@ bool processor_t::ProcessRCP(std::vector<uint8_t> const & data, const std::wstri
     Options._WriteSysExNames    = _Options._WriteSysExNames;
     Options._ExtendLoops        = _Options._ExtendLoops;
     Options._WolfteamLoopMode   = _Options._WolfteamLoopMode;
-    Options._KeepDummyChannels  = _Options._KeepDummyChannels;
+    Options._KeepMutedChannels  = _Options._KeepMutedChannels;
     Options._IncludeControlData = _Options._IncludeControlData;
 
     rcp::buffer_t SrcData;

@@ -1,5 +1,5 @@
 
-/** $VER: RCP.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.h (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -20,7 +20,7 @@ public:
     bool _WriteSysExNames = false;
     bool _ExtendLoops = true;
     bool _WolfteamLoopMode = false;
-    bool _KeepDummyChannels = false;
+    bool _KeepMutedChannels = false;
     bool _IncludeControlData = true;
 };
 

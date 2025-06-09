@@ -41,7 +41,7 @@ int rcpmain(int argc, wchar_t * argv[])
 
     if (argc < 3)
     {
-        ::printf("Usage: rcp2mid.exe [options] input.bin output.mid\n");
+        ::printf("Usage: rcpdump.exe [options] input.bin output.mid\n");
         ::printf("Input file formats:\n");
         ::printf("    RCP/R36/G36 Recomposer sequence file\n");
         ::printf("    CM6         Recomposer MT-32/CM-64 control file\n");
@@ -89,7 +89,7 @@ int rcpmain(int argc, wchar_t * argv[])
                 Options._WolfteamLoopMode = true;
             else
             if (!::_wcsicmp(argv[argbase] + 1, L"KeepMutedChannels"))
-                Options._KeepDummyChannels = true;
+                Options._KeepMutedChannels = true;
             else
                 break;
 

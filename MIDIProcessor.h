@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.03.31) **/
+/** $VER: MIDIProcessor.h (2025.06.09) **/
 
 #pragma once
 
@@ -22,7 +22,7 @@ struct processor_options_t
     bool _WriteSysExNames = false;
     bool _ExtendLoops = true;
     bool _WolfteamLoopMode = false;
-    bool _KeepDummyChannels = false;
+    bool _KeepMutedChannels = false;
     bool _IncludeControlData = true;
 
     // HMI / HMP

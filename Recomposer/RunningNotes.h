@@ -1,5 +1,5 @@
 
-/** $VER: RunningNotes.h (2025.03.21) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.h (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -14,16 +14,12 @@ namespace rcp
 
 struct running_note_t
 {
-    running_note_t()
+    running_note_t() : Channel(), Code(), NoteOffVelocity(), Duration()
     {
-        Channel = 0;
-        Note = 0;
-        NoteOffVelocity = 0;
-        Duration = 0;
     }
 
     uint8_t Channel;
-    uint8_t Note;
+    uint8_t Code;
     uint8_t NoteOffVelocity;
     uint32_t Duration;
 };
