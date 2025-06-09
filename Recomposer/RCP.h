@@ -107,7 +107,7 @@ public:
     rcp_file_t & operator=(const rcp_file_t &) = delete;
     rcp_file_t & operator=(rcp_file_t &&) = delete;
 
-    void ReadTrack(const uint8_t * data, uint32_t size, uint32_t offset, rcp_track_t * track) const;
+    void ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset, rcp_track_t * track) const;
     void ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * offset, rcp_track_t * track, midi_stream_t & midiStream) const;
 
 private:

@@ -21,6 +21,10 @@ To build the code you need:
 
 ## Change Log
 
+v0.1.1.0, 2025-xx-xx
+
+* Improved: Stricter interpretation of the RCP mute mode that prevents an RCP track from being included in the MIDI stream.
+
 v0.1.0.0, 2025-03-19
 
 * Initial release.

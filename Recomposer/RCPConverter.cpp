@@ -18,15 +18,15 @@ running_notes_t RunningNotes;
 /// <summary>
 /// Converts the RCP data.
 /// </summary>
-void converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, const std::wstring & dstType)
+void converter_t::Convert(const buffer_t & rcpData, buffer_t & midData, const std::wstring & dstType)
 {
-    uint8_t FileType = converter_t::GetFileType(srcData);
+    uint8_t FileType = converter_t::GetFileType(rcpData);
 
     if (FileType < 0x10)
     {
         try
         {
-            ConvertSequence(srcData, dstData);
+            ConvertSequence(rcpData, midData);
         }
         catch (std::exception & e)
         {
@@ -48,7 +48,7 @@ void converter_t::Convert(const buffer_t & srcData, buffer_t & dstData, const st
 
         try
         {
-            ConvertControl(srcData, dstData, FileType, Mode);
+            ConvertControl(rcpData, midData, FileType, Mode);
         }
         catch (std::exception & e)
         {
@@ -77,58 +77,59 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
 
     uint32_t Offset = 0;
 
-    const uint8_t * SrcData = rcpData.Data;
+    const uint8_t * RCPData = rcpData.Data;
 
     if (RCPFile._Version == 2)
     {
-        RCPFile._Title.Assign(&SrcData[Offset + 0x020], 0x40);
+        RCPFile._Title.Assign(&RCPData[Offset + 0x020], 0x40);
 
         RCPFile._CommentSize = 28;
 
-        RCPFile._Comments.Assign(&SrcData[Offset + 0x060], 0x150); // 12 lines, 28 characters
+        RCPFile._Comments.Assign(&RCPData[Offset + 0x060], 12 * 28); // 12 lines, 28 characters
 
-        RCPFile._TicksPerQuarter     = (uint16_t) ((SrcData[Offset + 0x1E7] << 8) | SrcData[Offset + 0x1C0]); // Hi- and lo-byte.
-        RCPFile._Tempo               = SrcData[Offset + 0x1C1]; // In BPM
-        RCPFile._BPMNumerator        = SrcData[Offset + 0x1C2]; // Time signature numerator (in bpm)
-        RCPFile._BPMDenominator      = SrcData[Offset + 0x1C3]; // Time signature denominator (in bpm)
-        RCPFile._KeySignature        = SrcData[Offset + 0x1C4];
-        RCPFile._GlobalTransposition = (int8_t) SrcData[Offset + 0x1C5];
+        RCPFile._TicksPerQuarter     = (uint16_t) ((RCPData[Offset + 0x1E7] << 8) | RCPData[Offset + 0x1C0]); // Hi- and lo-byte.
+        RCPFile._Tempo               = RCPData[Offset + 0x1C1]; // In bpm
+        RCPFile._BPMNumerator        = RCPData[Offset + 0x1C2]; // Time signature numerator (in bpm)
+        RCPFile._BPMDenominator      = RCPData[Offset + 0x1C3]; // Time signature denominator (in bpm)
+        RCPFile._KeySignature        = RCPData[Offset + 0x1C4];
+        RCPFile._GlobalTransposition = (int8_t) RCPData[Offset + 0x1C5];
 
-        RCPFile._CM6FileName .AssignSpecial(&SrcData[Offset + 0x1C6], 0x10);
-        RCPFile._GSD1FileName.AssignSpecial(&SrcData[Offset + 0x1D6], 0x10);
+        RCPFile._CM6FileName .AssignSpecial(&RCPData[Offset + 0x1C6], 0x10);
+        RCPFile._GSD1FileName.AssignSpecial(&RCPData[Offset + 0x1D6], 0x10);
 
-        RCPFile._TrackCount =  SrcData[Offset + 0x1E6];         // 0 (RCP v0), 18 (RCP v1) or 36 (RCP v2)
+        RCPFile._TrackCount =  RCPData[Offset + 0x1E6];         // 0 (RCP v0), 18 (RCP v1) or 36 (RCP v2)
 
-        Offset += 0x206;
-        Offset += 0x20 * 0x10; // Skip rhythm definitions
+        Offset += 0x1E8 + 0x0E + 0x10;
+        Offset += 32 * (14 + 2); // Skip rhythm definitions (16 bytes each)
     }
     else
- // if (rcpInf.fileVer == 3)
+ // if (RCPFile._Version == 3)
     {
-        RCPFile._Title.Assign(&SrcData[Offset + 0x020], 0x80);
+        RCPFile._Title.Assign(&RCPData[Offset + 0x020], 0x80);
 
         RCPFile._CommentSize = 30;
 
-        RCPFile._Comments.Assign(&SrcData[Offset + 0x0A0], 0x168); // 12 lines, 30 characters
+        RCPFile._Comments.Assign(&RCPData[Offset + 0x0A0], 12 * 30); // 12 lines, 30 characters
 
-        RCPFile._TrackCount          = ReadLE16(&SrcData[Offset + 0x0208]);
-        RCPFile._TicksPerQuarter     = ReadLE16(&SrcData[Offset + 0x020A]);
-        RCPFile._Tempo               = ReadLE16(&SrcData[Offset + 0x020C]); // In BPM
-        RCPFile._BPMNumerator        = SrcData[Offset + 0x020E];            // Time signature numerator (in bpm)
-        RCPFile._BPMDenominator      = SrcData[Offset + 0x020F];            // Time signature denominator (in bpm)
-        RCPFile._KeySignature        = SrcData[Offset + 0x0210];
-        RCPFile._GlobalTransposition = (int8_t) SrcData[Offset + 0x0211];
+        RCPFile._TrackCount          = ReadLE16(&RCPData[Offset + 0x0208]);
+        RCPFile._TicksPerQuarter     = ReadLE16(&RCPData[Offset + 0x020A]);
+        RCPFile._Tempo               = ReadLE16(&RCPData[Offset + 0x020C]); // In bpm
+        RCPFile._BPMNumerator        = RCPData[Offset + 0x020E];            // Time signature numerator (in bpm)
+        RCPFile._BPMDenominator      = RCPData[Offset + 0x020F];            // Time signature denominator (in bpm)
+        RCPFile._KeySignature        = RCPData[Offset + 0x0210];
+        RCPFile._GlobalTransposition = (int8_t) RCPData[Offset + 0x0211];
 
-        RCPFile._GSD1FileName.AssignSpecial(&SrcData[Offset + 0x298], 0x10);
-        RCPFile._GSD2FileName.AssignSpecial(&SrcData[Offset + 0x2A8], 0x10);
-        RCPFile._CM6FileName .AssignSpecial(&SrcData[Offset + 0x2B8], 0x10);
+        RCPFile._GSD1FileName.AssignSpecial(&RCPData[Offset + 0x298], 0x10);
+        RCPFile._GSD2FileName.AssignSpecial(&RCPData[Offset + 0x2A8], 0x10);
+        RCPFile._CM6FileName .AssignSpecial(&RCPData[Offset + 0x2B8], 0x10);
 
         Offset += 0x318;
-        Offset += 0x80 * 0x10; // skip rhythm definitions
+        Offset += 128 * (14 + 2); // skip rhythm definitions (16 bytes each)
     }
 
+    // Sanitize the values we read.
     if (RCPFile._TrackCount == 0)
-        RCPFile._TrackCount = 18; // Early RCP files have the value set to 0 and assume always 18 tracks
+        RCPFile._TrackCount = 18; // Early RCP files have the value set to 0 and alway assume 18 tracks.
 
     if (RCPFile._Tempo < 8 || RCPFile._Tempo > 250)
         RCPFile._Tempo = 120;
@@ -139,20 +140,22 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
     if ((RCPFile._GlobalTransposition < -36) || (RCPFile._GlobalTransposition > 36))
         RCPFile._GlobalTransposition = 0;
 
+    const uint32_t NameSize = 24;
+    const uint32_t DataSize = 24;
+
+    // Read the RCP tracks.
     std::vector<rcp_track_t> RCPTracks(RCPFile._TrackCount);
 
     {
-        uint32_t Curr = Offset;
+        uint32_t TrackOffset = Offset + (8 * (NameSize + DataSize)); // Skip the User SysEx messages for now.
         uint16_t n = 0;
-
-        Curr += 0x30 * 8; // Skip User SysEx data
 
         for (auto & Track : RCPTracks)
         {
-            if (Curr >= rcpData.Size)
+            if (TrackOffset >= rcpData.Size)
             {
             #ifdef _RCP_VERBOSE
-                ::printf("%04X: Warning: Insufficient track data.\n", Curr);
+                ::printf("%04X: Warning: Insufficient track data.\n", TrackOffset);
             #endif
 
                 RCPFile._TrackCount = n;
@@ -160,10 +163,10 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
                 break;
             }
 
-            RCPFile.ReadTrack(rcpData.Data, rcpData.Size, Curr, &Track);
+            RCPFile.ParseTrack(rcpData.Data, rcpData.Size, TrackOffset, &Track);
 
             Track.LoopCount = (uint16_t) ((Track.LoopStartOffs != 0) ? _Options._RCPLoopCount : 0);
-            Curr += Track.Size;
+            TrackOffset += Track.Size;
 
             ++n;
         }
@@ -421,31 +424,28 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
         }
     }
 
-    // Read the user SysEx data.
+    // Read the User SysEx messages.
     {
-        const uint32_t NameSize = 0x18;
-        const uint32_t DataSize = 0x18;
-
-        for (auto & syx : RCPFile._SysEx)
+        for (auto & SysEx : RCPFile._SysEx)
         {
-            uint32_t SyxOffset = Offset;
+            const uint32_t SyxOffset = Offset;
 
-            syx.Name.Assign(SrcData + Offset, NameSize);
+            SysEx.Name.Assign(RCPData + Offset, NameSize);
 
             Offset += NameSize;
 
-            syx.Data = SrcData + Offset; // // Without leading 0xF0, padded with 0xF7
-            syx.Size = GetTrimmedLength((const char *) syx.Data, DataSize, (char) (std::byte) 0xF7, true);
+            SysEx.Data = RCPData + Offset; // // Without leading 0xF0, padded with 0xF7
+            SysEx.Size = GetTrimmedLength((const char *) SysEx.Data, DataSize, (char) (std::byte) 0xF7, true);
 
             Offset += DataSize;
 
         #ifdef _RCP_VERBOSE
-            ::printf("%04X: User SysEx \"%s\",", SyxOffset, TextToUTF8(syx.Name.Data, syx.Name.Len).c_str());
+            ::printf("%04X: User SysEx \"%s\",", SyxOffset, TextToUTF8(SysEx.Name.Data, SysEx.Name.Len).c_str());
 
-            if (syx.Size != 0)
+            if (SysEx.Size != 0)
             {
-                for (size_t i = 0; i < syx.Size; ++i)
-                    ::printf(" %02X", syx.Data[i]);
+                for (size_t i = 0; i < SysEx.Size; ++i)
+                    ::printf(" %02X", SysEx.Data[i]);
 
                 ::putchar('\n');
             }
@@ -460,7 +460,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
         uint32_t TicksPerBar;
 
         if (RCPFile._BPMNumerator == 0 || RCPFile._BPMDenominator == 0)
-            TicksPerBar = MIDIStream.GetTicksPerQuarter() * 4; // Assume 4/4 time signature
+            TicksPerBar = MIDIStream.GetTicksPerQuarter() * 4; // Assume 4/4 time signature.
         else
             TicksPerBar = RCPFile._BPMNumerator * (MIDIStream.GetTicksPerQuarter() * 4) / RCPFile._BPMDenominator;
 
