@@ -49,9 +49,9 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
 
     offset += 0x2A; // Skip the track header.
 
-    track->Offs          = TrackHead;
-    track->Size          = TrackSize;
-    track->Duration      = 0;
+    track->Offs = TrackHead;
+    track->Size = TrackSize;
+    track->Duration = 0;
     track->LoopStartOffs = 0;
     track->LoopStartTick = 0;
 
@@ -352,7 +352,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
     int8_t Transposition = (int8_t) data[Offset + 0x03]; // Key Offset
     int32_t StartTick    = (int32_t) (int8_t) data[Offset + 0x04];
-    uint8_t MuteMode     = data[Offset + 0x05];
+    uint8_t MuteMode    = data[Offset + 0x05];
 
     rcp_string_t TrackName;
 
@@ -372,7 +372,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
     if ((RhythmMode != 0) && (RhythmMode != 0x80))
         ::printf("Warning: Track %2u: Unknown Rhythm Mode 0x%02X.\n", TrackId, RhythmMode);
 #endif
- 
+
     // Write the track setup.
     {
         uint32_t OldDuration = midiStream.GetDuration();
@@ -382,18 +382,18 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         if (TrackName.Len > 0)
             midiStream.WriteMetaEvent(midi::TrackName, TrackName.Data, TrackName.Len);
 
-        if (DstChannel != 0xFF)
-        {
-            midiStream.WriteMetaEvent(midi::MIDIPort,      &DstChannel, 1);
-            midiStream.WriteMetaEvent(midi::ChannelPrefix, &SrcChannel, 1);
-        }
-
         if ((MuteMode == 0x01) && !_Options._KeepMutedChannels)
         {
             // Ignore muted tracks.
             *offset = TrackHead + TrackSize;
 
             return;
+        }
+
+        if (DstChannel != 0xFF)
+        {
+            midiStream.WriteMetaEvent(midi::MIDIPort,      &DstChannel, 1);
+            midiStream.WriteMetaEvent(midi::ChannelPrefix, &SrcChannel, 1);
         }
 
         // Transposition in semitones, 7-bit signed: 0 = no transposition, 0x0C = +1 octave, 0x74 = -1 octave, added together with global transposition, 0x80..0xFF = rhythm track (no per-track transposition, ignores global transposition as well).
@@ -503,12 +503,12 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         midiStream.SetDuration(Duration);
                     }
 
-                    for (auto & Note : RunningNotes._Notes)
+                    for (uint16_t i = 0; i < RunningNotes._Count; ++i)
                     {
-                        if (Note.Code == Code)
+                        if (RunningNotes._Notes[i].Code == Code)
                         {
                             // The note is already playing. Increase its duration.
-                            Note.Duration = midiStream.GetDuration() + CmdDuration;
+                            RunningNotes._Notes[i].Duration = midiStream.GetDuration() + CmdDuration;
 
                             CmdDuration = 0; // Prevents the note from being added to the MIDI stream yet.
                             break;
@@ -537,8 +537,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                 // It's a command.
                 switch (CmdType)
                 {
-                    // Add a User SysEx message defined in the header.
-                    case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97:
+                    case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97: // send User SysEx (defined via header)
                     {
                         if (DstChannel == 0xFF)
                             break;
@@ -574,8 +573,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         break;
                     }
 
-                    // Add SysEx message.
-                    case 0x98:
+                    case 0x98: // Add SysEx message.
                     {
                         uint16_t Size = GetMultiCmdDataSize(data, size, Offset, MCMD_INI_EXCLUDE | MCMD_RET_DATASIZE);
 
@@ -905,7 +903,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xE6: // MIDI channel
                     {
-                        --CmdP1; // It's same as in the track header, except 1 added.
+                        CmdP1--; // It's same as in the track header, except 1 added.
 
                         if (CmdP1 & 0x80)
                         {
