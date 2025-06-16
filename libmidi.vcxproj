@@ -26,6 +26,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="MIDIContainer.cpp" />
     <ClCompile Include="MIDIProcessorGMF.cpp" />
@@ -52,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
+    <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="IFF.h" />
     <ClInclude Include="MIDI.h" />
@@ -141,7 +143,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\Recomposer;$(ProjectDir)\SMAF;$(ProjectDir)\3rdParty\zlib</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>framework.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>

@@ -301,7 +301,7 @@ static void ProcessOPDA(const std::span<const uint8_t> & data, state_t & state, 
         else
             ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
 #endif
-        it += (ptrdiff_t) 8 + ChunkSize;
+        it += (ptrdiff_t) (8 + ChunkSize);
     }
 }
 
@@ -462,7 +462,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
         else
             ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
 
-        it += (ptrdiff_t) 8 + ChunkSize;
+        it += (ptrdiff_t) (8 + ChunkSize);
     }
 }
 

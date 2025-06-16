@@ -42,6 +42,7 @@
     <ClInclude Include="IFF.h" />
     <ClInclude Include="Support.h" />
     <ClInclude Include="SMAF\MMF.h" />
+    <ClInclude Include="framework.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
