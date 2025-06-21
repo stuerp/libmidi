@@ -26,6 +26,7 @@
     <ClCompile Include="MIDIProcessorMMF.cpp" />
     <ClCompile Include="SMAF\MMF.cpp" />
     <ClCompile Include="MIDIProcessorTST.cpp" />
+    <ClCompile Include="SysEx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MIDIContainer.h" />
@@ -42,7 +43,7 @@
     <ClInclude Include="IFF.h" />
     <ClInclude Include="Support.h" />
     <ClInclude Include="SMAF\MMF.h" />
-    <ClInclude Include="framework.h" />
+    <ClInclude Include="SysEx.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

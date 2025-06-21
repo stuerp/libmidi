@@ -50,10 +50,10 @@
     <ClCompile Include="Recomposer\RunningNotes.cpp" />
     <ClCompile Include="Recomposer\Support.cpp" />
     <ClCompile Include="SMAF\MMF.cpp" />
+    <ClCompile Include="SysEx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
-    <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="IFF.h" />
     <ClInclude Include="MIDI.h" />
@@ -67,6 +67,7 @@
     <ClInclude Include="Encoding.h" />
     <ClInclude Include="SMAF\MMF.h" />
     <ClInclude Include="Support.h" />
+    <ClInclude Include="SysEx.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

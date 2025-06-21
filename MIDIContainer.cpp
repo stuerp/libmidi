@@ -1,4 +1,4 @@
-﻿
+
 /** $VER: MIDIContainer.cpp (2025.04.05) **/
 
 #include "pch.h"
