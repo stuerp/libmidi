@@ -877,6 +877,9 @@ size_t container_t::GetSubSong(size_t index) const
     return 0;
 }
 
+/// <summary>
+/// Returns the duration of the subsong in ticks or in ms.
+/// </summary>
 uint32_t container_t::GetDuration(size_t subSongIndex, bool ms /* = false */) const
 {
     size_t SubSongIndex = 0;
@@ -1560,9 +1563,8 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
 
                 if ((Event.Type == event_t::ControlChange) && InRange(Event.Data[0], (uint8_t) 116 /* 0x74 */, (uint8_t) 119 /* 0x77 */))
                 {
-                #ifdef _DEBUG
-                    wchar_t Line[256]; ::swprintf_s(Line, _countof(Line), L"EMIDI: %08X %3d %3d\n", Event.Time, Event.Data[0], Event.Data[1]); ::OutputDebugStringW(Line);
-                #endif
+//                  wchar_t Line[256]; ::swprintf_s(Line, _countof(Line), L"EMIDI: %08X %3d %3d\n", Event.Time, Event.Data[0], Event.Data[1]); ::OutputDebugStringW(Line);
+
                     // 116 / 0x74, AIL loop: FOR loop = 1 to n, 118 / 0x76, AIL clear beat / measure count (AIL = Audio Interface Library)
                     if (Event.Data[0] == 116 || Event.Data[0] == 118)
                     {
