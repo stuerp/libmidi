@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.04.06) **/
+/** $VER: MIDIContainer.h (2025.07.06) **/
 
 #pragma once
 
@@ -334,13 +334,16 @@ public:
 
     void SplitByInstrumentChanges(SplitCallback callback = nullptr);
 
+    bool IsEmpty() const noexcept { return _Tracks.empty(); }
+
     size_t GetSubSongCount() const;
     size_t GetSubSong(size_t index) const;
 
     uint32_t GetDuration(size_t subsongIndex, bool ms = false) const;
 
     uint32_t GetFormat() const;
-    uint32_t GetTrackCount() const;
+    uint32_t GetTrackCount() const noexcept { return (uint32_t) _Tracks.size(); }
+;
     uint32_t GetChannelCount(size_t subSongIndex) const;
 
     uint32_t GetLoopBeginTimestamp(size_t subSongIndex, bool ms = false) const;
