@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorSMF.cpp (2025.03.14) Standard MIDI File **/
+/** $VER: MIDIProcessorSMF.cpp (2025.07.09) Standard MIDI File **/
 
 #include "pch.h"
 
@@ -303,7 +303,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                     throw midi::exception("Insufficient data for meta data event");
 
                 // Remember when the track or instrument name contains the word "drum". We'll need it later.
-                if ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName))
+                if (_Options._DetectExtraPercussionChannel && ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName)))
                 {
                     const char * p = (const char *) &data[0];
 

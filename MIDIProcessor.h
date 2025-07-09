@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.h (2025.06.09) **/
+/** $VER: MIDIProcessor.h (2025.07.09) **/
 
 #pragma once
 
@@ -30,9 +30,10 @@ struct processor_options_t
 
     // SMF
     bool _IsEndOfTrackRequired = true;
+    bool _DetectExtraPercussionChannel = true;
 };
 
-const processor_options_t DefaultOptions(0, false, false, true, false, false, true, 160);
+const processor_options_t DefaultOptions(0, false, false, true, false, false, true, 160, true, true);
 
 class processor_t
 {
