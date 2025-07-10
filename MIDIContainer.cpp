@@ -502,8 +502,10 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
             {
                 const event_t & Event = Track[j];
 
+                // Is it an EMIDI Track Designation control change?
                 if ((Event.Type == event_t::ControlChange) && (Event.Data[0] == 110))
                 {
+                    // 0 = General MIDI, 1 = Roland Sound Canvas (GM only), 0x7F = All instruments (https://moddingwiki.shikadi.net/wiki/Apogee_Expanded_MIDI)
                     if ((Event.Data[1] != 0) && (Event.Data[1] != 1) && (Event.Data[1] != 0x7F))
                     {
                         SkipTrack = true;
