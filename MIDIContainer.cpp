@@ -250,6 +250,8 @@ void container_t::Initialize(uint32_t format, uint32_t timeDivision)
 
         _Loop.resize(1);
     }
+
+    uint8_t PortNumber = 0; LimitPortNumber(PortNumber);
 }
 
 /// <summary>
