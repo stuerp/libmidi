@@ -15,7 +15,7 @@ class sysex_t
 public:
     static bool IsReset(const uint8_t * data) noexcept
     {
-        return IsEqual(data, GMReset) || IsEqual(data, GM2Reset) || IsEqual(data, GSReset) || IsEqual(data, XGReset);
+        return IsEqual(data, GMSystemOn) || IsEqual(data, GM2Reset) || IsEqual(data, GSReset) || IsEqual(data, XGSystemOn);
     }
 
     static bool IsEqual(const uint8_t * a, const uint8_t * b) noexcept
@@ -31,7 +31,7 @@ public:
 
     static bool IsGMReset(const uint8_t * data, size_t size) noexcept
     {
-        return (size == _countof(GMReset) && ::memcmp(data, GMReset, _countof(GMReset)) == 0);
+        return (size == _countof(GMSystemOn) && ::memcmp(data, GMSystemOn, _countof(GMSystemOn)) == 0);
     }
 
     static bool IsGM2Reset(const uint8_t * data, size_t size) noexcept
@@ -61,7 +61,7 @@ public:
 
     static bool IsXGReset(const uint8_t * data, size_t size) noexcept
     {
-        return (size == _countof(XGReset) && ::memcmp(data, XGReset, _countof(XGReset)) == 0);
+        return (size == _countof(XGSystemOn) && ::memcmp(data, XGSystemOn, _countof(XGSystemOn)) == 0);
     }
 
     static void SetRolandCheckSum(uint8_t * data, size_t size) noexcept
@@ -75,7 +75,7 @@ public:
         data[i] = (uint8_t) ((128 - Checksum) & 127);
     }
 
-    static const uint8_t GMReset[6];
+    static const uint8_t GMSystemOn[6];
     static const uint8_t GMDisable[6];
 
     static const uint8_t GM2Reset[6];
@@ -86,6 +86,7 @@ public:
     static const uint8_t GSReset[11];
     static const uint8_t GSToneMapNumber[11];
 
+    static const uint8_t XGSystemOn[9];
     static const uint8_t XGReset[9];
 };
 
