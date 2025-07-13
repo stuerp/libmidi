@@ -319,7 +319,7 @@ public:
     void SetExtraMetaData(const metadata_table_t & data);
 
     void SetSoundFontData(const std::vector<uint8_t> & data) noexcept;
-    const std::vector<uint8_t> & GetSoundFontData() const noexcept;
+    const std::vector<uint8_t> & GetSoundfontData() const noexcept;
 
     void ApplyHack(uint32_t hack);
 

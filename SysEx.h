@@ -13,9 +13,9 @@ namespace midi
 class sysex_t
 {
 public:
-    static bool IsReset(const uint8_t * data) noexcept
+    static bool IsSystemOn(const uint8_t * data) noexcept
     {
-        return IsEqual(data, GMSystemOn) || IsEqual(data, GM2Reset) || IsEqual(data, GSReset) || IsEqual(data, XGSystemOn);
+        return IsEqual(data, GM1SystemOn) || IsEqual(data, GM2SystemOn) || IsEqual(data, GSReset) || IsEqual(data, XGSystemOn);
     }
 
     static bool IsEqual(const uint8_t * a, const uint8_t * b) noexcept
@@ -29,17 +29,17 @@ public:
         return (*a == *b);
     }
 
-    static bool IsGMReset(const uint8_t * data, size_t size) noexcept
+    static bool IsGMSystemOn(const uint8_t * data, size_t size) noexcept
     {
-        return (size == _countof(GMSystemOn) && ::memcmp(data, GMSystemOn, _countof(GMSystemOn)) == 0);
+        return (size == _countof(GM1SystemOn) && ::memcmp(data, GM1SystemOn, _countof(GM1SystemOn)) == 0);
     }
 
-    static bool IsGM2Reset(const uint8_t * data, size_t size) noexcept
+    static bool IsGM2SystemOn(const uint8_t * data, size_t size) noexcept
     {
-        return (size == _countof(GM2Reset) && ::memcmp(data, GM2Reset, _countof(GM2Reset)) == 0);
+        return (size == _countof(GM2SystemOn) && ::memcmp(data, GM2SystemOn, _countof(GM2SystemOn)) == 0);
     }
 
-    static bool IsGSReset(const uint8_t * data, size_t size) noexcept
+    static bool IsGSSystemOn(const uint8_t * data, size_t size) noexcept
     {
         if (size != _countof(GSReset))
             return false;
@@ -59,7 +59,7 @@ public:
         return true;
     }
 
-    static bool IsXGReset(const uint8_t * data, size_t size) noexcept
+    static bool IsXGSystemOn(const uint8_t * data, size_t size) noexcept
     {
         return (size == _countof(XGSystemOn) && ::memcmp(data, XGSystemOn, _countof(XGSystemOn)) == 0);
     }
@@ -75,10 +75,10 @@ public:
         data[i] = (uint8_t) ((128 - Checksum) & 127);
     }
 
-    static const uint8_t GMSystemOn[6];
-    static const uint8_t GMDisable[6];
+    static const uint8_t GM1SystemOn[6];
+    static const uint8_t GM1SystemOff[6];
 
-    static const uint8_t GM2Reset[6];
+    static const uint8_t GM2SystemOn[6];
 
     static const uint8_t D50Reset[10];
     static const uint8_t MT32Reset[10];

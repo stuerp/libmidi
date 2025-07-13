@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.cpp (2025.06.21) **/
+/** $VER: SysEx.cpp (2025.07.13) **/
 
 #include "pch.h"
 
@@ -8,21 +8,21 @@
 namespace midi
 {
 
-const uint8_t sysex_t::GMSystemOn[6] =
+const uint8_t sysex_t::GM1SystemOn[6] =
 {
     0xF0, // Start of SysEx
     0x7E, 0x7F, 0x09, 0x01,
     0xF7  // End of SysEx
 };
 
-const uint8_t sysex_t::GMDisable[6] =
+const uint8_t sysex_t::GM1SystemOff[6] =
 {
     0xF0, // Start of SysEx
     0x7E, 0x7F, 0x09, 0x02,
     0xF7  // End of SysEx
 };
 
-const uint8_t sysex_t::GM2Reset[6] =
+const uint8_t sysex_t::GM2SystemOn[6] =
 {
     0xF0, // Start of SysEx
     0x7E, 0x7F, 0x09, 0x03,

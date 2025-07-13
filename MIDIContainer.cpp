@@ -425,7 +425,7 @@ void container_t::SetSoundFontData(const std::vector<uint8_t> & data) noexcept
     _SoundFontData = data;
 }
 
-const std::vector<uint8_t> & container_t::GetSoundFontData() const noexcept
+const std::vector<uint8_t> & container_t::GetSoundfontData() const noexcept
 {
     return _SoundFontData;
 }
