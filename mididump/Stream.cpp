@@ -219,7 +219,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
         {
             sysex_t SysEx(MessageData, MessageSize);
 
-            SysEx.Identify2();
+            SysEx.Identify();
 
             ::printf(", \"%s\", \"%s\", \"%s\", \"%s\"", SysEx.Manufacturer.c_str(), SysEx.Model.c_str(), SysEx.Command.c_str(), SysEx.Description.c_str());
         }

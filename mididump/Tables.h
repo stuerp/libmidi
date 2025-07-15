@@ -321,10 +321,10 @@ const control_change_description_t ControlChangeMessages[] =
 
     {  64, L"Damper Pedal On/Off (Sustain)" },                              // On/Off switch to control sustain. See also Sostenuto CC 66. (0 to 63 = Off, 64 to 127 = On)
     {  65, L"Portamento On/Off" },                                          // On/Off switch (0 to 63 = Off, 64 to 127 = On)
-    {  66, L"Sostenuto On/Off" },                                           // On/Off switch to hold only notes that were ìOnî when the pedal was pressed. (0 to 63 = Off, 64 to 127 = On)
+    {  66, L"Sostenuto On/Off" },                                           // On/Off switch to hold only notes that were ‚ÄúOn‚Äù when the pedal was pressed. (0 to 63 = Off, 64 to 127 = On)
     {  67, L"Soft Pedal On/Off" },                                          // On/Off switch to lower the volume of playing note. (0 to 63 = Off, 64 to 127 = On)
     {  68, L"Legato Footswitch" },                                          // On/Off switch to turn legato effect between 2 notes On or Off. (0 to 63 = Off, 64 to 127 = On)
-    {  69, L"Hold 2" },                                                     // Another way to ìhold notesî (see MIDI CC 64 and MIDI CC 66). However notes fade out according to their release parameter rather than when the pedal is released.
+    {  69, L"Hold 2" },                                                     // Another way to ‚Äúhold notes‚Äù (see MIDI CC 64 and MIDI CC 66). However notes fade out according to their release parameter rather than when the pedal is released.
 
     {  70, L"Sound Controller 1 (default: Sound Variation), LSB" },
     {  71, L"Sound Controller 2 (default: Timbre/Harmonic Intens.), LSB" },
@@ -400,48 +400,175 @@ const control_change_description_t ControlChangeMessages[] =
 #pragma warning(disable: 4820) // x bytes padding
 struct manufacturer_description_t
 {
-    uint8_t Id;
-    const wchar_t * Name;
+    uint32_t Id;
+    const char * Name;
 };
 #pragma warning(default: 4820) // x bytes padding
 
 // https://www.amei.or.jp/report/System_ID_e.html
 const manufacturer_description_t Manufacturers[]
 {
-    { 0x01, L"Sequential Circuits / Dave Smith Instruments" },
-    { 0x02, L"IDP" },
-    { 0x03, L"Octave-Plateau Electronics" },
-    { 0x04, L"Moog" },
-    { 0x05, L"Passport Designs" },
-    { 0x06, L"Lexicon" },
-    { 0x07, L"Kurzweil" },
-    { 0x08, L"Fender" },
-    { 0x09, L"Gulbransen" },
-    { 0x0A, L"Delta Labs" },
-    { 0x0B, L"Sound Comp." },
-    { 0x0C, L"General Electro" },
-    { 0x0D, L"Techmar" },
-    { 0x0E, L"Matthews Research" },
-    { 0x0F, L"Ensoniq" },
+    { 0x01, "Sequential Circuits / Dave Smith Instruments" },
+    { 0x02, "IDP" },
+    { 0x03, "Octave-Plateau Electronics" },
+    { 0x04, "Moog" },
+    { 0x05, "Passport Designs" },
+    { 0x06, "Lexicon" },
+    { 0x07, "Kurzweil" },
+    { 0x08, "Fender" },
+    { 0x09, "Gulbransen" },
+    { 0x0A, "Delta Labs" },
+    { 0x0B, "Sound Comp." },
+    { 0x0C, "General Electro" },
+    { 0x0D, "Techmar" },
+    { 0x0E, "Matthews Research" },
+    { 0x0F, "Ensoniq" },
 
     // 0x010-0x1F American
-    { 0x10, L"Oberheim" },
-    { 0x11, L"PAIA / Apple Computer" },
-    { 0x12, L"Simmons" },
-    { 0x13, L"DigiDesign / Gentle Electric" },
-    { 0x14, L"Fairlight" },
-    { 0x15, L"JL Cooper" },
-    { 0x16, L"Lowery" },
-    { 0x17, L"Lin" },
-    { 0x18, L"Emu Systems" },
-    { 0x19, L"Harmony Systems" },
-    { 0x1A, L"ART" },
-    { 0x1B, L"Peavey / Baldwin" },
-    { 0x1C, L"Eventide" },
-    { 0x1D, L"Inventronics" },
+    { 0x10, "Oberheim" },
+    { 0x11, "PAIA / Apple Computer" },
+    { 0x12, "Simmons" },
+    { 0x13, "DigiDesign / Gentle Electric" },
+    { 0x14, "Fairlight" },
+    { 0x15, "JL Cooper" },
+    { 0x16, "Lowery" },
+    { 0x17, "Lin" },
+    { 0x18, "Emu Systems" },
+    { 0x19, "Harmony Systems" },
+    { 0x1A, "ART" },
+    { 0x1B, "Peavey / Baldwin" },
+    { 0x1C, "Eventide" },
+    { 0x1D, "Inventronics" },
 
-    { 0x1F, L"Clarity" },
+    { 0x1F, "Clarity" },
+
+    // 0x20-0x3F European
+    { 0x20, "Passac / Bon Tempi" },
+    { 0x21, "S.I.E.L." },
+    { 0x22, "Synthaxe (UK)" },
+    { 0x23, "Stepp" },
+    { 0x24, "Hohner" },
+    { 0x25, "Crumar / Twister" },
+    { 0x26, "Solton" },
+    { 0x27, "Jellinghaus MS" },
+    { 0x28, "CTS / Southworth Music Systems" },
+    { 0x29, "PPG" },
+    { 0x2A, "JEN" },
+    { 0x2B, "Solid State Organ Systems" },
+    { 0x2C, "Audio Vertrieb P. Struven" },
+    { 0x2D, "Hinton Instruments / Neve" },
+    { 0x2E, "Soundtracs" },
+    { 0x2F, "Elka" },
+    { 0x30, "Dynacord" },
+    { 0x31, "Viscount" },
+    { 0x32, "Drawmer" },
+    { 0x33, "Clavia Digital Instruments" },
+    { 0x34, "Audio Architecture" },
+    { 0x35, "GeneralMusic" },
+    { 0x36, "Cheetah Marketing" },
+    { 0x37, "C.T.M." },
+    { 0x38, "Simmons UK" },
+    { 0x39, "Soundcraft Electronics" },
+    { 0x3A, "Steinberg" },
+    { 0x3B, "Wersi" },
+    { 0x3C, "AVAB Niethammer" },
+    { 0x3D, "Digigram" },
+    { 0x3E, "Waldorf Electronics" },
+    { 0x3F, "Quasimidi" },
+
+    // 0x40-0x5F Japanese
+    { 0x40, "Kawai Musical Instruments" },
+    { 0x41, "Roland" },
+    { 0x42, "Korg" },
+    { 0x43, "Yamaha" },
+    { 0x44, "Casio Computer" },
+
+    { 0x46, "Kamiya Studio" },
+    { 0x47, "Akai Electric" },
+    { 0x48, "Victor Company of Japan" },
+
+    { 0x4B, "Fujitsu" },
+    { 0x4C, "Sony" },
+
+    { 0x4E, "Teac" },
+
+    { 0x50, "Matsushita Electric Industrial" },
+    { 0x51, "Fostex" },
+    { 0x52, "Zoom" },
+
+    { 0x54, "Matsushita Communication Industrial" },
+    { 0x55, "Suzuki Musical Instruments" },
+    { 0x56, "Fuji Sound" },
+    { 0x57, "Acoustic Technical Laboratory" },
+
+    { 0x59, "Faith" },
+    { 0x5A, "Internet Corporation" },
+    { 0x5C, "Seekers Co." },
+    { 0x5F, "SD Card Association" },
+
+    // 0x60-0x7C Other
+
+    // 0x7D-0x7F Special
+    { 0x7D, "Private Use" },
+    { 0x7E, "Universal (Non-Real Time)" },
+    { 0x7F, "Universal (Real Time)" },
 /*
+        // 0x0001 - 0x1F7F American
+            case 0x0009: Manufacturer = "New England Digital"; break;
+            case 0x0016: Manufacturer = "Opcode"; break;
+            case 0x001B: Manufacturer = "Peavey"; break;
+            case 0x001C: Manufacturer = "360 Systems"; break;
+            case 0x001F: Manufacturer = "Zeta"; break;
+            case 0x002F: Manufacturer = "Encore Electronics"; break;
+            case 0x003B: Manufacturer = "MOTU"; break;
+            case 0x0041: Manufacturer = "Microsoft"; break;
+            case 0x004D: Manufacturer = "Studio Electronics"; break;
+            case 0x007E: Manufacturer = "MIDIbox"; break;
+
+            case 0x0105: Manufacturer = "M-Audio"; break;
+            case 0x0121: Manufacturer = "Cakewalk"; break;
+            case 0x0137: Manufacturer = "Roger Linn Design"; break;
+            case 0x013F: Manufacturer = "Numark / Alesis"; break;
+            case 0x014D: Manufacturer = "Open Labs"; break;
+            case 0x0172: Manufacturer = "Kilpatrick Audio"; break;
+            case 0x0177: Manufacturer = "Nektar"; break;
+
+            case 0x0214: Manufacturer = "Intellijel"; break;
+            case 0x021F: Manufacturer = "Madrona Labs"; break;
+            case 0x0226: Manufacturer = "Electro-Harmonix"; break;
+
+        // 0x2000 - 0x3F7F European
+            case 0x2013: Manufacturer = "Kenton"; break;
+            case 0x201A: Manufacturer = "Fatar / Studiologic"; break;
+            case 0x201F: Manufacturer = "TC Electronic"; break;
+            case 0x2029: Manufacturer = "Novation"; break;
+            case 0x2032: Manufacturer = "Behringer"; break;
+            case 0x2033: Manufacturer = "Access Music"; break;
+            case 0x203A: Manufacturer = "Propellorhead"; break;
+            case 0x203B: Manufacturer = "Red Sound"; break;
+            case 0x204D: Manufacturer = "Vermona"; break;
+            case 0x2050: Manufacturer = "Hartmann"; break;
+            case 0x2052: Manufacturer = "Analogue Systems"; break;
+            case 0x205F: Manufacturer = "Sequentix"; break;
+            case 0x2069: Manufacturer = "Elby Designs"; break;
+            case 0x206B: Manufacturer = "Arturia"; break;
+            case 0x2076: Manufacturer = "Teenage Engineering"; break;
+            case 0x2102: Manufacturer = "Mutable Instruments"; break;
+            case 0x2107: Manufacturer = "Modal Electronics"; break;
+            case 0x2109: Manufacturer = "Native Instruments"; break;
+            case 0x2110: Manufacturer = "ROLI"; break;
+            case 0x211A: Manufacturer = "IK Multimedia"; break;
+            case 0x2127: Manufacturer = "Expert Sleepers"; break;
+            case 0x2135: Manufacturer = "Dreadbox"; break;
+            case 0x2141: Manufacturer = "Marienberg"; break;
+
+        // 0x4000 - 0x5F7F Japanese
+
+        // 0x6000 - 0x7F7F Other
+            default:
+                Manufacturer = "Other";
+
+ 
     00H 00H 01H 	Time/Warner Interactive
     00H 00H 02H 	Advanced Gravis Comp.
     00H 00H 03H 	Media Vision
@@ -657,39 +784,6 @@ const manufacturer_description_t Manufacturers[]
     00H 01H 5DH 	Sonarcana LLC
     00H 01H 5EH 	Centrance 
 */
-    // 0x20-0x3F European
-    { 0x20, L"Passac / Bon Tempi" },
-    { 0x21, L"S.I.E.L." },
-    { 0x22, L"Synthaxe (UK)" },
-    { 0x23, L"Stepp" },
-    { 0x24, L"Hohner" },
-    { 0x25, L"Crumar / Twister" },
-    { 0x26, L"Solton" },
-    { 0x27, L"Jellinghaus MS" },
-    { 0x28, L"CTS / Southworth Music Systems" },
-    { 0x29, L"PPG" },
-    { 0x2A, L"JEN" },
-    { 0x2B, L"Solid State Organ Systems" },
-    { 0x2C, L"Audio Vertrieb P. Struven" },
-    { 0x2D, L"Hinton Instruments / Neve" },
-    { 0x2E, L"Soundtracs" },
-    { 0x2F, L"Elka" },
-    { 0x30, L"Dynacord" },
-    { 0x31, L"Viscount" },
-    { 0x32, L"Drawmer" },
-    { 0x33, L"Clavia Digital Instruments" },
-    { 0x34, L"Audio Architecture" },
-    { 0x35, L"GeneralMusic" },
-    { 0x36, L"Cheetah Marketing" },
-    { 0x37, L"C.T.M." },
-    { 0x38, L"Simmons UK" },
-    { 0x39, L"Soundcraft Electronics" },
-    { 0x3A, L"Steinberg" },
-    { 0x3B, L"Wersi" },
-    { 0x3C, L"AVAB Niethammer" },
-    { 0x3D, L"Digigram" },
-    { 0x3E, L"Waldorf Electronics" },
-    { 0x3F, L"Quasimidi" },
 /*
     00H 20H 00H 	Dream
     00H 20H 01H 	Strand Lighting
@@ -801,43 +895,6 @@ const manufacturer_description_t Manufacturers[]
     00H 20H 6CH 	Vixid
     00H 20H 6DH 	C-Thru Music
 */
-    // 0x40-0x5F Japanese
-    { 0x40, L"Kawai Musical Instruments" },
-    { 0x41, L"Roland" },
-    { 0x42, L"Korg" },
-    { 0x43, L"Yamaha" },
-    { 0x44, L"Casio Computer" },
-
-    { 0x46, L"Kamiya Studio" },
-    { 0x47, L"Akai Electric" },
-    { 0x48, L"Victor Company of Japan" },
-
-    { 0x4B, L"Fujitsu" },
-    { 0x4C, L"Sony" },
-
-    { 0x4E, L"Teac" },
-
-    { 0x50, L"Matsushita Electric Industrial" },
-    { 0x51, L"Fostex" },
-    { 0x52, L"Zoom" },
-
-    { 0x54, L"Matsushita Communication Industrial" },
-    { 0x55, L"Suzuki Musical Instruments" },
-    { 0x56, L"Fuji Sound" },
-    { 0x57, L"Acoustic Technical Laboratory" },
-
-    { 0x59, L"Faith" },
-    { 0x5A, L"Internet Corporation" },
-    { 0x5C, L"Seekers Co." },
-    { 0x5F, L"SD Card Association" },
-
-    // 0x60-0x7C Other
-
-    // 0x7D-0x7F Special
-    { 0x7D, L"Private Use" },
-    { 0x7E, L"Universal (Non-Real Time)" },
-    { 0x7F, L"Universal (Real Time)" },
-
 /*
     00H 40H 00H 	CRIMSON TECHNOLOGY INC
     00H 40H 01H 	SOFTBANK MOBILE CORP

@@ -84,7 +84,7 @@ void ProcessContainer(midi::container_t & Container, bool asStream)
             {
                 const midi::metadata_item_t & Item = MetaData[j];
 
-                ::printf("- %8d %s: %s\n", Item.Timestamp, Item.Name.c_str(), TextToUTF8(Item.Value.c_str()).c_str());
+                ::printf("- %8d %s: \"%s\"\n", Item.Timestamp, Item.Name.c_str(), TextToUTF8(Item.Value.c_str()).c_str());
             }
         }
 

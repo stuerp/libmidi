@@ -266,8 +266,7 @@ public:
         ::memcpy(_Data.data(), data, size);
     }
 
-    void Identify();
-    void Identify2() noexcept;
+    void Identify() noexcept;
 
     std::string Manufacturer;
     std::string Model;
@@ -275,11 +274,12 @@ public:
     std::string Description;
 
 private:
-    void IdentifyGSMessage();
+    uint32_t IdentifyManufacturer() noexcept;
 
-    void Identify2Roland() noexcept;
-    void Identify2Yamaha() noexcept;
+    void IdentifyRoland() noexcept;
+    void IdentifyYamaha() noexcept;
 
 private:
     std::vector<uint8_t> _Data;
+    std::vector<uint8_t>::iterator _Iter;
 };
