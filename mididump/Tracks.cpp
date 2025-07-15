@@ -1,4 +1,4 @@
-﻿
+
 /** $VER: Tracks.cpp (2025.04.06) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
@@ -189,7 +189,7 @@ static void ProcessSysEx(const midi::event_t & me) noexcept
 
     SysEx.Identify();
 
-    ::printf(" \"%s\", \"%s\"", ::WideToUTF8(SysEx.GetManufacturer()).c_str(), ::WideToUTF8(SysEx.GetDescription()).c_str());
+    ::printf(" \"%s\", \"%s\"", SysEx.Manufacturer.c_str(), SysEx.Description.c_str());
 }
 
 /// <summary>

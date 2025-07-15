@@ -1,4 +1,4 @@
-﻿
+
 /** $VER: Encoding.cpp (2024.08.17) P. Stuer **/
 
 #include "pch.h"

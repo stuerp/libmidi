@@ -1,4 +1,4 @@
-﻿
+
 /** $VER: mididump.cpp (2025.03.19) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
@@ -43,7 +43,7 @@ int midmain(int argc, wchar_t * argv[])
 
         midi::processor_t::Process(Data, FilePath.c_str(), Container, Options);
 
-        ProcessContainer(Container, false);
+        ProcessContainer(Container, true);
     }
     catch (std::exception & e)
     {

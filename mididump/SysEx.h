@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.h (2025.04.06) P. Stuer **/
+/** $VER: SysEx.h (2025.07.14) P. Stuer **/
 
 #pragma once
 
@@ -255,28 +255,31 @@ const sysex_description_t SysExMessages[]
 class sysex_t
 {
 public:
-    sysex_t(const std::vector<uint8_t> & data)
+    sysex_t(const std::vector<uint8_t> & data) noexcept
     {
         _Data = data;
     }
 
-    sysex_t(const uint8_t * data, size_t size)
+    sysex_t(const uint8_t * data, size_t size) noexcept
     {
         _Data.resize(size);
         ::memcpy(_Data.data(), data, size);
     }
 
     void Identify();
+    void Identify2() noexcept;
 
-    std::wstring GetManufacturer() { return _Manufacturer; }
-    std::wstring GetDescription() { return _Description; }
+    std::string Manufacturer;
+    std::string Model;
+    std::string Command;
+    std::string Description;
 
 private:
     void IdentifyGSMessage();
 
+    void Identify2Roland() noexcept;
+    void Identify2Yamaha() noexcept;
+
 private:
     std::vector<uint8_t> _Data;
-
-    std::wstring _Manufacturer;
-    std::wstring _Description;
 };
