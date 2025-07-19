@@ -51,6 +51,7 @@
     <ClCompile Include="Recomposer\Support.cpp" />
     <ClCompile Include="SMAF\MMF.cpp" />
     <ClCompile Include="SysEx.cpp" />
+    <ClCompile Include="Tables.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Exception.h" />
@@ -68,6 +69,7 @@
     <ClInclude Include="SMAF\MMF.h" />
     <ClInclude Include="Support.h" />
     <ClInclude Include="SysEx.h" />
+    <ClInclude Include="Tables.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />

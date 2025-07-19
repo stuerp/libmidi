@@ -64,8 +64,9 @@ void midi_stream_t::WriteRolandSysEx(const uint8_t * syxHdr, uint32_t address, c
             Checksum += _Data[_Offs + i];
 
         _Data[_Offs + size + 0x07] = (uint8_t) ((-Checksum) & 0x7F);
-        _Data[_Offs + size + 0x08] = 0xF7;
     }
+
+    _Data[_Offs + size + 0x08] = 0xF7;
 
     _Offs += Size;
 

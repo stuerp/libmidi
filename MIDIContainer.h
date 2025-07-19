@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.07.06) **/
+/** $VER: MIDIContainer.h (2025.07.16) **/
 
 #pragma once
 
@@ -364,6 +364,8 @@ public:
 
     void DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool detectRPGMakerLoops, bool detectTouhouLoops, bool detectLeapFrogLoops);
 
+    uint32_t TimestampToMS(uint32_t timestamp, size_t subsongIndex) const;
+
     static void EncodeVariableLengthQuantity(std::vector<uint8_t> & data, uint32_t delta);
 
 public:
@@ -390,8 +392,6 @@ public:
 private:
     void TrimRange(size_t start, size_t end);
     void TrimTempoMap(size_t index, uint32_t base_timestamp);
-
-    uint32_t TimestampToMS(uint32_t timestamp, size_t subsongIndex) const;
 
     #pragma warning(disable: 4267)
     // Normalize port numbers properly
@@ -449,7 +449,7 @@ private:
     metadata_table_t _ExtraMetaData;
     std::vector<uint8_t> _SoundFontData;
 
-    std::vector<uint32_t> _EndTimestamps;
+    std::vector<uint32_t> _EndTimestamps;   // Largest timestamp for each track.
 
     std::vector<range_t> _Loop;
     std::vector<uint8_t> _Artwork;

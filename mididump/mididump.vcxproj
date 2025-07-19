@@ -142,14 +142,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="midmain.cpp" />
+    <ClCompile Include="Messages.cpp" />
+    <ClCompile Include="Process.cpp" />
     <ClCompile Include="Stream.cpp" />
-    <ClCompile Include="SysEx.cpp" />
     <ClCompile Include="Tracks.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="SysEx.h" />
-    <ClInclude Include="Tables.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libmidi.vcxproj">
@@ -158,6 +154,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Messages.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

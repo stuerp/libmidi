@@ -1,10 +1,11 @@
 
-/** $VER: MIDIContainer.cpp (2025.07.06) **/
+/** $VER: MIDIContainer.cpp (2025.07.16) **/
 
 #include "pch.h"
 
 #include "MIDIContainer.h"
 #include "Support.h"
+#include "SysEx.h"
 
 namespace midi
 {
@@ -247,9 +248,9 @@ void container_t::Initialize(uint32_t format, uint32_t timeDivision)
 
         _EndTimestamps.resize(1);
         _EndTimestamps[0] = 0;
-
-        _Loop.resize(1);
     }
+
+    _Loop.resize(1);
 
     uint8_t PortNumber = 0; LimitPortNumber(PortNumber);
 }
@@ -352,10 +353,10 @@ void container_t::AddTrack(const track_t & track)
     else
     if (_Format == 2)
     {
-        if (EventIndex > 0)
-            _EndTimestamps.push_back(track[EventIndex - 1].Time);
-        else
+        if (EventIndex == 0)
             _EndTimestamps.push_back((uint32_t) 0);
+        else
+            _EndTimestamps.push_back(track[EventIndex - 1].Time);
     }
 }
 
@@ -474,6 +475,9 @@ void container_t::ApplyHack(uint32_t hack)
     }
 }
 
+/// <summary>
+/// Serializes the tracks as a stream of MIDI events.
+/// </summary>
 void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> & midiStream, sysex_table_t & sysExTable, std::vector<uint8_t> & portNumbers, uint32_t & loopBegin, uint32_t & loopEnd, uint32_t cleanFlags) const
 {
     uint32_t LoopBeginTimestamp = GetLoopBeginTimestamp(subSongIndex);
@@ -695,6 +699,9 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
     loopEnd   = (uint32_t) LoopEnd;
 }
 
+/// <summary>
+/// Serializes the tracks as an SMF file.
+/// </summary>
 void container_t::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
 {
     if (_Tracks.size() == 0)
@@ -888,16 +895,16 @@ uint32_t container_t::GetDuration(size_t subSongIndex, bool ms /* = false */) co
 {
     size_t SubSongIndex = 0;
 
-    uint32_t Timestamp = _EndTimestamps[0];
+    uint32_t Length = _EndTimestamps[0];
 
     if ((_Format == 2) && (subSongIndex != 0))
     {
         SubSongIndex = subSongIndex;
 
-        Timestamp = _EndTimestamps[subSongIndex];
+        Length = _EndTimestamps[subSongIndex];
     }
 
-    return ms ? TimestampToMS(Timestamp, SubSongIndex) : Timestamp;
+    return ms ? TimestampToMS(Length, SubSongIndex) : Length;
 }
 
 uint32_t container_t::GetFormat() const
@@ -963,7 +970,7 @@ uint32_t container_t::GetLoopEndTimestamp(size_t subSongIndex, bool ms /* = fals
 
 void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
 {
-    const char * TypeName = nullptr;
+    std::string Type;
     uint32_t TypeTimestamp = 0;
 
     bool IsSoftKaraoke = false;
@@ -986,49 +993,43 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
 
             size_t DataSize = Event.Data.size();
 
-            const char * TempTypeName = nullptr;
+            std::string NewType;
 
-            if ((DataSize >= 1) && (Event.Data[0] == StatusCodes::SysEx))
+            if ((DataSize > 0) && (Event.Data[0] == StatusCodes::SysEx))
             {
-                switch (Event.Data[1])
+                if ((DataSize == sizeof(sysex_t::GM1SystemOn)) && (::memcmp(Event.Data.data(), sysex_t::GM1SystemOn, sizeof(sysex_t::GM1SystemOn)) == 0))
+                    NewType = "GM"; // 1991
+                else
+                if ((DataSize == sizeof(sysex_t::GSReset)) && (::memcmp(Event.Data.data(), sysex_t::GSReset, sizeof(sysex_t::GSReset)) == 0))
+                    NewType = "GS"; // 1991
+                else
+                if ((DataSize == sizeof(sysex_t::GM2SystemOn)) && (::memcmp(Event.Data.data(), sysex_t::GM2SystemOn, sizeof(sysex_t::GM2SystemOn)) == 0))
+                    NewType = "GM2"; // 1999, 2003 v1.1, 2007 v1.2
+                else
+                if ((DataSize == sizeof(sysex_t::XGSystemOn)) && (::memcmp(Event.Data.data(), sysex_t::XGSystemOn, sizeof(sysex_t::XGSystemOn)) == 0))
+                    NewType = "XG"; // 1994 Level 1, 1997 Level 2, 1998, Level 3
+                else
+                if ((DataSize == sizeof(sysex_t::XGReset)) && (::memcmp(Event.Data.data(), sysex_t::XGReset, sizeof(sysex_t::XGReset)) == 0))
+                    NewType = "XG"; // 1994 Level 1, 1997 Level 2, 1998, Level 3
+                else
+                if ((DataSize > 1) && (Event.Data[1] == 0x42u))
+                    NewType = "X5"; // 1994 Korg X5
+                else
+                if ((DataSize > 4) && (Event.Data[1] == 0x41u))
                 {
-                    case 0x7Eu:
+                    switch (Event.Data[3])
                     {
-                        TempTypeName = "GM"; // 1991
+                        case 0x42u:
+                            NewType = "GS"; // 1991
+                            break;
 
-                        if ((DataSize >= 5) && (((Event.Data[3] == 0x04) && (Event.Data[4] >= 0x05)) || (Event.Data[3] > 0x04)))
-                            TempTypeName = "GM2"; // 1999, 2003 v1.1, 2007 v1.2
-                        break;
-                    }
+                        case 0x16u:
+                            NewType = "MT-32"; // 1987 Roland MT-32
+                            break;
 
-                    case 0x43u:
-                        TempTypeName = "XG"; // 1994 Level 1, 1997 Level 2, 1998, Level 3
-                        break;
-
-                    case 0x42u:
-                        TempTypeName = "X5"; // 1994 Korg X5
-                        break;
-
-                    case 0x41u:
-                    {
-                        if (DataSize > 3)
-                        {
-                            switch (Event.Data[3])
-                            {
-                                case 0x42u:
-                                    TempTypeName = "GS"; // 1991
-                                    break;
-
-                                case 0x16u:
-                                    TempTypeName = "MT-32"; // 1987 Roland MT-32
-                                    break;
-
-                                case 0x14u:
-                                    TempTypeName = "D-50"; // 1987 Roland D-50
-                                    break;
-                            }
-                        }
-                        break;
+                        case 0x14u:
+                            NewType = "D-50"; // 1987 Roland D-50
+                            break;
                     }
                 }
             }
@@ -1205,29 +1206,30 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
             }
 
             // Remember the container type name: MT-32 or GM < GM2 < GS < XG
-            if (TempTypeName != nullptr)
+            if (!NewType.empty())
             {
-                if ((TypeName != nullptr) && (::_stricmp(TypeName, "MT-32") != 0))
+                if (!Type.empty())
                 {
-                    if ((::_stricmp(TypeName, "GM") == 0) && (::_stricmp(TempTypeName, "GM2") == 0))
-                        TypeName = TempTypeName;
-                    else
-                    if (((::_stricmp(TypeName, "GM") == 0) || (::_stricmp(TypeName, "GM2") == 0)) && (::_stricmp(TempTypeName, "GS") == 0))
-                        TypeName = TempTypeName;
-                    else
-                    if (::_stricmp(TempTypeName, "XG") == 0)
-                        TypeName = TempTypeName;
+                    if (Type != "MT-32") // MT-32 is dominant
+                    {
+                        if ((NewType == "GM2") && (Type == "GM"))
+                            Type = NewType;
+                        else
+                        if ((NewType == "GS") && ((Type == "GM") || (Type == "GM2")))
+                            Type = NewType;
+                        else
+                        if (NewType == "XG")
+                            Type = NewType;
+                    }
                 }
                 else
-                    TypeName = TempTypeName;
+                    Type = NewType;
             }
         }
     }
 
-    if (TypeName && (::_stricmp(TypeName, "GM") != 0))
-        metaData.AddItem(metadata_item_t(TypeTimestamp, "type", TypeName));
-    else
-        metaData.AddItem(metadata_item_t(0, "type", "GM"));
+    if (!Type.empty())
+        metaData.AddItem(metadata_item_t(TypeTimestamp, "type", Type.c_str()));
 
     metaData.Append(_ExtraMetaData);
 }
@@ -1688,9 +1690,9 @@ uint32_t container_t::TimestampToMS(uint32_t timestamp, size_t subSongIndex) con
 {
     uint32_t TimestampInMS = 0;
     uint32_t Time = 0;
-    uint32_t Tempo = 500'000; // Default: 500000 μs per beat / 120 beats per minute
-    const uint32_t RoundingFactor = _TimeDivision * 500;
+    uint32_t Tempo = 500'000; // Default: 500,000 μs per beat / 120 beats per minute
 
+    const uint32_t RoundingFactor = _TimeDivision * 500;
     const uint32_t TicksPerMS = RoundingFactor * 2;
 
     size_t TempoMapCount = _TempoMaps.size();

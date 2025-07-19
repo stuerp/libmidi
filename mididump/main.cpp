@@ -1,5 +1,5 @@
-﻿
-/** $VER: main.cpp (2025.03.19) P. Stuer **/
+
+/** $VER: main.cpp (2025.07.16) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -27,7 +27,9 @@
 static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPattern);
 static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
 
-int midmain(int argc, wchar_t * argv[]);
+void ExamineFile(const std::wstring & filePath);
+
+bool StreamMode;
 
 const WCHAR * Filters[] = { L".mid", /*L".g36",*/ /*L".rmi", L".mxmf", L".xmf",*/ L".mmf", L".tst" };
 
@@ -46,6 +48,8 @@ int wmain(int argc, const wchar_t ** argv)
         ::printf("Failed to access \"%s\": path does not exist.\n", ::WideToUTF8(argv[1]).c_str());
         return -1;
     }
+
+    StreamMode = (argc > 2) && (::_wcsicmp(argv[2], L"-stream") == 0);
 
     WCHAR DirectoryPath[MAX_PATH];
 
@@ -127,11 +131,7 @@ static void ProcessFile(const WCHAR * filePath, uint64_t fileSize)
         {
             if (::_wcsicmp(FileExtension, Filter) == 0)
             {
-                {
-                    const wchar_t * argv[] = { L"mididump.exe", filePath };
-
-                    midmain(_countof(argv), (wchar_t **) argv);
-                }
+                ExamineFile(filePath);
 
                 break;
             }

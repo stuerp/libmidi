@@ -1,5 +1,5 @@
 
-/** $VER: Stream.cpp (2025.03.19) P. Stuer **/
+/** $VER: Stream.cpp (2025.07.18) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
@@ -8,43 +8,76 @@
 #include <MIDIProcessor.h>
 #include <Encoding.h>
 
-#include "Tables.h"
+#include "Messages.h"
 #include "SysEx.h"
+#include "Tables.h"
+
+using namespace midi;
 
 static uint8_t CCMSB = 255; // Control Change Most Significant Byte
 static uint8_t CCLSB = 255; // Control Change Least Significant Byte
 
 static uint8_t DELSB = 0;
 
+static uint32_t ProcessEvent(const midi::message_t & message, uint32_t messageTimeInMS, uint32_t timestamp, size_t index, const midi::sysex_table_t & sysExMap);
+
+/// <summary>
+/// Processes the stream.
+/// </summary>
+void ProcessStream(const midi::container_t & container, const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents)
+{
+    const uint32_t SubsongIndex = 0;
+
+    ::printf("%u messages, %u unique SysEx messages, %u ports\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size(), (uint32_t) portNumbers.size());
+
+    uint32_t Time = std::numeric_limits<uint32_t>::max();
+    size_t i = 0;
+
+    for (const auto & m : stream)
+    {
+        // Skip all normal MIDI events.
+        if (skipNormalEvents && !m.IsSysEx())
+            continue;
+
+        Time = ProcessEvent(m, container.TimestampToMS(m.Time, SubsongIndex), Time, i++, sysExMap);
+    }
+}
+
 /// <summary>
 /// Processes MIDI stream events.
 /// </summary>
-uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t index, const midi::sysex_table_t & sysExMap)
+static uint32_t ProcessEvent(const midi::message_t & message, uint32_t messageTimeInMS, uint32_t time, size_t index, const midi::sysex_table_t & sysExMap)
 {
-    char Timestamp[16];
-    char Time[16];
-
-    if (item.Time != timestamp)
+    // Output the header.
     {
-        ::_snprintf_s(Timestamp, _countof(Timestamp), "%8u ticks",  item.Time);
-        ::_snprintf_s(Time, _countof(Time), "%8.2f s", (double) item.Time / 1000.);
-    }
-    else
-    {
-        ::strncpy_s(Timestamp, "", _countof(Timestamp));
-        ::strncpy_s(Time, "", _countof(Time));
-    }
+        char Display1[16];
+        char Display2[16];
+        char Display3[16];
 
-    ::printf("%8d %-14s %-10s ", (int) index, Timestamp, Time);
+        if (message.Time != time)
+        {
+            ::_snprintf_s(Display1, _countof(Display1), "%8u ticks",  message.Time);
+
+            ::_snprintf_s(Display2, _countof(Display2), "%8.2f s", (double) messageTimeInMS / 1000.);
+
+            const uint32_t t = messageTimeInMS / 1000;
+
+            ::_snprintf_s(Display3, _countof(Display3), "%02d:%02d:%02d", t / 3600, (t % 3600) / 60, t % 60);
+        }
+        else
+            Display1[0] = Display2[0] = Display3[0] = '\0';
+
+        ::printf("%8d %-14s %-10s %-8s ", (int) index, Display1, Display2, Display3);
+    }
 
     // MIDI Event
-    if (!item.IsSysEx())
+    if (!message.IsSysEx())
     {
         uint8_t Event[3]
         {
-            (uint8_t) (item.Data),
-            (uint8_t) (item.Data >> 8),
-            (uint8_t) (item.Data >> 16)
+            (uint8_t) (message.Data),
+            (uint8_t) (message.Data >> 8),
+            (uint8_t) (message.Data >> 16)
         };
 
         const uint8_t StatusCode = (const uint8_t) (Event[0] & 0xF0u);
@@ -52,7 +85,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
         const uint32_t EventSize = (uint32_t) ((StatusCode >= midi::TimingClock   && StatusCode <= midi::MetaData) ? 1 :
                                               ((StatusCode == midi::ProgramChange || StatusCode == midi::ChannelPressure) ? 2 : 3));
 
-        uint8_t PortNumber = (item.Data >> 24) & 0x7F;
+        uint8_t PortNumber = (message.Data >> 24) & 0x7F;
 
         ::printf("%02X", Event[0]);
 
@@ -75,11 +108,11 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
         switch (StatusCode)
         {
             case midi::NoteOff:
-                ::printf("Note Off, %3d, Velocity %3d\n", Event[1], Event[2]);
+                ::printf("Note Off %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case midi::NoteOn:
-                ::printf("Note On , %3d, Velocity %3d\n", Event[1], Event[2]);
+                ::printf("Note On  %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case midi::KeyPressure:
@@ -88,7 +121,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
 
             case midi::ControlChange:
             {
-                ::printf("Control Change %3d = %3d (%s)\n", Event[1], Event[2], ::WideToUTF8(ControlChangeMessages[Event[1]].Name).c_str());
+                ::printf("Control Change %3d %3d \"%s\"\n", Event[1], Event[2], DescribeControlChange(Event[1], Event[2]).c_str());
 
                 if (Event[1] == 98)     // Non-Registered Parameter LSB
                     CCLSB = Event[2];
@@ -130,7 +163,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
             }
 
             case midi::ProgramChange:
-                ::printf("Program Change %3d, %s\n", Event[1] + 1, ::WideToUTF8(Instruments[Event[1]].Name).c_str());
+                ::printf("Program Change %3d, \"%s\"\n", Event[1], Instruments[Event[1]]);;
                 break;
 
             case midi::ChannelPressure:
@@ -138,7 +171,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
                 break;
 
             case midi::PitchBendChange:
-                ::printf("Pitch Bend Change %02X:%02X\n", Event[1], Event[2]);
+                ::printf("Pitch Bend Change %5d\n", 8192 - ((int) (Event[2] & 0x7F) << 7) | (Event[1] & 0x7F));
                 break;
 
             case midi::SysEx:
@@ -196,7 +229,7 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
     // SysEx Index
     else
     {
-        const uint32_t Index = item.Data & 0xFFFFFFu;
+        const uint32_t Index = message.Data & 0xFFFFFFu;
 
         const uint8_t * MessageData;
         size_t MessageSize;
@@ -227,25 +260,5 @@ uint32_t ProcessEvent(const midi::message_t & item, uint32_t timestamp, size_t i
         ::putchar('\n');
     }
 
-    return item.Time;
-}
-
-/// <summary>
-/// Processes the stream.
-/// </summary>
-void ProcessStream(const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents)
-{
-    ::printf("%u messages, %u unique SysEx messages, %u ports\n", (uint32_t) stream.size(), (uint32_t) sysExMap.Size(), (uint32_t) portNumbers.size());
-
-    uint32_t Time = std::numeric_limits<uint32_t>::max();
-    size_t i = 0;
-
-    for (const auto & mi : stream)
-    {
-        // Skip all normal MIDI events.
-        if (skipNormalEvents && !mi.IsSysEx())
-            continue;
-
-        Time = ProcessEvent(mi, Time, i++, sysExMap);
-    }
+    return message.Time;
 }
