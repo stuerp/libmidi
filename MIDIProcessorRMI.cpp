@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRMI.cpp (2025.03.19) **/
+/** $VER: MIDIProcessorRMI.cpp (2025.07.21) **/
 
 #include "pch.h"
 
@@ -180,7 +180,7 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
         {
             for (const auto & Event : Track)
             {
-                if ((Event.Type == event_t::ControlChange) && (Event.Data[0] == 0) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
+                if ((Event.Type == event_t::ControlChange) && (Event.Data[0] == midi::BankSelect) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
                 {
                     container.SetBankOffset(1);
                     break;

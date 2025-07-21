@@ -303,7 +303,7 @@ struct message_t
 class container_t
 {
 public:
-    container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(1)
+    container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(0)
     {
         _DeviceNames.resize(16);
     }
