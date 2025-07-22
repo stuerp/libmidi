@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorGMF.cpp (2025.04.05) Game Music Format (http://www.vgmpf.com/Wiki/index.php?title=GMF) **/
+/** $VER: MIDIProcessorGMF.cpp (2025.07.22) Game Music Format (http://www.vgmpf.com/Wiki/index.php?title=GMF) **/
 
 #include "pch.h"
 
@@ -21,6 +21,8 @@ bool processor_t::IsGMF(std::vector<uint8_t> const & data) noexcept
 
 bool processor_t::ProcessGMF(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::GMF;
+
     container.Initialize(0, 0xC0);
 
     uint16_t Tempo = (uint16_t) (((uint16_t) data[4] << 8) | data[5]);

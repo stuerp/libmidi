@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorMUS.cpp (2025.03.19) Created by Paul Radek for his DMX audio library. Used by id Software for Doom and several other games. (https://moddingwiki.shikadi.net/wiki/MUS_Format) **/
+/** $VER: MIDIProcessorMUS.cpp (2025.07.22) Created by Paul Radek for his DMX audio library. Used by id Software for Doom and several other games. (https://moddingwiki.shikadi.net/wiki/MUS_Format) **/
 
 #include "pch.h"
 
@@ -28,6 +28,8 @@ bool processor_t::IsMUS(std::vector<uint8_t> const & data) noexcept
 
 bool processor_t::ProcessMUS(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::MUS;
+
     uint16_t Length = (uint16_t) (data[ 4] | (data[ 5] << 8)); // Song length in bytes
     uint16_t Offset = (uint16_t) (data[ 6] | (data[ 7] << 8)); // Offset to song data
 

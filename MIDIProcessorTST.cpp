@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorTST.cpp (2025.03.31) Test File **/
+/** $VER: MIDIProcessorTST.cpp (2025.07.22) Test File **/
 
 #include "pch.h"
 
@@ -27,6 +27,8 @@ bool processor_t::IsTST(std::vector<uint8_t> const & data, const std::wstring & 
 /// </summary>
 bool processor_t::ProcessTST(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::TST;
+
     container.Initialize(1u, 500);
 
     track_t Track;

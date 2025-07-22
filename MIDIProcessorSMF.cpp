@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorSMF.cpp (2025.07.09) Standard MIDI File **/
+/** $VER: MIDIProcessorSMF.cpp (2025.07.22) Standard MIDI File **/
 
 #include "pch.h"
 
@@ -47,6 +47,8 @@ bool processor_t::IsSMF(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessSMF(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::SMF;
+
     if (data.size() < 18)
         throw midi::exception("Insufficient SMF data");
 

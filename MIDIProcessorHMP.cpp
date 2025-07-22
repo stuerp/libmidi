@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorHMP.cpp (2025.03.19) Human Machine Interfaces MIDI P/R (http://www.vgmpf.com/Wiki/index.php?title=HMP) **/
+/** $VER: MIDIProcessorHMP.cpp (2025.07.22) Human Machine Interfaces MIDI P/R (http://www.vgmpf.com/Wiki/index.php?title=HMP) **/
 
 #include "pch.h"
 
@@ -26,6 +26,8 @@ bool processor_t::IsHMP(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessHMP(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::HMP;
+
     const bool IsFunky = (data[7] == 'R');
 
     uint32_t Offset = (uint32_t) (IsFunky ? 0x1A : 0x30);
@@ -62,7 +64,7 @@ bool processor_t::ProcessHMP(std::vector<uint8_t> const & data, container_t & co
         uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0, 0, 0 };
 
         {
-            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to µs / quarter note.
+            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to Âµs / quarter note.
 
             Data[4] = us & 0x7F; us >>= 7;
 

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorMMF.cpp (2025.04.05) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) (SMAF) **/
+/** $VER: MIDIProcessorMMF.cpp (2025.07.22) Mobile Music File / Synthetic-music Mobile Application Format (https://docs.fileformat.com/audio/mmf/) (SMAF) **/
 
 #include "pch.h"
 
@@ -51,6 +51,8 @@ bool processor_t::IsMMF(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::MMF;
+
     if (data.size() < 8)
         throw midi::exception("Insufficient SMAF data");
 

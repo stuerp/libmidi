@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorMDS.cpp (2025.03.19) MIDI Stream. created by Microsoft with the release of Windows 95 (http://www.vgmpf.com/Wiki/index.php?title=MDS) **/
+/** $VER: MIDIProcessorMDS.cpp (2025.07.22) MIDI Stream. created by Microsoft with the release of Windows 95 (http://www.vgmpf.com/Wiki/index.php?title=MDS) **/
 
 #include "pch.h"
 
@@ -29,6 +29,8 @@ bool processor_t::IsMDS(std::vector<uint8_t> const & data) noexcept
 
 bool processor_t::ProcessMDS(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::MDS;
+
     if (data.size() < 20)
         return false;
 

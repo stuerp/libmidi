@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMF.cpp (2025.03.19) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
+/** $VER: MIDIProcessorXMF.cpp (2025.07.22) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
 #include "pch.h"
 
@@ -255,6 +255,8 @@ bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & co
     ProcessNode(Head, Tail, Data, Metadata, container);
 
     container.SetExtraMetaData(Metadata);
+
+    container.FileFormat = FileFormat::XMF;
 
     return true;
 }

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRCP.cpp (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: MIDIProcessorRCP.cpp (2025.07.22) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -56,6 +56,8 @@ bool processor_t::IsRCP(std::vector<uint8_t> const & data, const std::wstring & 
 /// </summary>
 bool processor_t::ProcessRCP(std::vector<uint8_t> const & data, const std::wstring & filePath, container_t & container)
 {
+    container.FileFormat = FileFormat::RCP;
+
     rcp::converter_t RCPConverter;
 
     RCPConverter.SetFilePath(filePath);

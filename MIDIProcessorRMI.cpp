@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRMI.cpp (2025.07.21) **/
+/** $VER: MIDIProcessorRMI.cpp (2025.07.22) **/
 
 #include "pch.h"
 
@@ -83,6 +83,8 @@ bool processor_t::IsRMI(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::RMI;
+
     bool HasDataChunk = false;
     bool HasINFOChunk = false;
     bool IsDLS = false;

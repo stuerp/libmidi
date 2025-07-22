@@ -59,7 +59,7 @@ private:
 #ifdef _DEBUG
     static bool IsTST(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
 #endif
-    static bool IsSysEx(std::vector<uint8_t> const & data) noexcept;
+    static bool IsSYX(std::vector<uint8_t> const & data) noexcept;
 
     static bool ProcessSMF(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessRMI(std::vector<uint8_t> const & data, container_t & container);
@@ -76,7 +76,7 @@ private:
 #ifdef _DEBUG
     static bool ProcessTST(std::vector<uint8_t> const & data, container_t & container);
 #endif
-    static bool ProcessSysEx(std::vector<uint8_t> const & data, container_t & container);
+    static bool ProcessSYX(std::vector<uint8_t> const & data, container_t & container);
 
     static bool ProcessSMFTrack(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end, container_t & container);
     static int DecodeVariableLengthQuantity(std::vector<uint8_t>::const_iterator & it, std::vector<uint8_t>::const_iterator end) noexcept;

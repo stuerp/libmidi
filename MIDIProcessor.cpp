@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2025.03.31) **/
+/** $VER: MIDIProcessor.cpp (2025.07.22) **/
 
 #include "pch.h"
 
@@ -78,8 +78,8 @@ bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * fil
     if (IsTST(data, FileExtension))
         return ProcessTST(data, container);
 #endif
-    if (IsSysEx(data))
-        return ProcessSysEx(data, container);
+    if (IsSYX(data))
+        return ProcessSYX(data, container);
 
     return false;
 }
@@ -87,7 +87,7 @@ bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * fil
 /// <summary>
 /// Returns true if the data represents a SysEx message.
 /// </summary>
-bool processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
+bool processor_t::IsSYX(std::vector<uint8_t> const & data) noexcept
 {
     if (data.size() < 2)
         return false;
@@ -101,8 +101,10 @@ bool processor_t::IsSysEx(std::vector<uint8_t> const & data) noexcept
 /// <summary>
 /// Processes a byte stream containing 1 or more SysEx messages.
 /// </summary>
-bool processor_t::ProcessSysEx(std::vector<uint8_t> const & data, container_t & container)
+bool processor_t::ProcessSYX(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::SYX;
+
     const size_t Size = data.size();
 
     size_t Index = 0;

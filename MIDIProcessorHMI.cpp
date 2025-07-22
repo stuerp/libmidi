@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorHMI.cpp (2025.03.19) Human Machine Interface (http://www.vgmpf.com/Wiki/index.php?title=HMI) **/
+/** $VER: MIDIProcessorHMI.cpp (2025.07.22) Human Machine Interface (http://www.vgmpf.com/Wiki/index.php?title=HMI) **/
 
 #include "pch.h"
 
@@ -27,6 +27,8 @@ bool processor_t::IsHMI(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::HMI;
+
     auto it = data.begin() + 0xE4;
 
     uint32_t TrackCount = (uint32_t) (it[0] | (it[1] << 8) | (it[2] << 16) | (it[3] << 24));
@@ -55,7 +57,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
         uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0, 0, 0 };
 
         {
-            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to µs / quarter note.
+            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to Âµs / quarter note.
 
             Data[4] = us & 0x7F; us >>= 7;
 

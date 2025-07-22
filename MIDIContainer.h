@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.07.16) **/
+/** $VER: MIDIContainer.h (2025.07.22) **/
 
 #pragma once
 
@@ -298,12 +298,39 @@ struct message_t
 };
 
 /// <summary>
+/// Represents the format of the file used to create a container.
+/// </summary>
+enum FileFormat
+{
+    SMF,
+    RMI,
+    XMI,
+    XFM,
+    MDS,
+    HMP,
+    HMI,
+    MUS,
+    LDS,
+    GMF,
+    RCP,
+    XMF,
+    MMF,
+    SYX,
+
+#ifdef _DEBUG
+    TST,
+#endif
+
+    Unknown = -1
+};
+
+/// <summary>
 /// Implements a container for the MIDI messages.
 /// </summary>
 class container_t
 {
 public:
-    container_t() : _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(0)
+    container_t() : FileFormat(FileFormat::Unknown), _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(0)
     {
         _DeviceNames.resize(16);
     }
@@ -388,6 +415,8 @@ public:
         CleanFlagInstruments = 1 << 1,
         CleanFlagBanks = 1 << 2,
     };
+
+    FileFormat FileFormat;
 
 private:
     void TrimRange(size_t start, size_t end);

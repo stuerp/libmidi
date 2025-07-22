@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMI.cpp (2025.03.19) Extended Multiple Instrument Digital Interface (http://www.vgmpf.com/Wiki/index.php?title=XMI) **/
+/** $VER: MIDIProcessorXMI.cpp (2025.07.22) Extended Multiple Instrument Digital Interface (http://www.vgmpf.com/Wiki/index.php?title=XMI) **/
 
 #include "pch.h"
 
@@ -29,6 +29,8 @@ bool processor_t::IsXMI(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::XMI;
+
     iff_stream_t Stream;
 
     if (!ReadStream(data, Stream))

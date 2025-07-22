@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorLDS.cpp (2025.03.21) Loudness Sound System (http://www.vgmpf.com/Wiki/index.php?title=LDS) **/
+/** $VER: MIDIProcessorLDS.cpp (2025.07.22) Loudness Sound System (http://www.vgmpf.com/Wiki/index.php?title=LDS) **/
 
 #include "pch.h"
 
@@ -351,6 +351,8 @@ static void PlaySound(uint8_t currentInstrument[], std::vector<SoundPatch> const
 
 bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & container)
 {
+    container.FileFormat = FileFormat::LDS;
+
     #pragma warning(disable: 4820)
     struct position_data
     {
