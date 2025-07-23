@@ -108,20 +108,20 @@ static uint32_t ProcessEvent(const midi::message_t & message, uint32_t messageTi
         switch (StatusCode)
         {
             case midi::NoteOff:
-                ::printf("Note Off %3d, Velocity %3d\n", Event[1], Event[2]);
+                ::printf("Note Off                        %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case midi::NoteOn:
-                ::printf("Note On  %3d, Velocity %3d\n", Event[1], Event[2]);
+                ::printf("Note On                         %3d, Velocity %3d\n", Event[1], Event[2]);
                 break;
 
             case midi::KeyPressure:
-                ::printf("Key Pressure %3d (Aftertouch)\n", Event[1]);
+                ::printf("Key Pressure (Aftertouch)       %3d\n", Event[1]);
                 break;
 
             case midi::ControlChange:
             {
-                ::printf("Control Change %3d %3d \"%s\"\n", Event[1], Event[2], DescribeControlChange(Event[1], Event[2]).c_str());
+                ::printf("Control Change                  %3d %3d \"%s\"\n", Event[1], Event[2], DescribeControlChange(Event[1], Event[2]).c_str());
 
                 if (Event[1] == 98)     // Non-Registered Parameter LSB
                     CCLSB = Event[2];
@@ -163,15 +163,15 @@ static uint32_t ProcessEvent(const midi::message_t & message, uint32_t messageTi
             }
 
             case midi::ProgramChange:
-                ::printf("Program Change %3d, \"%s\"\n", Event[1], Instruments[Event[1]]);;
+                ::printf("Program Change                  %3d     \"%s\"\n", Event[1], Instruments[Event[1]]);;
                 break;
 
             case midi::ChannelPressure:
-                ::printf("Channel Pressure %3d (Aftertouch)\n", Event[1]);
+                ::printf("Channel Pressure (Aftertouch)   %3d\n", Event[1]);
                 break;
 
             case midi::PitchBendChange:
-                ::printf("Pitch Bend Change %5d\n", 8192 - ((int) (Event[2] & 0x7F) << 7) | (Event[1] & 0x7F));
+                ::printf("Pitch Bend Change             %5d\n", 8192 - ((int) (Event[2] & 0x7F) << 7) | (Event[1] & 0x7F));
                 break;
 
             case midi::SysEx:

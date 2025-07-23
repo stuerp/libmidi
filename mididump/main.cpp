@@ -31,7 +31,7 @@ void ExamineFile(const std::wstring & filePath);
 
 bool StreamMode;
 
-const WCHAR * Filters[] = { L".mid", /*L".g36",*/ /*L".rmi", L".mxmf", L".xmf",*/ L".mmf", L".tst" };
+const WCHAR * Filters[] = { L".mid", /*L".g36",*/ L".rmi", /*L".mxmf", L".xmf",*/ L".mmf", L".tst" };
 
 int wmain(int argc, const wchar_t ** argv)
 {
