@@ -252,7 +252,8 @@ void container_t::Initialize(uint32_t format, uint32_t timeDivision)
 
     _Loop.resize(1);
 
-    uint8_t PortNumber = 0; LimitPortNumber(PortNumber);
+    // Initialize the port number map.
+    uint8_t PortNumber = 0; NormalizePortNumber(PortNumber);
 }
 
 /// <summary>
@@ -300,7 +301,7 @@ void container_t::AddTrack(const track_t & track)
                 {
                     PortNumber = Event.Data[2];
 
-                    LimitPortNumber(PortNumber);
+                    NormalizePortNumber(PortNumber);
                     DeviceName.clear();
                 }
             }
@@ -310,30 +311,30 @@ void container_t::AddTrack(const track_t & track)
         {
             uint32_t ChannelNumber = Event.ChannelNumber;
 
-            if (DeviceName.length() != 0)
+            if (!DeviceName.empty())
             {
-                size_t j, k;
+                size_t i;
 
-                for (j = 0, k = _DeviceNames[ChannelNumber].size(); j < k; ++j)
+                for (i = 0; i < _DeviceNames[ChannelNumber].size(); ++i)
                 {
-                    if (_DeviceNames[ChannelNumber][j] == DeviceName)
+                    if (_DeviceNames[ChannelNumber][i] == DeviceName)
                         break;
                 }
 
-                if (j < k)
-                    PortNumber = (uint8_t) j;
+                if (i < _DeviceNames[ChannelNumber].size())
+                    PortNumber = (uint8_t) i;
                 else
                 {
                     _DeviceNames[ChannelNumber].push_back(DeviceName);
-                    PortNumber = (uint8_t) k;
+                    PortNumber = (uint8_t) _DeviceNames[ChannelNumber].size();
                 }
 
-                LimitPortNumber(PortNumber);
+                NormalizePortNumber(PortNumber);
                 DeviceName.clear();
             }
 
             ChannelNumber += 16 * PortNumber;
-            ChannelNumber %= 48;
+            ChannelNumber %= MaxChannels;
 
             if (_Format != 2)
                 _ChannelMask[0] |= 1ULL << ChannelNumber;
@@ -585,11 +586,11 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
 
             if (Event.Type != event_t::Extended)
             {
-                if (DeviceNames[SelectedTrack].length() != 0)
+                if (!DeviceNames[SelectedTrack].empty())
                 {
-                    size_t i, j;
+                    size_t i;
 
-                    for (i = 0, j = _DeviceNames[Event.ChannelNumber].size(); i < j; ++i)
+                    for (i = 0; i < _DeviceNames[Event.ChannelNumber].size(); ++i)
                     {
                         if (_DeviceNames[Event.ChannelNumber][i] == DeviceNames[SelectedTrack])
                             break;
@@ -598,7 +599,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
                     PortNumbers[SelectedTrack] = (uint8_t) i;
                     DeviceNames[SelectedTrack].clear();
 
-                    LimitPortNumber(PortNumbers[SelectedTrack]);
+                    NormalizePortNumber(PortNumbers[SelectedTrack]);
                 }
 
                 // Pack the event data into 32 bits.
@@ -620,7 +621,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
 
                 if ((DataSize >= 3) && (Event.Data[0] == StatusCodes::SysEx))
                 {
-                    if (DeviceNames[SelectedTrack].length())
+                    if (!DeviceNames[SelectedTrack].empty())
                     {
                         size_t i, j;
 
@@ -633,7 +634,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
                         PortNumbers[SelectedTrack] = (uint8_t) i;
                         DeviceNames[SelectedTrack].clear();
 
-                        LimitPortNumber(PortNumbers[SelectedTrack]);
+                        NormalizePortNumber(PortNumbers[SelectedTrack]);
                     }
 
                     Data = Event.Data;
@@ -660,13 +661,13 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
                         PortNumbers[SelectedTrack] = Event.Data[2];
                         DeviceNames[SelectedTrack].clear();
 
-                        LimitPortNumber(PortNumbers[SelectedTrack]);
+                        NormalizePortNumber(PortNumbers[SelectedTrack]);
                     }
                 }
                 else
                 if ((DataSize == 1) && (Event.Data[0] > StatusCodes::SysExEnd))
                 {
-                    if (DeviceNames[SelectedTrack].length())
+                    if (!DeviceNames[SelectedTrack].empty())
                     {
                         size_t i, j;
 
@@ -678,7 +679,8 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
 
                         PortNumbers[SelectedTrack] = (uint8_t) i;
                         DeviceNames[SelectedTrack].clear();
-                        LimitPortNumber(PortNumbers[SelectedTrack]);
+
+                        NormalizePortNumber(PortNumbers[SelectedTrack]);
                     }
 
                     uint32_t Message = (uint32_t)(PortNumbers[SelectedTrack] << 24);
@@ -917,7 +919,7 @@ uint32_t container_t::GetChannelCount(size_t subSongIndex) const
     uint32_t Count = 0;
     uint64_t j = 1;
 
-    for (size_t i = 0; i < 48; ++i, j <<= 1)
+    for (size_t i = 0; i < MaxChannels; ++i, j <<= 1)
     {
         if (_ChannelMask[subSongIndex] & j)
             ++Count;

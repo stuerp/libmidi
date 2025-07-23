@@ -335,6 +335,13 @@ public:
         _DeviceNames.resize(16);
     }
 
+    container_t(const container_t &) = delete;
+    container_t(container_t &&) = delete;
+    container_t & operator=(const container_t &) = delete;
+    container_t & operator=(container_t &&) = delete;
+
+    virtual ~container_t() noexcept { };
+
     void Initialize(uint32_t format, uint32_t division);
 
     void AddTrack(const track_t & track);
@@ -423,12 +430,15 @@ private:
     void TrimTempoMap(size_t index, uint32_t base_timestamp);
 
     #pragma warning(disable: 4267)
-    // Normalize port numbers properly
-    template <typename T> void LimitPortNumber(T & number)
+
+    /// <summary>
+    /// Normalizes the specified port number so that we get increasing port numbers starting at 0 and incrementing by 1.
+    /// </summary>
+    template <typename T> void NormalizePortNumber(T & number)
     {
         for (size_t i = 0; i < _PortNumbers.size(); ++i)
         {
-            if (_PortNumbers[i] == number)
+            if (number == _PortNumbers[i])
             {
                 number = (T) i;
 
@@ -441,11 +451,14 @@ private:
         number = _PortNumbers.size() - 1;
     }
 
-    template <typename T> void LimitPortNumber(T & number) const
+    /// <summary>
+    /// Gets the normalizel portnumber of the specified port.
+    /// </summary>
+    template <typename T> void NormalizePortNumber(T & number) const
     {
         for (size_t i = 0; i < _PortNumbers.size(); ++i)
         {
-            if (_PortNumbers[i] == number)
+            if (number == _PortNumbers[i])
             {
                 number = (T) i;
 
@@ -453,6 +466,7 @@ private:
             }
         }
     }
+
     #pragma warning(default: 4267)
 
     void AssignString(const char * src, size_t srcLength, std::string & dst) const
@@ -466,6 +480,8 @@ private:
 
     uint32_t _ExtraPercussionChannel;
     int _BankOffset;                    // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
+
+    const size_t MaxChannels = 48;
 
     std::vector<uint64_t> _ChannelMask;
     std::vector<tempo_map_t> _TempoMaps;
