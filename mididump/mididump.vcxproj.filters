@@ -6,11 +6,13 @@
     <ClCompile Include="Tracks.cpp" />
     <ClCompile Include="Stream.cpp" />
     <ClCompile Include="Messages.cpp" />
+    <ClCompile Include="Cakewalk.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Messages.h" />
+    <ClInclude Include="Cakewalk.h" />
   </ItemGroup>
 </Project>

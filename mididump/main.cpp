@@ -1,9 +1,9 @@
 
-/** $VER: main.cpp (2025.07.16) P. Stuer **/
+/** $VER: main.cpp (2025.07.26) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
-#pragma warning(disable: 4625 4626 ALL_CPPCORECHECK_WARNINGS)
+#pragma warning(disable: 4625 4626 4820 ALL_CPPCORECHECK_WARNINGS)
 
 #include <SDKDDKVer.h>
 
@@ -24,117 +24,107 @@
 
 #include <Encoding.h>
 
-static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPattern);
-static void ProcessFile(const WCHAR * filePath, uint64_t fileSize);
+#include <map>
+#include <filesystem>
 
-void ExamineFile(const std::wstring & filePath);
+namespace fs = std::filesystem;
 
-bool StreamMode;
+void ExamineFile(const fs::path & filePath, const std::map<std::string, std::string> & args);
 
-const WCHAR * Filters[] = { L".mid", /*L".g36",*/ L".rmi", /*L".mxmf", L".xmf",*/ L".mmf", L".tst" };
+static void ProcessDirectory(const fs::path & directoryPath);
+static void ProcessFile(const fs::path & filePath);
 
-int wmain(int argc, const wchar_t ** argv)
+const std::vector<fs::path> Filters = { ".mid", /*".g36",*/ ".rmi", /*".mxmf", ".xmf",*/ ".mmf", ".tst" };
+
+std::map<std::string, std::string> Arguments;
+
+int main(int argc, const char ** argv)
 {
     ::printf("\xEF\xBB\xBF"); // UTF-8 BOM
 
     if (argc < 2)
     {
         ::printf("Insufficient arguments.\n");
+
         return -1;
     }
 
-    if (!::PathFileExistsW(argv[1]))
+    for (int i = 1; i < argc; ++i)
     {
-        ::printf("Failed to access \"%s\": path does not exist.\n", ::WideToUTF8(argv[1]).c_str());
+        if (argv[i][0] == '-')
+        {
+            if (::_stricmp(argv[i], "-stream") == 0)
+                Arguments["AsStream"] = "";
+        }
+
+        Arguments["midifile"] = argv[i];
+    }
+
+    if (!::fs::exists(Arguments["midifile"]))
+    {
+        ::printf("Failed to access \"%s\": path does not exist.\n", Arguments["midifile"].c_str());
+
         return -1;
     }
 
-    StreamMode = (argc > 2) && (::_wcsicmp(argv[2], L"-stream") == 0);
+    fs::path Path = std::filesystem::canonical(Arguments["midifile"]);
 
-    WCHAR DirectoryPath[MAX_PATH];
-
-    if (::GetFullPathNameW(argv[1], _countof(DirectoryPath), DirectoryPath, nullptr) == 0)
-    {
-        ::printf("Failed to expand \"%s\": Error %u.\n", ::WideToUTF8(argv[1]).c_str(), (uint32_t) ::GetLastError());
-        return -1;
-    }
-
-    if (!::PathIsDirectoryW(argv[1]))
-    {
-        ::PathCchRemoveFileSpec(DirectoryPath, _countof(DirectoryPath));
-
-        ProcessDirectory(DirectoryPath, ::PathFindFileNameW(argv[1]));
-    }
+    if (fs::is_directory(Path))
+        ProcessDirectory(Path);
     else
-        ProcessDirectory(DirectoryPath, L"*.*");
+        ProcessFile(Path);
 
     return 0;
 }
 
-static void ProcessDirectory(const WCHAR * directoryPath, const WCHAR * searchPattern)
+/// <summary>
+/// Returns true if the string matches one of the list.
+/// </summary>
+static bool IsOneOf(const fs::path & item, const std::vector<fs::path> & list) noexcept
 {
-    ::printf("\"%s\"\n", ::WideToUTF8(directoryPath).c_str());
-
-    WCHAR PathName[MAX_PATH];
-
-    if (!SUCCEEDED(::PathCchCombineEx(PathName, _countof(PathName), directoryPath, searchPattern, PATHCCH_ALLOW_LONG_PATHS)))
-        return;
-
-    WIN32_FIND_DATA fd = {};
-
-    HANDLE hFind = ::FindFirstFileW(PathName, &fd);
-
-    if (hFind == INVALID_HANDLE_VALUE)
-        return;
-
-    BOOL Success = TRUE;
-
-    if (::wcscmp(fd.cFileName, L".") == 0)
+    for (const auto & Item : list)
     {
-        Success = ::FindNextFileW(hFind, &fd);
-
-        if (Success && ::wcscmp(fd.cFileName, L"..") == 0)
-            Success = ::FindNextFileW(hFind, &fd);
+        if (::_stricmp(item.string().c_str(), Item.string().c_str()) == 0)
+            return true;
     }
 
-    while (Success)
-    {
-        if (SUCCEEDED(::PathCchCombineEx(PathName, _countof(PathName), directoryPath, fd.cFileName, PATHCCH_ALLOW_LONG_PATHS)))
-        {
-            if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                ProcessDirectory(PathName, searchPattern);
-            else
-            {
-                uint64_t FileSize = (((uint64_t) fd.nFileSizeHigh) << 32) + fd.nFileSizeLow;
-
-                ProcessFile(PathName, FileSize);
-            }
-        }
-
-        Success = ::FindNextFileW(hFind, &fd);
-    }
-
-    ::FindClose(hFind);
+    return false;
 }
 
-static void ProcessFile(const WCHAR * filePath, uint64_t fileSize)
+static void ProcessDirectory(const fs::path & directoryPath)
 {
-    ::printf("\n\"%s\", %" PRIu64 " bytes\n", ::WideToUTF8(filePath).c_str(), fileSize);
+    ::printf("\"%s\"\n", directoryPath.string().c_str());
 
-    const WCHAR * FileExtension;
-
-    HRESULT hr = ::PathCchFindExtension(filePath, ::wcslen(filePath) + 1, &FileExtension);
-
-    if (SUCCEEDED(hr))
+    for (const auto & Entry : fs::directory_iterator(directoryPath))
     {
-        for (const auto & Filter : Filters)
+        if (Entry.is_directory())
         {
-            if (::_wcsicmp(FileExtension, Filter) == 0)
-            {
-                ExamineFile(filePath);
-
-                break;
-            }
+            ProcessDirectory(Entry.path());
+        }
+        else
+        if (IsOneOf(Entry.path().extension(), Filters))
+        {
+            ProcessFile(Entry.path());
         }
     }
+}
+
+static void ProcessFile(const fs::path & filePath)
+{
+    FILE * fp = nullptr;
+
+    fs::path StdOut = filePath;
+
+    if ((::freopen_s(&fp, StdOut.replace_extension(".log").string().c_str(), "w", stdout) != 0) || (fp == nullptr))
+        return;
+
+    ::printf("\xEF\xBB\xBF"); // UTF-8 BOM
+
+    auto FileSize = fs::file_size(filePath);
+
+    ::printf("\n\"%s\", %" PRIu64 " bytes\n", filePath.string().c_str(), (uint64_t) FileSize);
+
+    ExamineFile(filePath, Arguments);
+
+    ::fclose(fp);
 }

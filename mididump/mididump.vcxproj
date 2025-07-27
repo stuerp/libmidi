@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cakewalk.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Messages.cpp" />
     <ClCompile Include="Process.cpp" />
@@ -156,6 +157,7 @@
     <None Include="LICENSE" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cakewalk.h" />
     <ClInclude Include="Messages.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

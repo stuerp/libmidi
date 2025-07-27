@@ -28,15 +28,20 @@ bool processor_t::IsMUS(std::vector<uint8_t> const & data) noexcept
 
 bool processor_t::ProcessMUS(std::vector<uint8_t> const & data, container_t & container)
 {
-    container.FileFormat = FileFormat::MUS;
-
     uint16_t Length = (uint16_t) (data[ 4] | (data[ 5] << 8)); // Song length in bytes
     uint16_t Offset = (uint16_t) (data[ 6] | (data[ 7] << 8)); // Offset to song data
+
+    if ((size_t) Offset >= data.size() || (size_t) (Offset + Length) > data.size())
+        return false;
+
+    container.FileFormat = FileFormat::MUS;
 
     container.Initialize(0, 0x59);
 
     {
         track_t Track;
+
+        const uint8_t DefaultTempoMUS[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x09, 0xA3, 0x1A };
 
         Track.AddEvent(event_t(0, event_t::Extended, 0, DefaultTempoMUS, _countof(DefaultTempoMUS)));
         Track.AddEvent(event_t(0, event_t::Extended, 0, MIDIEventEndOfTrack, _countof(MIDIEventEndOfTrack)));
@@ -44,14 +49,13 @@ bool processor_t::ProcessMUS(std::vector<uint8_t> const & data, container_t & co
         container.AddTrack(Track);
     }
 
-    if ((size_t) Offset >= data.size() || (size_t) (Offset + Length) > data.size())
-        return false;
-
     track_t Track;
 
     uint32_t Timestamp = 0;
 
     uint8_t VelocityLevels[16] = { 0 };
+
+    const uint8_t MusControllers[15] = { 0, 0, 1, 7, 10, 11, 91, 93, 64, 67, 120, 123, 126, 127, 121 };
 
     auto it = data.begin() + Offset, end = data.begin() + Offset + Length;
 
@@ -213,8 +217,5 @@ bool processor_t::ProcessMUS(std::vector<uint8_t> const & data, container_t & co
 
     return true;
 }
-
-const uint8_t processor_t::DefaultTempoMUS[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x09, 0xA3, 0x1A };
-const uint8_t processor_t::MusControllers[15] = { 0, 0, 1, 7, 10, 11, 91, 93, 64, 67, 120, 123, 126, 127, 121 };
 
 }

@@ -1,15 +1,14 @@
 
-/** $VER: mididump.cpp (2025.07.16) P. Stuer **/
+/** $VER: mididump.cpp (2025.07.26) P. Stuer **/
 
 #include <CppCoreCheck/Warnings.h>
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
 
-#include <stdio.h>
-
+#include <map>
 #include <iostream>
 #include <iomanip>
-
+#include <fstream>
 #include <filesystem>
 
 #include <MIDIProcessor.h>
@@ -18,16 +17,18 @@
 #include "Tables.h"
 #include "SysEx.h"
 
+#include "Cakewalk.h"
+
 void ProcessContainer(midi::container_t & container, bool asStream);
 void ProcessStream(const midi::container_t & container, const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents = false);
 void ProcessTracks(const midi::container_t & container);
 
-std::vector<uint8_t> ReadFile(const std::wstring & filePath);
+std::vector<uint8_t> ReadFile(const fs::path & filePath);
 
 /// <summary>
-/// 
+/// Examines the specified file.
 /// </summary>
-void ExamineFile(const std::wstring & filePath)
+void ExamineFile(const fs::path & filePath, const std::map<std::string, std::string> & args)
 {
     try
     {
@@ -36,8 +37,8 @@ void ExamineFile(const std::wstring & filePath)
         midi::container_t Container;
         midi::processor_options_t Options;
 
-        if (midi::processor_t::Process(Data, filePath.c_str(), Container, Options))
-            ProcessContainer(Container, true);
+        if (midi::processor_t::Process(Data, ::UTF8ToWide(filePath.string().c_str()).c_str(), Container, Options))
+            ProcessContainer(Container, args.contains("AsStream"));
         else
             ::puts("File format not recognized.");
     }
@@ -50,30 +51,21 @@ void ExamineFile(const std::wstring & filePath)
 /// <summary>
 /// Reads a file and returns its contents as a byte vector.
 /// </summary>
-std::vector<uint8_t> ReadFile(const std::wstring & filePath)
+std::vector<uint8_t> ReadFile(const fs::path & filePath)
 {
-    FILE * fp = nullptr;
+    std::ifstream Stream(filePath, std::ios::binary | std::ios::ate);
 
-    if ((::_wfopen_s(&fp, filePath.c_str(), L"rb") != 0) || (fp == nullptr))
-    {
-        char ErrorMessage[64];
+    if (!Stream.is_open())
+        throw std::runtime_error(std::format("Failed to open \"{}\" for reading)", filePath.string().c_str()));
 
-        ::strerror_s(ErrorMessage, _countof(ErrorMessage), errno);
+    std::streamsize Size = Stream.tellg();
 
-        throw std::runtime_error(std::format("Failed to open \"{}\" for reading: {} ({})", ::WideToUTF8(filePath).c_str(), ErrorMessage, errno));
-    }
+    Stream.seekg(0, std::ios::beg);
 
-    ::fseek(fp, 0, SEEK_END);
+    std::vector<uint8_t> Data((size_t) Size);
 
-    size_t FileSize = (size_t) ::ftell(fp);
-
-    ::fseek(fp, 0, SEEK_SET);
-
-    std::vector<uint8_t> Data(FileSize);
-
-    ::fread(Data.data(), 1, FileSize, fp);
-
-    ::fclose(fp);
+    if (!Stream.read((char *) Data.data(), Size))
+        throw std::runtime_error("Failed to read file.");
 
     return Data;
 }
@@ -83,6 +75,8 @@ std::vector<uint8_t> ReadFile(const std::wstring & filePath)
 /// </summary>
 void ProcessContainer(midi::container_t & container, bool asStream)
 {
+    ReadIns("GM1-GM2.ins");
+
     if (asStream)
     {
         {

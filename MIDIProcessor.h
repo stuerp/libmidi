@@ -96,9 +96,6 @@ private:
 
     static const uint8_t DefaultTempoXMI[5];
 
-    static const uint8_t DefaultTempoMUS[5];
-    static const uint8_t MusControllers[15];
-
     static const uint8_t DefaultTempoLDS[5];
 
     static processor_options_t _Options;
