@@ -65,10 +65,10 @@ struct event_t
         Data.assign(data, data + size);
     }
 
-    bool IsSetTempo() const noexcept    { return (Type == event_t::Extended) && (Data.size() >= 5) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::SetTempo); }
-    bool IsMarker() const noexcept      { return (Type == event_t::Extended) && (Data.size() >= 9) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::Marker); }
-    bool IsPort() const noexcept        { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::MIDIPort); }
-    bool IsEndOfTrack() const noexcept  { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCodes::MetaData) && (Data[1] == MetaDataTypes::EndOfTrack); }
+    bool IsSetTempo() const noexcept    { return (Type == event_t::Extended) && (Data.size() >= 5) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::SetTempo); }
+    bool IsMarker() const noexcept      { return (Type == event_t::Extended) && (Data.size() >= 9) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::Marker); }
+    bool IsPort() const noexcept        { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::MIDIPort); }
+    bool IsEndOfTrack() const noexcept  { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::EndOfTrack); }
 };
 
 /// <summary>

@@ -96,14 +96,14 @@ public:
         *p++ = (Size >>  0) & 0xFF;
     }
 
-    void WriteEvent(midi::StatusCodes statusCode, uint8_t value1, uint8_t value2)
+    void WriteEvent(midi::StatusCode statusCode, uint8_t value1, uint8_t value2)
     {
         _State.RunningStatus = 0;
 
         WriteEventInternal(statusCode, value1, value2);
     }
 
-    void WriteEvent(midi::StatusCodes statusCode, const uint8_t * data, uint32_t size)
+    void WriteEvent(midi::StatusCode statusCode, const uint8_t * data, uint32_t size)
     {
         WriteTimestamp();
 
@@ -118,7 +118,7 @@ public:
         Add(data, size);
     }
 
-    void WriteMetaEvent(midi::MetaDataTypes type, uint32_t value, uint32_t size)
+    void WriteMetaEvent(midi::MetaDataType type, uint32_t value, uint32_t size)
     {
         uint8_t Data[4]
         {
@@ -131,7 +131,7 @@ public:
         WriteMetaEvent(type, Data + (4 - size), size);
     }
 
-    void WriteMetaEvent(midi::MetaDataTypes type, const void * data, uint32_t size)
+    void WriteMetaEvent(midi::MetaDataType type, const void * data, uint32_t size)
     {
         WriteTimestamp();
 
@@ -139,7 +139,7 @@ public:
 
         _State.RunningStatus = 0x00;
 
-        Add(midi::StatusCodes::MetaData);
+        Add(midi::StatusCode::MetaData);
         Add((uint8_t) type);
 
         WriteVariableLengthQuantity(size);
@@ -147,7 +147,7 @@ public:
         Add((const uint8_t *) data, size);
     }
 
-    void WriteMetaEvent(midi::MetaDataTypes type, const char * text)
+    void WriteMetaEvent(midi::MetaDataType type, const char * text)
     {
         WriteMetaEvent(type, text, (uint32_t) ::strlen(text));
     }
@@ -240,7 +240,7 @@ private:
         _State.Duration = 0;
     }
 
-    void WriteEventInternal(midi::StatusCodes statusCode, uint8_t value1, uint8_t value2)
+    void WriteEventInternal(midi::StatusCode statusCode, uint8_t value1, uint8_t value2)
     {
         WriteTimestamp();
 

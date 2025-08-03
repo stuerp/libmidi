@@ -54,7 +54,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
     {
         track_t Track;
 
-        uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0, 0, 0 };
+        uint8_t Data[] = { StatusCode::MetaData, MetaDataType::SetTempo, 0, 0, 0 };
 
         {
             uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to µs / quarter note.
@@ -130,8 +130,8 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
 
                 if (MetadataSize > 0)
                 {
-                    Temp[0] = StatusCodes::MetaData;
-                    Temp[1] = MetaDataTypes::Text;
+                    Temp[0] = StatusCode::MetaData;
+                    Temp[1] = MetaDataType::Text;
 
                     Track.AddEvent(event_t(0, event_t::Extended, 0, Temp.data(), MetadataSize + 2));
                 }
@@ -170,7 +170,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
 
             Temp[0] = *it++;
 
-            if (Temp[0] == StatusCodes::MetaData)
+            if (Temp[0] == StatusCode::MetaData)
             {
                 RunningStatus = 0xFF;
 
@@ -192,16 +192,16 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
 
                 it += MetadataSize;
 
-                if ((Temp[1] == MetaDataTypes::EndOfTrack) && (LastTime > RunningTime))
+                if ((Temp[1] == MetaDataType::EndOfTrack) && (LastTime > RunningTime))
                     RunningTime = LastTime;
 
                 Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, &Temp[0], (size_t) (MetadataSize + 2)));
 
-                if (Temp[1] == MetaDataTypes::EndOfTrack)
+                if (Temp[1] == MetaDataType::EndOfTrack)
                     break;
             }
             else
-            if (Temp[0] == StatusCodes::SysEx)
+            if (Temp[0] == StatusCode::SysEx)
             {
                 RunningStatus = 0xFF;
 
@@ -220,7 +220,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
                 Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, &Temp[0], (size_t) (SysExSize + 1)));
             }
             else
-            if (Temp[0] == StatusCodes::ActiveSensing)
+            if (Temp[0] == StatusCode::ActiveSensing)
             {
                 RunningStatus = 0xFF;
 
@@ -280,11 +280,11 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
                     throw midi::exception("Invalid HMI Active Sensing event");
             }
             else
-            if (Temp[0] < StatusCodes::SysEx)
+            if (Temp[0] < StatusCode::SysEx)
             {
                 size_t BytesRead = 1;
 
-                if (Temp[0] >= StatusCodes::NoteOff)
+                if (Temp[0] >= StatusCode::NoteOff)
                 {
                     if (it == Tail)
                         throw midi::exception("Insufficient data for HMI message");

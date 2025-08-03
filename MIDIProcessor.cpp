@@ -12,9 +12,9 @@ namespace midi
 
 processor_options_t processor_t::_Options;
 
-const uint8_t processor_t::MIDIEventEndOfTrack[2] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
-const uint8_t processor_t::LoopBeginMarker[11]    = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'S', 't', 'a', 'r', 't' };
-const uint8_t processor_t::LoopEndMarker[9]       = { StatusCodes::MetaData, MetaDataTypes::Marker, 'l', 'o', 'o', 'p', 'E', 'n', 'd' };
+const uint8_t processor_t::MIDIEventEndOfTrack[2] = { StatusCode::MetaData, MetaDataType::EndOfTrack };
+const uint8_t processor_t::LoopBeginMarker[11]    = { StatusCode::MetaData, MetaDataType::Marker, 'l', 'o', 'o', 'p', 'S', 't', 'a', 'r', 't' };
+const uint8_t processor_t::LoopEndMarker[9]       = { StatusCode::MetaData, MetaDataType::Marker, 'l', 'o', 'o', 'p', 'E', 'n', 'd' };
 
 /// <summary>
 /// Processes a stream of bytes.
@@ -92,7 +92,7 @@ bool processor_t::IsSYX(std::vector<uint8_t> const & data) noexcept
     if (data.size() < 2)
         return false;
 
-    if (data[0] != StatusCodes::SysEx || data[data.size() - 1] != StatusCodes::SysExEnd)
+    if (data[0] != StatusCode::SysEx || data[data.size() - 1] != StatusCode::SysExEnd)
         return false;
 
     return true;
@@ -117,10 +117,10 @@ bool processor_t::ProcessSYX(std::vector<uint8_t> const & data, container_t & co
     {
         size_t MessageLength = 1;
 
-        if (data[Index] != StatusCodes::SysEx)
+        if (data[Index] != StatusCode::SysEx)
             return false;
 
-        while (data[Index + MessageLength++] != StatusCodes::SysExEnd);
+        while (data[Index + MessageLength++] != StatusCode::SysExEnd);
 
         Track.AddEvent(event_t(0, event_t::Extended, 0, &data[Index], MessageLength));
 

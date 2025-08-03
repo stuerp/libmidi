@@ -150,7 +150,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
         uint32_t BytesRead = 0;
 
         // Is it a data byte?
-        if (StatusCode < StatusCodes::NoteOff)
+        if (StatusCode < StatusCode::NoteOff)
         {
             // Flush any pending SysEx.
             if (SysExSize > 0)
@@ -170,7 +170,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
         }
 
         // Is it a Voice Category message?
-        if (StatusCode < StatusCodes::SysEx)
+        if (StatusCode < StatusCode::SysEx)
         {
             // Flush any pending SysEx.
             if (SysExSize > 0)
@@ -193,8 +193,8 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
 
             switch (StatusCode & 0xF0)
             {
-                case StatusCodes::ProgramChange:
-                case StatusCodes::ChannelPressure:
+                case StatusCode::ProgramChange:
+                case StatusCode::ChannelPressure:
                     break;
 
                 default:
@@ -225,7 +225,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
         else
         {
             // Is it a SysEx message?
-            if (StatusCode == StatusCodes::SysEx)
+            if (StatusCode == StatusCode::SysEx)
             {
                 // Flush any pending SysEx.
                 if (SysExSize > 0)
@@ -245,7 +245,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                 {
                     Temp.resize((size_t) (Size + 1));
 
-                    Temp[0] = StatusCodes::SysEx;
+                    Temp[0] = StatusCode::SysEx;
 
                     std::copy(data, data + Size, Temp.begin() + 1);
                     data += Size;
@@ -255,7 +255,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                 }
             }
             else
-            if (StatusCode == StatusCodes::SysExEnd)
+            if (StatusCode == StatusCode::SysExEnd)
             {
                 if (SysExSize == 0)
                     throw midi::exception("Invalid System Exclusive End event");
@@ -279,7 +279,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                 }
             }
             else
-            if (StatusCode == StatusCodes::MetaData)
+            if (StatusCode == StatusCode::MetaData)
             {
                 // Flush any pending SysEx.
                 if (SysExSize > 0)
@@ -293,7 +293,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
 
                 const uint8_t MetaDataType = *data++;
 
-                if (MetaDataType > MetaDataTypes::SequencerSpecific)
+                if (MetaDataType > MetaDataType::SequencerSpecific)
                     throw midi::exception("Invalid meta data type");
 
                 int Size = DecodeVariableLengthQuantity(data, tail);
@@ -305,7 +305,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                     throw midi::exception("Insufficient data for meta data event");
 
                 // Remember when the track or instrument name contains the word "drum". We'll need it later.
-                if (_Options._DetectExtraPercussionChannel && ((MetaDataType == MetaDataTypes::Text) || (MetaDataType == MetaDataTypes::TrackName) || (MetaDataType == MetaDataTypes::InstrumentName)))
+                if (_Options._DetectExtraPercussionChannel && ((MetaDataType == MetaDataType::Text) || (MetaDataType == MetaDataType::TrackName) || (MetaDataType == MetaDataType::InstrumentName)))
                 {
                     const char * p = (const char *) &data[0];
 
@@ -322,19 +322,19 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                 {
                     Temp.resize((size_t)(Size + 2));
 
-                    Temp[0] = StatusCodes::MetaData;
+                    Temp[0] = StatusCode::MetaData;
                     Temp[1] = MetaDataType;
 
                     std::copy(data, data + Size, Temp.begin() + 2);
                     data += Size;
 
-                    if ((MetaDataType != MetaDataTypes::MIDIPort) || ((MetaDataType == MetaDataTypes::MIDIPort) && Track.IsPortSet()))
+                    if ((MetaDataType != MetaDataType::MIDIPort) || ((MetaDataType == MetaDataType::MIDIPort) && Track.IsPortSet()))
                         Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
                     else
                         Track.AddEventToStart(event_t(0, event_t::Extended, 0, Temp.data(), (size_t) (Size + 2)));
                 }
 
-                if (MetaDataType == MetaDataTypes::EndOfTrack) // Mandatory, Marks the end of the track.
+                if (MetaDataType == MetaDataType::EndOfTrack) // Mandatory, Marks the end of the track.
                 {
                     FoundEndOfTrack = true;
                     break;
@@ -343,7 +343,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
             else
 
             // Is it a RealTime Category message?
-            if ((StatusCodes::SysExEnd < StatusCode) && (StatusCode < StatusCodes::MetaData)) // Sequencer specific events, single byte.
+            if ((StatusCode::SysExEnd < StatusCode) && (StatusCode < StatusCode::MetaData)) // Sequencer specific events, single byte.
             {
                 Temp[0] = StatusCode;
 
@@ -356,7 +356,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
 
     if (!FoundEndOfTrack)
     {
-        const uint8_t EventData[] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
+        const uint8_t EventData[] = { StatusCode::MetaData, MetaDataType::EndOfTrack };
 
         Track.AddEvent(event_t(RunningTime, event_t::Extended, 0, EventData, _countof(EventData)));
     }

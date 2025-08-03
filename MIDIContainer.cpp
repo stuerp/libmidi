@@ -274,7 +274,7 @@ void container_t::AddTrack(const track_t & track)
 
         if (Event.Type == event_t::Extended)
         {
-            if ((Event.Data.size() >= 5) && (Event.Data[0] == StatusCodes::MetaData) && (Event.Data[1] == MetaDataTypes::SetTempo))
+            if ((Event.Data.size() >= 5) && (Event.Data[0] == StatusCode::MetaData) && (Event.Data[1] == MetaDataType::SetTempo))
             {
                 uint32_t Tempo = (uint32_t) ((Event.Data[2] << 16) | (Event.Data[3] << 8) | Event.Data[4]);
 
@@ -289,15 +289,15 @@ void container_t::AddTrack(const track_t & track)
                 }
             }
             else
-            if ((Event.Data.size() >= 3) && (Event.Data[0] == StatusCodes::MetaData))
+            if ((Event.Data.size() >= 3) && (Event.Data[0] == StatusCode::MetaData))
             {
-                if (Event.Data[1] == MetaDataTypes::InstrumentName || Event.Data[1] == MetaDataTypes::DeviceName)
+                if (Event.Data[1] == MetaDataType::InstrumentName || Event.Data[1] == MetaDataType::DeviceName)
                 {
                     DeviceName.assign(Event.Data.begin() + 2, Event.Data.end());
                     std::transform(DeviceName.begin(), DeviceName.end(), DeviceName.begin(), ::tolower);
                 }
                 else
-                if (Event.Data[1] == MetaDataTypes::MIDIPort)
+                if (Event.Data[1] == MetaDataType::MIDIPort)
                 {
                     PortNumber = Event.Data[2];
 
@@ -619,7 +619,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
             {
                 size_t DataSize = Event.Data.size();
 
-                if ((DataSize >= 3) && (Event.Data[0] == StatusCodes::SysEx))
+                if ((DataSize >= 3) && (Event.Data[0] == StatusCode::SysEx))
                 {
                     if (!DeviceNames[SelectedTrack].empty())
                     {
@@ -639,7 +639,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
 
                     Data = Event.Data;
 
-                    if (Data[DataSize - 1] == StatusCodes::SysExEnd)
+                    if (Data[DataSize - 1] == StatusCode::SysExEnd)
                     {
                         uint32_t Index = (uint32_t) sysExTable.AddItem(Data.data(), DataSize, PortNumbers[SelectedTrack]) | 0x80000000u;
 
@@ -647,16 +647,16 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
                     }
                 }
                 else
-                if ((DataSize >= 3) && (Event.Data[0] == StatusCodes::MetaData))
+                if ((DataSize >= 3) && (Event.Data[0] == StatusCode::MetaData))
                 {
-                    if (Event.Data[1] == MetaDataTypes::InstrumentName || Event.Data[1] == MetaDataTypes::DeviceName)
+                    if (Event.Data[1] == MetaDataType::InstrumentName || Event.Data[1] == MetaDataType::DeviceName)
                     {
                         DeviceNames[SelectedTrack].assign(Event.Data.begin() + 2, Event.Data.end());
 
                         std::transform(DeviceNames[SelectedTrack].begin(), DeviceNames[SelectedTrack].end(), DeviceNames[SelectedTrack].begin(), ::tolower);
                     }
                     else
-                    if (Event.Data[1] == MetaDataTypes::MIDIPort)
+                    if (Event.Data[1] == MetaDataType::MIDIPort)
                     {
                         PortNumbers[SelectedTrack] = Event.Data[2];
                         DeviceNames[SelectedTrack].clear();
@@ -665,7 +665,7 @@ void container_t::SerializeAsStream(size_t subSongIndex, std::vector<message_t> 
                     }
                 }
                 else
-                if ((DataSize == 1) && (Event.Data[0] > StatusCodes::SysExEnd))
+                if ((DataSize == 1) && (Event.Data[0] > StatusCode::SysExEnd))
                 {
                     if (!DeviceNames[SelectedTrack].empty())
                     {
@@ -741,7 +741,7 @@ void container_t::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
         midiStream.push_back(0);
 
         uint32_t RunningTime = 0;
-        uint8_t RunningStatus = StatusCodes::MetaData;
+        uint8_t RunningStatus = StatusCode::MetaData;
 
         for (const event_t & Event : Track)
         {
@@ -767,9 +767,9 @@ void container_t::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
 
                 if (DataSize >= 1)
                 {
-                    if (Event.Data[0] == StatusCodes::SysEx)
+                    if (Event.Data[0] == StatusCode::SysEx)
                     {
-                        midiStream.push_back(StatusCodes::SysEx);
+                        midiStream.push_back(StatusCode::SysEx);
 
                         --DataSize;
 
@@ -779,9 +779,9 @@ void container_t::SerializeAsSMF(std::vector<uint8_t> & midiStream) const
                             midiStream.insert(midiStream.end(), Event.Data.begin() + 1, Event.Data.end());
                     }
                     else
-                    if (Event.Data[0] == StatusCodes::MetaData && (DataSize >= 2))
+                    if (Event.Data[0] == StatusCode::MetaData && (DataSize >= 2))
                     {
-                        midiStream.push_back(StatusCodes::MetaData);
+                        midiStream.push_back(StatusCode::MetaData);
                         midiStream.push_back(Event.Data[1]);
 
                         DataSize -= 2;
@@ -836,7 +836,7 @@ void container_t::PromoteToType1()
             new_tracks[1 + event.ChannelNumber].AddEvent(event);
         }
         else
-        if ((event.Data[0] != StatusCodes::MetaData) || (event.Data.size() < 2) || (event.Data[1] != MetaDataTypes::EndOfTrack))
+        if ((event.Data[0] != StatusCode::MetaData) || (event.Data.size() < 2) || (event.Data[1] != MetaDataType::EndOfTrack))
         {
             new_tracks[0].AddEvent(event);
         }
@@ -997,7 +997,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
 
             std::string NewType;
 
-            if ((DataSize > 0) && (Event.Data[0] == StatusCodes::SysEx))
+            if ((DataSize > 0) && (Event.Data[0] == StatusCode::SysEx))
             {
                 if ((DataSize == sizeof(sysex_t::GM1SystemOn)) && (::memcmp(Event.Data.data(), sysex_t::GM1SystemOn, sizeof(sysex_t::GM1SystemOn)) == 0))
                     NewType = "GM"; // 1991
@@ -1036,7 +1036,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                 }
             }
             else
-            if ((DataSize > 2) && (Event.Data[0] == StatusCodes::MetaData))
+            if ((DataSize > 2) && (Event.Data[0] == StatusCode::MetaData))
             {
                 char Name[32];
 
@@ -1048,7 +1048,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
 
                 switch (Event.Data[1])
                 {
-                    case MetaDataTypes::Text:
+                    case MetaDataType::Text:
                     {
                         if (!IsSoftKaraoke)
                         {
@@ -1121,7 +1121,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::Copyright:
+                    case MetaDataType::Copyright:
                     {
                         AssignString((const char *) Event.Data.data() + 2, DataSize, Text);
 
@@ -1129,8 +1129,8 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::TrackName:
-                    case MetaDataTypes::InstrumentName:
+                    case MetaDataType::TrackName:
+                    case MetaDataType::InstrumentName:
                     {
                         ::sprintf_s(Name, _countof(Name), "track_name_%02u", (unsigned int)i);
                         AssignString((const char *) Event.Data.data() + 2, DataSize, Text);
@@ -1140,7 +1140,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                     }
 
                     // Tune 1000 Karaoke format (https://www.mixagesoftware.com/en/midikit/help/HTML/karaoke_formats.html)
-                    case MetaDataTypes::Lyrics:
+                    case MetaDataType::Lyrics:
                     {
                         AssignString((const char *) Event.Data.data() + 2, DataSize, Text);
 
@@ -1148,7 +1148,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::Marker:
+                    case MetaDataType::Marker:
                     {
                         AssignString((const char *) Event.Data.data() + 2, DataSize, Text);
 
@@ -1156,7 +1156,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::CueMarker:
+                    case MetaDataType::CueMarker:
                     {
                         AssignString((const char *) Event.Data.data() + 2, DataSize, Text);
 
@@ -1164,12 +1164,12 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::SetTempo:
+                    case MetaDataType::SetTempo:
                     {
                         break;
                     }
 
-                    case MetaDataTypes::TimeSignature:
+                    case MetaDataType::TimeSignature:
                     {
                         if (DataSize == 4)
                         {
@@ -1179,7 +1179,7 @@ void container_t::GetMetaData(size_t subSongIndex, metadata_table_t & metaData)
                         break;
                     }
 
-                    case MetaDataTypes::KeySignature:
+                    case MetaDataType::KeySignature:
                     {
                         if (DataSize == 2)
                         {
@@ -1363,7 +1363,7 @@ void container_t::SplitByInstrumentChanges(SplitCallback callback)
         {
             const event_t & Event = SrcTrack[k];
 
-            if ((Event.Type == event_t::ProgramChange) || ((Event.Type == event_t::ControlChange) && (Event.Data[0] == ControlChangeNumbers::BankSelect || Event.Data[0] == ControlChangeNumbers::BankSelectLSB)))
+            if ((Event.Type == event_t::ProgramChange) || ((Event.Type == event_t::ControlChange) && (Event.Data[0] == Controller::BankSelect || Event.Data[0] == Controller::BankSelectLSB)))
             {
                 ProgramChangeTrack.AddEvent(Event);
             }
@@ -1402,8 +1402,8 @@ void container_t::SplitByInstrumentChanges(SplitCallback callback)
 
                             std::vector<uint8_t> Data(Name.length() + 2);
 
-                            Data[0] = StatusCodes::MetaData;
-                            Data[1] = MetaDataTypes::TrackName;
+                            Data[0] = StatusCode::MetaData;
+                            Data[1] = MetaDataType::TrackName;
 
                             std::copy(Name.begin(), Name.end(), Data.begin() + 2);
 

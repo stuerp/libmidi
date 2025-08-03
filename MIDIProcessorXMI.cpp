@@ -90,7 +90,7 @@ bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & co
 
                 Temp[0] = *it++;
 
-                if (Temp[0] == StatusCodes::MetaData)
+                if (Temp[0] == StatusCode::MetaData)
                 {
                     if (it == end)
                         throw midi::exception("Insufficient data in the stream");
@@ -99,7 +99,7 @@ bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & co
 
                     long Size = 0;
 
-                    if (Temp[1] == MetaDataTypes::EndOfTrack)
+                    if (Temp[1] == MetaDataType::EndOfTrack)
                     {
                         if (LastEventTimestamp > CurrentTimestamp)
                             CurrentTimestamp = LastEventTimestamp;
@@ -118,7 +118,7 @@ bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & co
                         std::copy(it, it + Size, Temp.begin() + 2);
                         it += Size;
 
-                        if ((Temp[1] == MetaDataTypes::SetTempo) && (Size == 3))
+                        if ((Temp[1] == MetaDataType::SetTempo) && (Size == 3))
                         {
                             uint32_t Tempo = (uint32_t) (Temp[2] * 0x10000 + Temp[3] * 0x100 + Temp[4]);
                             uint32_t PpQN = (Tempo * 3) / 25000;
@@ -136,11 +136,11 @@ bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & co
 
                     Track.AddEvent(event_t(CurrentTimestamp, event_t::Extended, 0, &Temp[0], (size_t) (Size + 2)));
 
-                    if (Temp[1] == MetaDataTypes::EndOfTrack)
+                    if (Temp[1] == MetaDataType::EndOfTrack)
                         break;
                 }
                 else
-                if (Temp[0] == StatusCodes::SysEx)
+                if (Temp[0] == StatusCode::SysEx)
                 {
                     long Size = DecodeVariableLengthQuantity(it, end);
 
@@ -157,7 +157,7 @@ bool processor_t::ProcessXMI(std::vector<uint8_t> const & data, container_t & co
                     Track.AddEvent(event_t(CurrentTimestamp, event_t::Extended, 0, &Temp[0], (size_t) (Size + 1)));
                 }
                 else
-                if (Temp[0] >= StatusCodes::NoteOff && Temp[0] <= StatusCodes::ActiveSensing)
+                if (Temp[0] >= StatusCode::NoteOff && Temp[0] <= StatusCode::ActiveSensing)
                 {
                     if (it == end)
                         throw midi::exception("Insufficient data in the stream");
@@ -345,6 +345,6 @@ uint32_t processor_t::DecodeVariableLengthQuantityXMI(std::vector<uint8_t>::cons
     return Quantity;
 }
 
-const uint8_t processor_t::DefaultTempoXMI[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x07, 0xA1, 0x20 };
+const uint8_t processor_t::DefaultTempoXMI[5] = { StatusCode::MetaData, MetaDataType::SetTempo, 0x07, 0xA1, 0x20 };
 
 }

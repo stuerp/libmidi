@@ -151,7 +151,7 @@ bool processor_t::ProcessMDS(std::vector<uint8_t> const & data, container_t & co
 
             if ((Event >> 24) == 0x01)
             {
-                uint8_t Data[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo };
+                uint8_t Data[5] = { StatusCode::MetaData, MetaDataType::SetTempo };
 
                 Data[2] = (uint8_t) (Event >> 16);
                 Data[3] = (uint8_t) (Event >> 8);

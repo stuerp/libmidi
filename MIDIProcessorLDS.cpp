@@ -1220,6 +1220,6 @@ bool processor_t::ProcessLDS(std::vector<uint8_t> const & data, container_t & co
     return true;
 }
 
-const uint8_t processor_t::DefaultTempoLDS[5] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0x07, 0xA1, 0x20 };
+const uint8_t processor_t::DefaultTempoLDS[5] = { StatusCode::MetaData, MetaDataType::SetTempo, 0x07, 0xA1, 0x20 };
 
 }

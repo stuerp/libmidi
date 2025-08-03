@@ -87,8 +87,8 @@ bool processor_t::ProcessTST(std::vector<uint8_t> const & data, container_t & co
         Track.AddEvent(event_t(   1500, event_t::NoteOn,  (uint32_t) Channel, Data, 2));
         Track.AddEvent(event_t(   1550, event_t::NoteOff, (uint32_t) Channel, Data, 2));
 
-        Data[0] = StatusCodes::MetaData;
-        Data[1] = MetaDataTypes::EndOfTrack;
+        Data[0] = StatusCode::MetaData;
+        Data[1] = MetaDataType::EndOfTrack;
 
         Track.AddEvent(event_t(   2000, event_t::Extended, (uint32_t) 0, Data, 2));
     }

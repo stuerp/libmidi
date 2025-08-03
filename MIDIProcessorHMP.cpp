@@ -61,7 +61,7 @@ bool processor_t::ProcessHMP(std::vector<uint8_t> const & data, container_t & co
     {
         track_t Track;
 
-        uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::SetTempo, 0, 0, 0 };
+        uint8_t Data[] = { StatusCode::MetaData, MetaDataType::SetTempo, 0, 0, 0 };
 
         {
             uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to µs / quarter note.
@@ -193,14 +193,14 @@ bool processor_t::ProcessHMP(std::vector<uint8_t> const & data, container_t & co
                         break;
                 }
                 else
-                if (Temp[0] >= StatusCodes::NoteOff && Temp[0] < StatusCodes::SysEx)
+                if (Temp[0] >= StatusCode::NoteOff && Temp[0] < StatusCode::SysEx)
                 {
                     int BytesRead = 2;
 
                     switch (Temp[0] & 0xF0)
                     {
-                        case StatusCodes::ProgramChange:
-                        case StatusCodes::ChannelPressure:
+                        case StatusCode::ProgramChange:
+                        case StatusCode::ChannelPressure:
                             BytesRead = 1;
                     }
 

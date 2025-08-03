@@ -497,7 +497,7 @@ static void ProcessHPSTrack(const std::span<const uint8_t> & data, state_t & sta
         // End of Sequence
         if (it[0] == 0x00 && it[1] == 0x00 && it[2] == 0x00 && it[3] == 0x00)
         {
-            const uint8_t Data[] = { StatusCodes::MetaData, MetaDataTypes::EndOfTrack };
+            const uint8_t Data[] = { StatusCode::MetaData, MetaDataType::EndOfTrack };
 
             Track.AddEvent(event_t(RunningTime, event_t::Extended, (uint32_t) 0, Data, 2));
             break;

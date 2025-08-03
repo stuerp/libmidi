@@ -48,7 +48,7 @@ public:
 
     static bool IsEqual(const uint8_t * a, const uint8_t * b) noexcept
     {
-        while ((*a != StatusCodes::SysExEnd) && (*b != StatusCodes::SysExEnd) && (*a == *b))
+        while ((*a != StatusCode::SysExEnd) && (*b != StatusCode::SysExEnd) && (*a == *b))
         {
             a++;
             b++;
@@ -115,7 +115,7 @@ public:
 
         uint8_t Checksum = 0;
 
-        for (size_t i = 5; (i + 1 < size) && (data[i + 1] != StatusCodes::SysExEnd); ++i)
+        for (size_t i = 5; (i + 1 < size) && (data[i + 1] != StatusCode::SysExEnd); ++i)
             Checksum += data[i];
 
         return (uint8_t) ((128 - Checksum) & 127);
