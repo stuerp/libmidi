@@ -23,79 +23,79 @@ static void ProcessMetaData(const midi::event_t & me) noexcept
 
     switch (me.Data[1])
     {
-        case midi::MetaDataTypes::SequenceNumber:
+        case midi::MetaDataType::SequenceNumber:
         {
             ::printf(" Sequence Number");
             break;
         }
 
-        case midi::MetaDataTypes::Text:
+        case midi::MetaDataType::Text:
         {
             ::printf(" Text \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::Copyright:
+        case midi::MetaDataType::Copyright:
         {
             ::printf(" Copyright \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::TrackName:
+        case midi::MetaDataType::TrackName:
         {
             ::printf(" Track Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::InstrumentName:
+        case midi::MetaDataType::InstrumentName:
         {
             ::printf(" Instrument Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::Lyrics:
+        case midi::MetaDataType::Lyrics:
         {
             ::printf(" Lyrics \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::Marker:
+        case midi::MetaDataType::Marker:
         {
             ::printf(" Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::CueMarker:
+        case midi::MetaDataType::CueMarker:
         {
             ::printf(" Cue Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::DeviceName:
+        case midi::MetaDataType::DeviceName:
         {
             ::printf(" Device Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
-        case midi::MetaDataTypes::ChannelPrefix:
+        case midi::MetaDataType::ChannelPrefix:
         {
             ::printf(" Channel Prefix");
             break;
         }
 
-        case midi::MetaDataTypes::MIDIPort:
+        case midi::MetaDataType::MIDIPort:
         {
             ::printf(" Set MIDI Port %d", me.Data[2]);
             break;
         }
 
-        case midi::MetaDataTypes::EndOfTrack:
+        case midi::MetaDataType::EndOfTrack:
         {
             ::printf(" End of Track");
             break;
         }
 
-        case midi::MetaDataTypes::SetTempo:
+        case midi::MetaDataType::SetTempo:
         {
             const uint32_t Tempo = ((uint32_t) me.Data[2] << 16) | ((uint32_t) me.Data[3] << 8) | (uint32_t) me.Data[4];
 
@@ -103,19 +103,19 @@ static void ProcessMetaData(const midi::event_t & me) noexcept
             break;
         }
 
-        case midi::MetaDataTypes::SMPTEOffset:
+        case midi::MetaDataType::SMPTEOffset:
         {
             ::printf(" Set SMPTE Offset");
             break;
         }
 
-        case midi::MetaDataTypes::TimeSignature:
+        case midi::MetaDataType::TimeSignature:
         {
             ::printf(" Time Signature %d/%d, %d ticks per beat, %d 32nd notes per MIDI quarter note", me.Data[2], 1 << me.Data[3], me.Data[4], me.Data[5]);
             break;
         }
 
-        case midi::MetaDataTypes::KeySignature:
+        case midi::MetaDataType::KeySignature:
         {
             static const char * MajorScales[] =
             {
@@ -163,7 +163,7 @@ static void ProcessMetaData(const midi::event_t & me) noexcept
             break;
         }
 
-        case midi::MetaDataTypes::SequencerSpecific:
+        case midi::MetaDataType::SequencerSpecific:
         {
             ::printf(" Sequencer Specific");
             break;
