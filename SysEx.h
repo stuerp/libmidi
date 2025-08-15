@@ -141,6 +141,8 @@ private:
     void IdentifyRoland() noexcept;
     void IdentifyYamaha() noexcept;
 
+    static int GSBlockToPart(int value) noexcept;
+
     static const char * IdentifyGSReverbMacro(uint8_t value) noexcept;
     static const char * IdentifyGSChorusMacro(uint8_t value) noexcept;
     static const char * IdentifyGSDelayMacro(uint8_t value) noexcept;

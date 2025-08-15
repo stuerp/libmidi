@@ -638,33 +638,34 @@ void sysex_t::IdentifyRoland() noexcept
                     switch (Address & 0xFFF0FF)
                     {
                         // Patch Part Parameters. (Block A 00-0F)
-                        case 0x401000: Description = ::FormatText("Tone Number %02Xh (%d)",                 _Iter[3], (int) _Iter[3]); break;
+                        case 0x401000: Description = ::FormatText("Set Part %d to Tone Number %d (%02Xh)",              GSBlockToPart(_Iter[1]), (int) _Iter[3], _Iter[3]); break;
 
-                        case 0x401002: Description = ::FormatText("Rx. Channel %02Xh (%d)",                 _Iter[3], (int) _Iter[3]); break;
-                        case 0x401003: Description = ::FormatText("Rx. Pitch Bend %02Xh (%s)",              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401004: Description = ::FormatText("Rx. Channel Pressure %02Xh (%s)",        _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401005: Description = ::FormatText("Rx. Program Change %02Xh (%s)",          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401006: Description = ::FormatText("Rx. Control Change %02Xh (%s)",          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401007: Description = ::FormatText("Rx. Poly Pressure %02Xh (%s)",           _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401008: Description = ::FormatText("Rx. Note Message %02Xh (%s)",            _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401009: Description = ::FormatText("Rx. RPN %02Xh (%s)",                     _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100A: Description = ::FormatText("Rx. NRPN %02Xh (%s)",                    _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100B: Description = ::FormatText("Rx. Modulation %02Xh (%s)",              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100C: Description = ::FormatText("Rx. Volume %02Xh (%s)",                  _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100D: Description = ::FormatText("Rx. PanPot %02Xh (%s)",                  _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100E: Description = ::FormatText("Rx. Expression %02Xh (%s)",              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x40100F: Description = ::FormatText("Rx. Hold1 %02Xh (%s)",                   _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401010: Description = ::FormatText("Rx. Portamento %02Xh (%s)",              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401011: Description = ::FormatText("Rx. Sostenuto %02Xh (%s)",               _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401012: Description = ::FormatText("Rx. Soft %02Xh (%s)",                    _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
-                        case 0x401013: Description = ::FormatText("Rx. Mono/Poly Mode %02Xh (%s)",          _Iter[3], (_Iter[3] == 0x01 ? "Poly" : "Mono")); break;
-                        case 0x401014: Description = ::FormatText("Rx. Assign Mode %02Xh (%s)",             _Iter[3], (_Iter[3] == 0x00 ? "Single" : (_Iter[3] == 0x01 ? "Limited-Multi" : "Full-Multi"))); break;
+                        case 0x401002: Description = ::FormatText("Rx. Channel %02Xh (%d)",                             _Iter[3], (int) _Iter[3]); break;
+                        case 0x401003: Description = ::FormatText("Rx. Pitch Bend %02Xh (%s)",                          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401004: Description = ::FormatText("Rx. Channel Pressure %02Xh (%s)",                    _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401005: Description = ::FormatText("Rx. Program Change %02Xh (%s)",                      _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401006: Description = ::FormatText("Rx. Control Change %02Xh (%s)",                      _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401007: Description = ::FormatText("Rx. Poly Pressure %02Xh (%s)",                       _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401008: Description = ::FormatText("Rx. Note Message %02Xh (%s)",                        _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401009: Description = ::FormatText("Rx. RPN %02Xh (%s)",                                 _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100A: Description = ::FormatText("Rx. NRPN %02Xh (%s)",                                _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100B: Description = ::FormatText("Rx. Modulation %02Xh (%s)",                          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100C: Description = ::FormatText("Rx. Volume %02Xh (%s)",                              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100D: Description = ::FormatText("Rx. PanPot %02Xh (%s)",                              _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100E: Description = ::FormatText("Rx. Expression %02Xh (%s)",                          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x40100F: Description = ::FormatText("Rx. Hold1 %02Xh (%s)",                               _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401010: Description = ::FormatText("Rx. Portamento %02Xh (%s)",                          _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401011: Description = ::FormatText("Rx. Sostenuto %02Xh (%s)",                           _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
+                        case 0x401012: Description = ::FormatText("Rx. Soft %02Xh (%s)",                                _Iter[3], (_Iter[3] == 0x01 ? "On" : "Off")); break;
 
-                        case 0x401015: Description = ::FormatText("Use for Rhythm Part %02Xh (%s)",                     _Iter[3],           IdentifyGSRhythmPart(_Iter[3])); break;
+                        case 0x401013: Description = ::FormatText("Set Part %d to %s Mode",                             GSBlockToPart(_Iter[1]), (_Iter[3] == 0x01 ? "Poly" : "Mono")); break;
+                        case 0x401014: Description = ::FormatText("Assign Part %d Mode %s",                             GSBlockToPart(_Iter[1]), (_Iter[3] == 0x00 ? "Single" : (_Iter[3] == 0x01 ? "Limited-Multi" : "Full-Multi"))); break;
+                        case 0x401015: Description = ::FormatText("Use Part %d for Rhythm (%s)",                        GSBlockToPart(_Iter[1]), IdentifyGSRhythmPart(_Iter[3])); break;
+
                         case 0x401016: Description = ::FormatText("Pitch Key Shift %02Xh (%d semitones)",               _Iter[3],           Map((int) _Iter[3], 0x28, 0x58, -24, 24)); break;
                         case 0x401017: Description = ::FormatText("Pitch Offset Fine %02Xh %02Xh (%.1fHz)",             _Iter[3], _Iter[4], Map((_Iter[4] << 7) | _Iter[3], 0x08, 0xF8, -12.f, 12.f)); break;
 
-                        case 0x401019: Description = ::FormatText("Part Level %02Xh (%d)",                              _Iter[3], (int) _Iter[3]); break;
+                        case 0x401019: Description = ::FormatText("Set Part %d Volume Level %d (%02Xh)",                GSBlockToPart(_Iter[1]), (int) _Iter[3], _Iter[3]); break;
                         case 0x40101A: Description = ::FormatText("Velocity Sense Depth %02Xh (%d)",                    _Iter[3], (int) _Iter[3]); break;
                         case 0x40101B: Description = ::FormatText("Velocity Sense Offset %02Xh (%d)",                   _Iter[3], (int) _Iter[3]); break;
                         case 0x40101C: Description = ::FormatText("Part PanPot %02Xh (%d)",                             _Iter[3], (int) _Iter[3]); break;
@@ -869,6 +870,22 @@ void sysex_t::IdentifyRoland() noexcept
     IsChecksumValid = (_Data[_Data.size() - 2] != CalculateRolandCheckSum(_Data.data(), _Data.size()));
 }
 
+/// <summary>
+/// Converts a block number to a part number.
+/// </summary>
+int sysex_t::GSBlockToPart(int value) noexcept
+{
+    value &= 0x0F;
+
+    if (value == 0)
+        return 10;
+
+    if (value < 10)
+        return value;
+
+    return value + 1;
+}
+
 const char * sysex_t::IdentifyGSReverbMacro(uint8_t value) noexcept
 {
     switch (value)
@@ -921,22 +938,6 @@ const char * sysex_t::IdentifyGSDelayMacro(uint8_t value) noexcept
         default: return "<Unknown>";
     }
 }
-
-/// <summary>
-/// Converts a block number to a part number.
-/// </summary>
-/*
-static int GSBlockToPart(int value) noexcept
-{
-    if (value < 10)
-        return value;
-
-    if (value == 0)
-        return 10;
-
-    return value + 1;
-}
-*/
 
 const char * sysex_t::IdentifyGSRhythmPart(uint8_t value) noexcept
 {

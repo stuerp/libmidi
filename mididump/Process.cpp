@@ -75,7 +75,7 @@ std::vector<uint8_t> ReadFile(const fs::path & filePath)
 /// </summary>
 void ProcessContainer(midi::container_t & container, bool asStream)
 {
-    ReadIns("GM1-GM2.ins");
+//  ReadIns("GM1-GM2.ins");
 
     if (asStream)
     {
