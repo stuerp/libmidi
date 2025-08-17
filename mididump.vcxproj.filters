@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="src\Tools\mididump\Cakewalk.cpp" />
+    <ClCompile Include="src\Tools\mididump\main.cpp" />
+    <ClCompile Include="src\Tools\mididump\Messages.cpp" />
+    <ClCompile Include="src\Tools\mididump\Process.cpp" />
+    <ClCompile Include="src\Tools\mididump\Stream.cpp" />
+    <ClCompile Include="src\Tools\mididump\Tracks.cpp" />
+    <ClCompile Include="src\Tools\mididump\pch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Tools\mididump\Cakewalk.h" />
+    <ClInclude Include="src\Tools\mididump\Messages.h" />
+    <ClInclude Include="src\Tools\mididump\pch.h" />
+  </ItemGroup>
+</Project>
