@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.h (2025.07.18) **/
+/** $VER: SysEx.h (2025.08.26) **/
 
 #pragma once
 
@@ -134,6 +134,11 @@ public:
 
     static const uint8_t XGSystemOn[9];
     static const uint8_t XGReset[9];
+
+    static const uint8_t DLSOn[6];
+    static const uint8_t DLSOff[6];
+    static const uint8_t DLSStaticVoiceAllocationOff[6];
+    static const uint8_t DLSStaticVoiceAllocationOn[6];
 
 private:
     uint32_t IdentifyManufacturer() noexcept;

@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.cpp (2025.07.18) P. Stuer **/
+/** $VER: SysEx.cpp (2025.08.22) P. Stuer **/
 
 #include "pch.h"
 
@@ -109,6 +109,46 @@ const uint8_t sysex_t::XGReset[9] =
     0x00,
     0x7F,
     0x00,
+    0xF7  // End of SysEx
+};
+
+const uint8_t sysex_t::DLSOn[6] =
+{
+    0xF0, // Start of SysEx
+    0x7E, // Universal Non-Real Time
+    0x7F, // Device ID (7F = Broadcast)
+    0x0A, // DLS message
+    0x01, // DLS On
+    0xF7  // End of SysEx
+};
+
+const uint8_t sysex_t::DLSOff[6] =
+{
+    0xF0, // Start of SysEx
+    0x7E, // Universal Non-Real Time
+    0x7F, // Device ID (7F = Broadcast)
+    0x0A, // DLS message
+    0x02, // DLS Off
+    0xF7  // End of SysEx
+};
+
+const uint8_t sysex_t::DLSStaticVoiceAllocationOff[6] =
+{
+    0xF0, // Start of SysEx
+    0x7E, // Universal Non-Real Time
+    0x7F, // Device ID (7F = Broadcast)
+    0x0A, // DLS message
+    0x03, // DLS Static Voice Allocation Off
+    0xF7  // End of SysEx
+};
+
+const uint8_t sysex_t::DLSStaticVoiceAllocationOn[6] =
+{
+    0xF0, // Start of SysEx
+    0x7E, // Universal Non-Real Time
+    0x7F, // Device ID (7F = Broadcast)
+    0x0A, // DLS message
+    0x04, // DLS Static Voice Allocation On
     0xF7  // End of SysEx
 };
 
