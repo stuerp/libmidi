@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMF.cpp (2025.07.22) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
+/** $VER: MIDIProcessorXMF.cpp (2025.09.01) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
 #include "pch.h"
 
@@ -446,11 +446,11 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                 case UnpackerID::RegisteredUnpacker:
                 case UnpackerID::NonRegisteredUnpacker:
                 {
-                    throw midi::exception("Unsuppored XMF unpacker");
+                    throw midi::exception("Unsupported XMF compression algorithm");
                 }
 
                 default:
-                    throw midi::exception("Unknown XMF unpacker");
+                    throw midi::exception("Unknown XMF compression algorithm");
             }
 
             Unpacker.UnpackedSize = (size_t) DecodeVariableLengthQuantity(data, tail);
@@ -583,7 +583,7 @@ std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
             processor_t::InflateRaw(data, UnpackedData);
         }
         else
-            throw midi::exception(FormatText("Unknown unpacker 0x%02X from MMA manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
+            throw midi::exception(::FormatText("Unable to unpack data using unknown compression algorithm 0x%02X from manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
     }
 
     return UnpackedData;
