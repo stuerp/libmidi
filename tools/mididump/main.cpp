@@ -1,16 +1,15 @@
 
-/** $VER: main.cpp (2025.07.26) P. Stuer **/
+/** $VER: main.cpp (2025.09.06) P. Stuer **/
 
 #include "pch.h"
-
-#include "Encoding.h"
 
 void ExamineFile(const fs::path & filePath, const std::map<std::string, std::string> & args);
 
 static void ProcessDirectory(const fs::path & directoryPath);
 static void ProcessFile(const fs::path & filePath);
 
-const std::vector<fs::path> Filters = { ".mid", /*".g36",*/ ".rmi", /*".mxmf", ".xmf",*/ ".mmf", ".tst" };
+//const std::vector<fs::path> Filters = { ".mid", /*".g36",*/ ".rmi", /*".mxmf", ".xmf",*/ ".mmf", ".tst" };
+const std::vector<fs::path> Filters = { ".mxmf", ".xmf" };
 
 std::map<std::string, std::string> Arguments;
 
@@ -43,7 +42,7 @@ int main(int argc, const char ** argv)
         return -1;
     }
 
-    fs::path Path = std::filesystem::canonical(Arguments["midifile"]);
+    fs::path Path = fs::canonical(Arguments["midifile"]);
 
     if (fs::is_directory(Path))
         ProcessDirectory(Path);
@@ -87,11 +86,15 @@ static void ProcessDirectory(const fs::path & directoryPath)
 
 static void ProcessFile(const fs::path & filePath)
 {
+//    HANDLE OldStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+
     FILE * fp = nullptr;
 
-    fs::path StdOut = filePath;
+    fs::path StdOut = filePath; StdOut.replace_extension(".log");
 
-    if ((::freopen_s(&fp, StdOut.replace_extension(".log").string().c_str(), "w", stdout) != 0) || (fp == nullptr))
+    (void) _chmod(StdOut.string().c_str(), _S_IWRITE | _S_IREAD);
+
+    if ((::freopen_s(&fp, StdOut.string().c_str(), "w", stdout) != 0) || (fp == nullptr))
         return;
 
     ::printf("\xEF\xBB\xBF"); // UTF-8 BOM
@@ -102,5 +105,10 @@ static void ProcessFile(const fs::path & filePath)
 
     ExamineFile(filePath, Arguments);
 
+    ::fflush(fp);
+
     ::fclose(fp);
+
+    if ((::freopen_s(&fp, "CON", "w", stdout) != 0) || (fp == nullptr))
+        return;
 }

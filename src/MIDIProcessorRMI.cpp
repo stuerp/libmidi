@@ -158,13 +158,13 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
             {
                 std::vector<uint8_t> Data(it, ChunkTail);
 
-                container.SetSoundFontData(Data);
+                container.SoundFont = Data;
             }
         }
 #ifdef _DEBUG
         else
         {
-            ::OutputDebugStringW(::FormatText(L"Unknown chunk \"%s\", %zu bytes\n", ChunkId.c_str(), ChunkSize).c_str());
+            ::OutputDebugStringW(msc::FormatText(L"Unknown chunk \"%s\", %zu bytes\n", ChunkId.c_str(), ChunkSize).c_str());
         }
 #endif
         it += (ptrdiff_t) 8 + ChunkSize;
@@ -176,7 +176,7 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
     // If an embedded DLS sound font was found: assume bank offset 0 unless any bank change (CC0) is detected to a bank that is not 0 and not 127 (Drums).
     if (IsDLS)
     {
-        container.SetBankOffset(0);
+        container.BankOffset = 0;
 
         for (const auto & Track : container)
         {
@@ -184,7 +184,7 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
             {
                 if ((Event.Type == event_t::ControlChange) && (Event.Data[0] == midi::BankSelect) && (Event.Data[1] != 0) && (Event.Data[1] != 127))
                 {
-                    container.SetBankOffset(1);
+                    container.BankOffset = 1;
                     break;
                 }
             }
@@ -238,7 +238,7 @@ bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
         if (ChunkId == "DBNK")
         {
             if (ChunkSize == 2)
-                container.SetBankOffset(std::clamp((ChunkData[1] << 8) | ChunkData[0], 0, 127));
+                container.BankOffset = std::clamp((ChunkData[1] << 8) | ChunkData[0], 0, 127);
         }
         else
         {
@@ -248,7 +248,7 @@ bool ProcessList(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
             std::string Text;
 
             if (CodePage != ~0u)
-                Text = CodePageToUTF8(CodePage, (const char *) &ChunkData[0], (size_t) ChunkSize);
+                Text = msc::CodePageToUTF8(CodePage, (const char *) &ChunkData[0], (size_t) ChunkSize);
             else
                 Text.assign(ChunkData, ChunkData + ChunkSize);
 
@@ -299,7 +299,7 @@ bool GetCodePage(std::vector<uint8_t>::const_iterator data, ptrdiff_t chunkSize,
         {
             std::string Encoding(ChunkData, ChunkData + ChunkSize);
 
-            GetCodePageFromEncoding(Encoding, codePage);
+            msc::GetCodePageFromEncoding(Encoding, codePage);
 
             return true;
         }

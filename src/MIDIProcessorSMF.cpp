@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 namespace midi
 {
@@ -61,7 +60,7 @@ bool processor_t::ProcessSMF(std::vector<uint8_t> const & data, container_t & co
     const int Format = (data[8] << 8) | data[9];
 
     if (Format > 2)
-        throw midi::exception(FormatText("Unrecognized MIDI format: %d", Format));
+        throw midi::exception(msc::FormatText("Unrecognized MIDI format: %d", Format));
 
     const size_t TrackCount = (size_t) ((data[10] << 8) | data[11]);
 

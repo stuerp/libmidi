@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 #include "Messages.h"
 #include "SysEx.h"
@@ -29,49 +28,49 @@ static void ProcessMetaData(const midi::event_t & me) noexcept
 
         case midi::MetaDataType::Text:
         {
-            ::printf(" Text \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Text \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::Copyright:
         {
-            ::printf(" Copyright \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Copyright \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::TrackName:
         {
-            ::printf(" Track Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Track Name \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::InstrumentName:
         {
-            ::printf(" Instrument Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Instrument Name \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::Lyrics:
         {
-            ::printf(" Lyrics \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Lyrics \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::Marker:
         {
-            ::printf(" Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Marker \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::CueMarker:
         {
-            ::printf(" Cue Marker \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Cue Marker \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 
         case midi::MetaDataType::DeviceName:
         {
-            ::printf(" Device Name \"%s\"", (me.Data.size() > 2) ? TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
+            ::printf(" Device Name \"%s\"", (me.Data.size() > 2) ? msc::TextToUTF8((const char *) me.Data.data() + 2, me.Data.size() - 2).c_str() : "");
             break;
         }
 

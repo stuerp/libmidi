@@ -5,17 +5,27 @@
 
 #include "pch.h"
 
-const FOURCC FOURCC_FORM = mmioFOURCC('F', 'O', 'R', 'M');
-const FOURCC FOURCC_CAT  = mmioFOURCC('C', 'A', 'T', ' ');
-const FOURCC FOURCC_EVNT = mmioFOURCC('E', 'V', 'N', 'T');
+#include <SDKDDKVer.h>
 
-const FOURCC FOURCC_XDIR = mmioFOURCC('X', 'D', 'I', 'R');
-const FOURCC FOURCC_XMID = mmioFOURCC('X', 'M', 'I', 'D');
+#define NOMINMAX
+
+#include <winsock2.h>
+#include <windows.h>
+#include <wincodec.h>
+
+#include <mmreg.h>
+
+const DWORD FOURCC_FORM = mmioFOURCC('F', 'O', 'R', 'M');
+const DWORD FOURCC_CAT  = mmioFOURCC('C', 'A', 'T', ' ');
+const DWORD FOURCC_EVNT = mmioFOURCC('E', 'V', 'N', 'T');
+
+const DWORD FOURCC_XDIR = mmioFOURCC('X', 'D', 'I', 'R');
+const DWORD FOURCC_XMID = mmioFOURCC('X', 'M', 'I', 'D');
 
 struct iff_chunk_t
 {
-    FOURCC Id;
-    FOURCC Type;
+    DWORD Id;
+    DWORD Type;
     std::vector<uint8_t> _Data;
     std::vector<iff_chunk_t> _Chunks;
 
@@ -44,7 +54,7 @@ struct iff_chunk_t
     /// <summary>
     /// Gets the n-th chunk with the specified id.
     /// </summary>
-    const iff_chunk_t & FindChunk(FOURCC id, uint32_t n = 0) const
+    const iff_chunk_t & FindChunk(DWORD id, uint32_t n = 0) const
     {
         for (const auto & Chunk : _Chunks)
         {
@@ -64,7 +74,7 @@ struct iff_chunk_t
     /// <summary>
     /// Gets the number of chunks with the specified id.
     /// </summary>
-    uint32_t GetChunkCount(FOURCC id) const
+    uint32_t GetChunkCount(DWORD id) const
     {
         uint32_t ChunkCount = 0;
 
@@ -87,7 +97,7 @@ struct iff_stream_t
     /// <summary>
     /// Finds the first chunk with the specified id.
     /// </summary>
-    const iff_chunk_t & FindChunk(FOURCC id) const
+    const iff_chunk_t & FindChunk(DWORD id) const
     {
         for (const auto & Chunk : _Chunks)
         {

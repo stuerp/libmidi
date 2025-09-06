@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 #include <span>
 
@@ -84,7 +83,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it a "Contents Info" chunk?
         if (::memcmp(&it[0], "CNTI", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"CNTI\", %zu bytes (Contents Information)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"CNTI\", %zu bytes (Contents Information)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8;
 
@@ -134,7 +133,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it a "Optional Data" chunk?
         if (::memcmp(&it[0], "OPDA", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"OPDA\", %zu bytes (Optional Data)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"OPDA\", %zu bytes (Optional Data)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8;
 
@@ -146,7 +145,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it a "Score Track" chunk?
         if (::memcmp(&it[0], "MTR", 3) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"MTR_\", %zu bytes (Score Track)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"MTR_\", %zu bytes (Score Track)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8;
 
@@ -160,7 +159,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it an "PCM Audio Track" chunk? Stores PCM audio sounds such as ADPCM, MP3, and TwinVQ in event format.
         if (::memcmp(&it[0], "ATR", 3) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"ATR_\", %zu bytes (PCM Audio Track)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"ATR_\", %zu bytes (PCM Audio Track)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8 + ChunkSize;
         }
@@ -168,7 +167,7 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it a "Graphics Track" chunk? Stores background images, inserted still images, text data, and sequence data for playing these.
         if (::memcmp(&it[0], "GTR", 3) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"ATR_\", %zu bytes (Graphics Track)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"ATR_\", %zu bytes (Graphics Track)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8 + ChunkSize;
         }
@@ -176,14 +175,14 @@ bool processor_t::ProcessMMF(std::vector<uint8_t> const & data, container_t & co
         // Is it a "Master Track" chunk? Stores music information sequences synchronized with playback sequences such as the Score Track, and sequence data for controlling the SMAF playback system.
         if (::memcmp(&it[0], "MSTR", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"MSTR\", %zu bytes (Master Track)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"MSTR\", %zu bytes (Master Track)", ChunkSize).c_str());
 
             it += (ptrdiff_t) 8 + ChunkSize;
         }
 #ifdef _DEBUG
         else
         {
-            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
             it += (ptrdiff_t) 8 + ChunkSize;
         }
 #endif
@@ -293,7 +292,7 @@ static void ProcessOPDA(const std::span<const uint8_t> & data, state_t & state, 
 
         if (::memcmp(&it[0], "Dch", 3) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"Dch_\", %zu bytes (Data)", ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"Dch_\", %zu bytes (Data)", ChunkSize).c_str());
 
             uint8_t Encoding = it[3];
 
@@ -301,7 +300,7 @@ static void ProcessOPDA(const std::span<const uint8_t> & data, state_t & state, 
         }
 #ifdef _DEBUG
         else
-            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
 #endif
         it += (ptrdiff_t) (8 + ChunkSize);
     }
@@ -439,7 +438,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
 
         if (::memcmp(&it[0], "Mtsu", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Setup Data)", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"%S\", %zu bytes (Setup Data)", ChunkId.c_str(), ChunkSize).c_str());
 
             state.IsMTSU = true;
 
@@ -449,7 +448,7 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
         else
         if (::memcmp(&it[0], "Mtsq", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Sequence Data)", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"%S\", %zu bytes (Sequence Data)", ChunkId.c_str(), ChunkSize).c_str());
 
             state.IsMTSU = false;
 
@@ -459,10 +458,10 @@ static void ProcessMTR(const std::span<const uint8_t> & data, state_t & state, c
         else
         if (::memcmp(&it[0], "MspI", 4) == 0)
         {
-            ::_putws(::FormatText(L"Chunk \"%S\", %zu bytes (Seek & Phrase Info)", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Chunk \"%S\", %zu bytes (Seek & Phrase Info)", ChunkId.c_str(), ChunkSize).c_str());
         }
         else
-            ::_putws(::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
+            ::_putws(msc::FormatText(L"Unknown chunk \"%S\", %zu bytes", ChunkId.c_str(), ChunkSize).c_str());
 
         it += (ptrdiff_t) (8 + ChunkSize);
     }
@@ -826,7 +825,7 @@ static std::string GetEncodingDescription(uint8_t encoding) noexcept
 
         case 0xFF: return std::string("Binary");                // Only used in OPDA chunk
 
-        default:   return ::FormatText("Unknown (0x%02X)\n", encoding);
+        default:   return msc::FormatText("Unknown (0x%02X)\n", encoding);
     }
 }
 

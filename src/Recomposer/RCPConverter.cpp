@@ -6,8 +6,6 @@
 #include "RCP.h"
 #include "RunningNotes.h"
 
-#include "Encoding.h"
-
 namespace rcp
 {
 
@@ -44,7 +42,7 @@ void converter_t::Convert(const buffer_t & rcpData, buffer_t & midData, const st
         if (::_wcsicmp(dstType.c_str(), L"mid") == 0)
             Mode = 0x01;
         else
-            throw std::runtime_error(std::string("Unknown output format: ") + ::WideToUTF8(dstType));
+            throw std::runtime_error(std::string("Unknown output format: ") + msc::WideToUTF8(dstType));
 
         try
         {
@@ -196,7 +194,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
         {
             ::memcpy(FileNameA, RCPFile._CM6FileName.Data, RCPFile._CM6FileName.Len), FileNameA[RCPFile._CM6FileName.Len] = '\0';
 
-            ::wcscat_s(FilePath, _countof(FilePath), UTF8ToWide(FileNameA).c_str());
+            ::wcscat_s(FilePath, _countof(FilePath), msc::UTF8ToWide(FileNameA).c_str());
 
             buffer_t CM6Data;
 
@@ -222,7 +220,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
         {
             ::memcpy(FileNameA, RCPFile._GSD1FileName.Data, RCPFile._GSD1FileName.Len), FileNameA[RCPFile._GSD1FileName.Len] = '\0';
 
-            ::wcscat_s(FilePath, _countof(FilePath), UTF8ToWide(FileNameA).c_str());
+            ::wcscat_s(FilePath, _countof(FilePath), msc::UTF8ToWide(FileNameA).c_str());
 
             buffer_t GSDData;
 
@@ -248,7 +246,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
         {
             ::memcpy(FileName, RCPFile._GSD2FileName.Data, RCPFile._GSD2FileName.Len), FileName[RCPFile._GSD2FileName.Len] = '\0';
 
-            ::wcscat_s(FilePath, _countof(FilePath), UTF8ToWide(FileNameA).c_str());
+            ::wcscat_s(FilePath, _countof(FilePath), msc::UTF8ToWide(FileNameA).c_str());
 
             buffer_t GSDData;
 
@@ -440,7 +438,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
             Offset += DataSize;
 
         #ifdef _RCP_VERBOSE
-            ::printf("%04X: User SysEx \"%s\",", SyxOffset, TextToUTF8(SysEx.Name.Data, SysEx.Name.Len).c_str());
+            ::printf("%04X: User SysEx \"%s\",", SyxOffset, msc::TextToUTF8(SysEx.Name.Data, SysEx.Name.Len).c_str());
 
             if (SysEx.Size != 0)
             {

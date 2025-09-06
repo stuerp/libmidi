@@ -1,5 +1,5 @@
 
-/** $VER: pch.h (2025.08.17) P. Stuer **/
+/** $VER: pch.h (2025.09.06) P. Stuer **/
 
 #pragma once
 
@@ -14,8 +14,6 @@
 #include <winsock2.h>
 #include <windows.h>
 #include <wincodec.h>
-#include <pathcch.h>
-#include <shlwapi.h>
 
 #include <stdio.h>
 #include <stdint.h>
@@ -23,6 +21,7 @@
 #include <strsafe.h>
 #include <string.h>
 #include <inttypes.h>
+#include <io.h>
 
 #pragma warning(disable: 4242)
 #include <algorithm>
@@ -30,7 +29,6 @@
 #include <cmath>
 #include <cassert>
 #include <format>
-#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -40,10 +38,7 @@
 #include <string>
 #include <vector>
 
-namespace fs = std::filesystem;
-
-#pragma comment(lib, "pathcch")
-#pragma comment(lib, "shlwapi")
+#include <libmsc.h>
 
 #ifndef Assert
 #if defined(DEBUG) || defined(_DEBUG)

@@ -1,16 +1,16 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\Tools\rcpdump\main.cpp" />
-    <ClCompile Include="src\Tools\rcpdump\rcpmain.cpp" />
-    <ClCompile Include="src\Tools\rcpdump\pch.cpp" />
+    <ClCompile Include="tools\rcpdump\main.cpp" />
+    <ClCompile Include="tools\rcpdump\pch.cpp" />
+    <ClCompile Include="tools\rcpdump\rcpmain.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\Tools\rcpdump\Format.md" />
-    <None Include="src\Tools\rcpdump\LICENSE" />
-    <None Include="src\Tools\rcpdump\README.md" />
+    <None Include="tools\rcpdump\Format.md" />
+    <None Include="tools\rcpdump\LICENSE" />
+    <None Include="tools\rcpdump\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Tools\rcpdump\pch.h" />
+    <ClInclude Include="tools\rcpdump\pch.h" />
   </ItemGroup>
 </Project>

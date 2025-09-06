@@ -9,8 +9,6 @@
 
 #pragma warning(disable: 4625 4626 ALL_CPPCORECHECK_WARNINGS)
 
-#include <stdint.h>
-
 #include "MIDI.h"
 
 namespace midi

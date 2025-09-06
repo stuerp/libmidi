@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <strsafe.h>
 #include <string.h>
+#include <inttypes.h>
+#include <io.h>
 
 #pragma warning(disable: 4242)
 #include <algorithm>
@@ -27,10 +29,16 @@
 #include <cmath>
 #include <cassert>
 #include <format>
+#include <fstream>
 #include <functional>
+#include <iostream>
+#include <iomanip>
+#include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <stdexcept>
+
+#include <libmsc.h>
 
 #ifndef Assert
 #if defined(DEBUG) || defined(_DEBUG)

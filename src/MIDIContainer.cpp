@@ -1,10 +1,9 @@
 
-/** $VER: MIDIContainer.cpp (2025.07.16) **/
+/** $VER: MIDIContainer.cpp (2025.09.06) **/
 
 #include "pch.h"
 
 #include "MIDIContainer.h"
-#include "Support.h"
 #include "SysEx.h"
 
 namespace midi
@@ -420,16 +419,6 @@ void container_t::SetTrackCount(uint32_t count)
 void container_t::SetExtraMetaData(const metadata_table_t & data)
 {
     _ExtraMetaData = data;
-}
-
-void container_t::SetSoundFontData(const std::vector<uint8_t> & data) noexcept
-{
-    _SoundFontData = data;
-}
-
-const std::vector<uint8_t> & container_t::GetSoundfontData() const noexcept
-{
-    return _SoundFontData;
 }
 
 void container_t::ApplyHack(uint32_t hack)
@@ -1505,7 +1494,7 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
                     }
                     else
                     // Any EMIDI control change (besides 111) terminates the search for RPGMaker loops.
-                    if (((Event.Data[0] == 110) || InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119)) && IsRPGMakerLoop)
+                    if (((Event.Data[0] == 110) || msc::InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119)) && IsRPGMakerLoop)
                     {
                         _Loop[SubSongIndex].Clear();
                         break;
@@ -1544,7 +1533,7 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
                         _Loop[SubSongIndex].SetEnd(Event.Time);
                     else
                     // Any EMIDI control change (besides 110 and 111) terminates the search for LeapFrog loops.
-                    if (InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119))
+                    if (msc::InRange(Event.Data[0], (uint8_t) 112, (uint8_t) 119))
                     {
                         _Loop[SubSongIndex].Clear();
                         break;
@@ -1569,7 +1558,7 @@ void container_t::DetectLoops(bool detectXMILoops, bool detectMarkerLoops, bool 
             {
                 const event_t & Event = Track[j];
 
-                if ((Event.Type == event_t::ControlChange) && InRange(Event.Data[0], (uint8_t) 116 /* 0x74 */, (uint8_t) 119 /* 0x77 */))
+                if ((Event.Type == event_t::ControlChange) && msc::InRange(Event.Data[0], (uint8_t) 116 /* 0x74 */, (uint8_t) 119 /* 0x77 */))
                 {
 //                  wchar_t Line[256]; ::swprintf_s(Line, _countof(Line), L"EMIDI: %08X %3d %3d\n", Event.Time, Event.Data[0], Event.Data[1]); ::OutputDebugStringW(Line);
 

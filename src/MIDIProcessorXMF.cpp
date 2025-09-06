@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorXMF.cpp (2025.09.01) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
+/** $VER: MIDIProcessorXMF.cpp (2025.09.06) Extensible Music Format (https://www.midi.org/specifications/file-format-specifications/xmf-extensible-music-format/extensible-music-format-xmf-2) **/
 
 #include "pch.h"
 
@@ -8,6 +8,11 @@
 
 #undef WINAPI
 
+#ifdef _DEBUG
+#define __TRACE
+#endif
+
+#include <libmidi.h>
 #include <zlib.h>
 
 namespace midi
@@ -104,9 +109,9 @@ enum ReferenceTypeID
     InFileNode = 3,
 
     ExternalResourceFile = 4,
-    ExternalXMFResource = 5,
+    ExternalXMFResource = 5,                    // Recommend Practice (RP-039)
 
-    XMFFileURIandNodeID = 6,
+    XMFFileURIandNodeID = 6,                    // Recommend Practice (RP-039)
 };
 
 struct xmf_metadata_type_t
@@ -122,10 +127,16 @@ struct xmf_international_content_t
     std::vector<uint8_t> Data;
 };
 
+// 3.2.1.1.1. FieldSpecifier Structure (RP-030)
+struct xmf_field_specifier_t
+{
+    FieldSpecifierID FieldID;                   // 5.2.1. Standard FieldID Assignments (RP-030)
+    std::string FieldName;
+};
+
 struct xmf_metadata_item_t
 {
-    FieldSpecifierID ID;
-    std::string Name;
+    xmf_field_specifier_t FieldSpecifier;
 
     StringFormatID UniversalContentsFormat;
     std::vector<uint8_t> UniversalContentsData;
@@ -145,7 +156,7 @@ struct xmf_unpacker_t
 struct xmf_reference_type_t
 {
     ReferenceTypeID ID;
-    size_t Offset;
+    ptrdiff_t Offset;
     std::string Uri;
 };
 
@@ -156,6 +167,7 @@ struct xmf_node_t
     size_t ItemCount;   // 0 for a FileNode, or count for a FolderNode
 
     std::string Name;
+    uint32_t ID;
 
     uint32_t XMFFileTypeID;
     uint32_t XMFFileTypeRevisionID;
@@ -201,6 +213,8 @@ bool processor_t::IsXMF(std::vector<uint8_t> const & data) noexcept
 /// </summary>
 bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & container)
 {
+    TRACE_INDENT();
+
     xmf_file_t File = { };
     metadata_table_t Metadata;
 
@@ -215,10 +229,14 @@ bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & co
 
     Metadata.AddItem(metadata_item_t(0, "xmf_meta_file_version", File.XMFMetaFileVersion.c_str()));
 
+    #ifdef __TRACE
+    ::printf("%*sXMF File Version %s\n", __TRACE_LEVEL * 4, "", File.XMFMetaFileVersion.c_str());
+    #endif
+
     // RP-043: XMF Meta File Format 2.0, September 2004
     if (std::atof(File.XMFMetaFileVersion.c_str()) >= 2.0f)
     {
-        char s[16];;
+        char s[16];
 
         // Read the XMFFileTypeID: XMF Type 2 file (Mobile XMF)
         File.XMFFileTypeID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
@@ -232,9 +250,15 @@ bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & co
         File.XMFFileTypeRevisionID = (uint32_t) ((Data[0] << 24) | (Data[1] << 16) | (Data[2] << 8) | Data[3]);
         Data += 4;
 
-        ::sprintf_s(s, _countof(s), "%d", File.XMFFileTypeRevisionID);
+        char t[16];
 
-        Metadata.AddItem(metadata_item_t(0, "xmf_file_type_revision", s));
+        ::sprintf_s(t, _countof(s), "%d", File.XMFFileTypeRevisionID);
+
+        Metadata.AddItem(metadata_item_t(0, "xmf_file_type_revision", t));
+
+        #ifdef __TRACE
+        ::printf("%*sXMF File Type %s Revision %s\n", __TRACE_LEVEL * 4, "", s, t);
+        #endif
     }
 
     File.Size = (uint32_t) DecodeVariableLengthQuantity(Data, Tail);
@@ -245,18 +269,21 @@ bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & co
     if (TableSize != 0)
         throw midi::exception("XMF MetadataTypesTable is not yet supported");
 
-    const auto TreeStart = DecodeVariableLengthQuantity(Data, Tail);
-//  const auto TreeEnd   = DecodeVariableLengthQuantity(Data, Tail);
-
-    // Move to the start of the tree.
-    Data = data.begin() + TreeStart;
-
     // Read the tree.
-    ProcessNode(Head, Tail, Data, Metadata, container);
+    {
+        const auto TreeStart = DecodeVariableLengthQuantity(Data, Tail);
+    //  const auto TreeEnd   = DecodeVariableLengthQuantity(Data, Tail);
 
-    container.SetExtraMetaData(Metadata);
+        Data = data.begin() + TreeStart;
 
-    container.FileFormat = FileFormat::XMF;
+        ProcessNode(Head, Tail, Data, Metadata, container);
+
+        container.SetExtraMetaData(Metadata);
+
+        container.FileFormat = FileFormat::XMF;
+    }
+
+    TRACE_UNINDENT();
 
     return true;
 }
@@ -266,14 +293,20 @@ bool processor_t::ProcessXMF(std::vector<uint8_t> const & data, container_t & co
 /// </summary>
 bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::vector<uint8_t>::const_iterator tail, std::vector<uint8_t>::const_iterator & data, metadata_table_t & metadata, container_t & container)
 {
+    #ifdef __TRACE
+    ::printf("%*sNode\n", __TRACE_LEVEL * 4, "");
+    #endif
+
+    TRACE_INDENT();
+
     const std::vector<uint8_t>::const_iterator HeaderHead = data;
 
     xmf_node_t Node = {};
 
     // Read the node header.
-    Node.Size = (size_t) DecodeVariableLengthQuantity(data, tail);
-    Node.ItemCount = (size_t) DecodeVariableLengthQuantity(data, tail);
-    Node.HeaderSize = (size_t) DecodeVariableLengthQuantity(data, tail);
+    Node.Size       = (size_t) DecodeVariableLengthQuantity(data, tail); // 3.2.1 NodeMetaData NodeLength
+    Node.ItemCount  = (size_t) DecodeVariableLengthQuantity(data, tail); // 3.2.1 NodeMetaData NodeContainedItems
+    Node.HeaderSize = (size_t) DecodeVariableLengthQuantity(data, tail); // 3.2.1 NodeMetaData NodeHeaderLength
 
     auto StandardResourceFormat = StandardResourceFormatID::InvalidStandardResourceFormat;
 
@@ -283,129 +316,240 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
         const size_t MetaDataSize = (size_t) DecodeVariableLengthQuantity(data, tail);
         const auto MetaDataTail = data + (ptrdiff_t) MetaDataSize;
 
+        #ifdef __TRACE
+        ::printf("%*sMetadata (%d bytes)\n", __TRACE_LEVEL * 4, "", (uint32_t) MetaDataSize);
+        #endif
+
+        TRACE_INDENT();
+
         while (data < MetaDataTail)
         {
+            // 3.2.1.1 MetaDataItem
             xmf_metadata_item_t MetadataItem = {};
 
             {
-                const size_t Size = (size_t) DecodeVariableLengthQuantity(data, tail);
+                const ptrdiff_t Size = (ptrdiff_t) DecodeVariableLengthQuantity(data, tail);
 
                 if (Size == 0)
                 {
-                    MetadataItem.ID = (FieldSpecifierID) DecodeVariableLengthQuantity(data, tail);
+                    MetadataItem.FieldSpecifier.FieldID   = (FieldSpecifierID) DecodeVariableLengthQuantity(data, tail);
                 }
                 else
                 {
-                    MetadataItem.ID = FieldSpecifierID::Custom;
-                    MetadataItem.Name = std::string(data, data + (ptrdiff_t) Size);
-                    data += (ptrdiff_t) Size;
+                    MetadataItem.FieldSpecifier.FieldID   = FieldSpecifierID::Custom;
+                    MetadataItem.FieldSpecifier.FieldName = std::string(data, data + Size);
+                    data += Size;
                 }
             }
 
             {
-                const size_t InternationalContentsCount = (size_t) DecodeVariableLengthQuantity(data, tail);
+                // 3.2.1.1.2. FieldContents Structure (RP-30)
+                const size_t FieldContentsCount = (size_t) DecodeVariableLengthQuantity(data, tail);
 
-                if (InternationalContentsCount == 0)
+                if (FieldContentsCount == 0)
                 {
-                    // Get the universal content.
+                    std::string Name;
+                    std::string Value;
+
+                    // Interpret the universal field contents.
                     const size_t Size = (size_t) DecodeVariableLengthQuantity(data, tail);
 
                     if (Size > 0)
                     {
-                        MetadataItem.UniversalContentsFormat = (StringFormatID) DecodeVariableLengthQuantity(data, tail);
+                        MetadataItem.UniversalContentsFormat = (StringFormatID) DecodeVariableLengthQuantity(data, tail); // 3.2.2.1. StringFormatTypeID Definitions (RP-030)
                         MetadataItem.UniversalContentsData.assign(data, data + (ptrdiff_t) Size - 1);
                         data += (ptrdiff_t) Size - 1;
 
-                        // Interpret the universal content.
+                    //  const bool HiddenContents = (MetadataItem.UniversalContentsFormat & 1);
+
                         auto Head = MetadataItem.UniversalContentsData.begin();
                         auto Tail = MetadataItem.UniversalContentsData.end();
 
-                        switch (MetadataItem.ID)
+                        // 5.2.1. Standard FieldID Assignments (RP-030)
+                        switch (MetadataItem.FieldSpecifier.FieldID)
                         {
+                            // 5.2.2. Identifies the Type to which the XMF file conforms and the specification Revision level within that Type. Only valid in the RootNode.
                             case FieldSpecifierID::XMFFileType:
                             {
                                 Node.XMFFileTypeID         = (uint32_t) DecodeVariableLengthQuantity(Head, Tail);
                                 Node.XMFFileTypeRevisionID = (uint32_t) DecodeVariableLengthQuantity(Head, Tail);
+
+                                Name = "XMF File Type";
+                                Value = msc::FormatText("File Type %d Revision %d", Node.XMFFileTypeID, Node.XMFFileTypeRevisionID);
                                 break;
                             }
 
                             case FieldSpecifierID::NodeName:
                             {
                                 Node.Name = std::string(Head, Tail);
+
+                                Name  = "Node Name";
+                                Value = Node.Name;
                                 break;
                             }
 
                             case FieldSpecifierID::NodeIDNumber:
                             {
+                                Node.ID = (uint32_t) DecodeVariableLengthQuantity(Head, Tail);
+
+                                Name  = "Node ID Number";
+                                Value = msc::FormatText("%d", Node.ID);
                                 break;
                             }
 
                             case FieldSpecifierID::ResourceFormat:
                             {
-                                auto ResourceFormat = (ResourceFormatID) DecodeVariableLengthQuantity(Head, MetadataItem.UniversalContentsData.end());
+                                const auto ResourceFormat = (ResourceFormatID) DecodeVariableLengthQuantity(Head, MetadataItem.UniversalContentsData.end());
 
+                                // 5.3.1. Standard ResourceFormatIDs (RP-030)
                                 if (ResourceFormat == ResourceFormatID::Standard)
                                 {
                                     StandardResourceFormat = (StandardResourceFormatID) DecodeVariableLengthQuantity(Head, MetadataItem.UniversalContentsData.end());
+
+                                    switch (StandardResourceFormat)
+                                    {
+                                        case StandardMidiFileType0:                     Value = "SMF Type 0"; break;
+                                        case StandardMidiFileType1:                     Value = "SMF Type 1"; break;
+
+                                        case DownloadableSoundsLevel1:                  Value = "DLS Level 1"; break;
+                                        case DownloadableSoundsLevel2:                  Value = "DLS Level 2"; break;
+                                        case DownloadableSoundsLevel2_1:                Value = "DLS Level 2.1"; break;
+
+                                        case MobileDownloadableSoundsInstrumentFile:    Value = "Mobile DLS"; break;
+
+                                        case InvalidStandardResourceFormat:
+                                        default:                                        Value = "Unknown";
+                                    }
                                 }
                                 else
-                                    ; // Not yet supported.
+                                // 5.3.2. MMA Manufacturer ResourceFormatIDs (RP-030)
+                                {
+                                }
+
+                                Name  = "Resource Format";
                                 break;
                             }
 
                             case FieldSpecifierID::FilenameOnDisk:
                             {
+                                Name  = "File Name";
+                                Value = std::string(Head, Tail);
                                 break;
                             }
 
                             case FieldSpecifierID::FilenameExtensionOnDisk:
                             {
+                                Name  = "File Extension";
+                                Value = std::string(Head, Tail);
                                 break;
                             }
 
                             case FieldSpecifierID::MacOSFileTypeAndCreator:
+                            {
+                                Name  = "MacOS File Type and Creator";
+                                Value = std::string(Head, Tail);
+                                break;
+                            }
+
                             case FieldSpecifierID::MimeType:
                             {
+                                Name  = "MIME Type";
+                                Value = std::string(Head, Tail);
                                 break;
                             }
 
                             case FieldSpecifierID::Title:
+                            {
+                                Name  = "Title";
+                                Value = std::string(Head, Tail);
+                                break;
+                            }
+
                             case FieldSpecifierID::CopyrightNotice:
+                            {
+                                Name  = "Copyright";
+                                Value = std::string(Head, Tail);
+                                break;
+                            }
+
                             case FieldSpecifierID::Comment:
-                            case FieldSpecifierID::Autostart:
-                            case FieldSpecifierID::Preload:
-                            case FieldSpecifierID::ContentDescription:
-                            case FieldSpecifierID::ID3Metadata:
+                            {
+                                Name  = "Comment";
+                                Value = std::string(Head, Tail);
+                                break;
+                            }
+
+                            case FieldSpecifierID::Autostart:           // Type 0 and Type 1 XMF Files (SMF + DLS) (RP-031)
+                            {
+                                Name  = "Autostart";
+                                Value = "";
+                                break;
+                            }
+
+                            case FieldSpecifierID::Preload:             // Type 0 and Type 1 XMF Files (SMF + DLS) (RP-031)
+                            {
+                                Name  = "Preload";
+                                Value = "";
+                                break;
+                            }
+
+                            case FieldSpecifierID::ContentDescription:  // Mobile XMF Content Format Specification, December 2006 (RP-42a)
+                            {
+                                Name  = "Content Description";
+                                Value = "";
+                                break;
+                            }
+
+                            case FieldSpecifierID::ID3Metadata:         // ID3 Metadata for XMF Files (RP-47)
+                            {
+                                Name  = "ID3 Metadata";
+                                Value = "";
+                                break;
+                            }
+
 
                             case FieldSpecifierID::Custom:
                             {
+                                Name  = "Custom";
+                                Value = "";
                                 break;
                             }
 
                             default:
+                            {
+                                Name  = "Unknown";
+                                Value = "";
                                 break;
+                            }
                         }
                     }
+
+                    #ifdef __TRACE
+                    ::printf("%*sUniversal metadata, %9d bytes, %-30s: %s\n", __TRACE_LEVEL * 4, "", (uint32_t) Size, Name.c_str(), Value.c_str());
+                    #endif
                 }
                 else
                 {
-                    throw midi::exception("International XMF content is not yet supported");
-/*
-                    // Get the international content.
-                    for (int i = 0; i < InternationalContentsCount; ++i)
+                    // Interpret the international field contents.
+                    for (size_t i = 0; i < FieldContentsCount; ++i)
                     {
                         int MetaDataTypeID = DecodeVariableLengthQuantity(data, tail);
 
-                        const size_t Size = DecodeVariableLengthQuantity(data, tail);
+                        const size_t Size = (size_t) DecodeVariableLengthQuantity(data, tail);
 
-                        data += Size;
+                        #ifdef __TRACE
+                        ::printf("%*sInternational metadata, %9zu bytes, ID %3d\n", __TRACE_LEVEL * 4, "", Size, MetaDataTypeID);
+                        #endif
+
+                        data += (ptrdiff_t) Size;
                     }
-*/
                 }
             }
 
             Node.MetaData.push_back(MetadataItem);
         }
+
+        TRACE_UNINDENT();
     }
 
     // Read the unpackers.
@@ -445,9 +589,7 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
 
                 case UnpackerID::RegisteredUnpacker:
                 case UnpackerID::NonRegisteredUnpacker:
-                {
                     throw midi::exception("Unsupported XMF compression algorithm");
-                }
 
                 default:
                     throw midi::exception("Unknown XMF compression algorithm");
@@ -469,7 +611,7 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
         {
             case ReferenceTypeID::InLineResource:
             {
-                Node.ReferenceType.Offset = (size_t) (data - head);
+                Node.ReferenceType.Offset = data - head;
                 break;
             }
 
@@ -491,9 +633,9 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
         if (Node.ItemCount == 0)
         {
             // File node
-            size_t Size = Node.Size - Node.HeaderSize - 1;
+            ptrdiff_t Size = (ptrdiff_t) (Node.Size - Node.HeaderSize - 1);
 
-            std::vector<uint8_t> Data(data, data + (ptrdiff_t) Size);
+            std::vector<uint8_t> Data(data, data + Size);
             std::vector<uint8_t> UnpackedData;
 
             switch (StandardResourceFormat)
@@ -501,9 +643,12 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                 case StandardResourceFormatID::StandardMidiFileType0:
                 case StandardResourceFormatID::StandardMidiFileType1:
                 {
-                    UnpackedData = Node.Unpack(Data);
+                    if (container.FileFormat == FileFormat::Unknown)
+                    {
+                        UnpackedData = Node.Unpack(Data);
 
-                    ProcessSMF(UnpackedData, container);
+                        ProcessSMF(UnpackedData, container);
+                    }
                     break;
                 }
 
@@ -512,9 +657,12 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                 case StandardResourceFormatID::DownloadableSoundsLevel2_1:
                 case StandardResourceFormatID::MobileDownloadableSoundsInstrumentFile:
                 {
-                    UnpackedData = Node.Unpack(Data);
+                    if (container.SoundFont.empty())
+                    {
+                        UnpackedData = Node.Unpack(Data);
 
-                    container.SetSoundFontData(UnpackedData);
+                        container.SoundFont = UnpackedData;
+                    }
                     break;
                 }
 
@@ -523,7 +671,11 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                     ; // Not yet supported.
             }
 
-            data += (ptrdiff_t) Size;
+            #ifdef __TRACE
+            ::printf("%*s%d bytes\n", __TRACE_LEVEL * 4, "", (uint32_t) Size);
+            #endif
+
+            data += Size;
         }
         else
         {
@@ -533,7 +685,7 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                 case ReferenceTypeID::InLineResource:
                 case ReferenceTypeID::InFileResource:
                 {
-                    auto Data = head + (ptrdiff_t) Node.ReferenceType.Offset;
+                    auto Data = head + Node.ReferenceType.Offset;
 
                     for (size_t i = 0; i < Node.ItemCount; ++i)
                     {
@@ -546,12 +698,16 @@ bool processor_t::ProcessNode(std::vector<uint8_t>::const_iterator & head, std::
                 case ReferenceTypeID::ExternalResourceFile:
                 case ReferenceTypeID::ExternalXMFResource:
                 case ReferenceTypeID::XMFFileURIandNodeID:
+                    throw midi::exception("Unsupported XMF reference type");
+
                 case ReferenceTypeID::Invalid:
                 default:
-                    throw midi::exception("Unsupported XMF reference type");
+                    throw midi::exception("Unknown XMF reference type");
             }
         }
     }
+
+    TRACE_UNINDENT();
 
     return true;
 }
@@ -583,7 +739,7 @@ std::vector<uint8_t> xmf_node_t::Unpack(const std::vector<uint8_t> & data)
             processor_t::InflateRaw(data, UnpackedData);
         }
         else
-            throw midi::exception(::FormatText("Unable to unpack data using unknown compression algorithm 0x%02X from manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
+            throw midi::exception(msc::FormatText("Unable to unpack data using unknown compression algorithm 0x%02X from manufacturer 0x%06X",  Unpacker.InternalUnpackerID,  Unpacker.ManufacturerID));
     }
 
     return UnpackedData;

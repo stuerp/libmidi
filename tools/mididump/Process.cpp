@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 #include "Messages.h"
 #include "SysEx.h"
@@ -30,7 +29,7 @@ void ExamineFile(const fs::path & filePath, const std::map<std::string, std::str
         midi::container_t Container;
         midi::processor_options_t Options;
 
-        if (midi::processor_t::Process(Data, ::UTF8ToWide(filePath.string().c_str()).c_str(), Container, Options))
+        if (midi::processor_t::Process(Data, msc::UTF8ToWide(filePath.string().c_str()).c_str(), Container, Options))
             ProcessContainer(Container, args.contains("AsStream"));
         else
             ::puts("File format not recognized.");
@@ -97,7 +96,7 @@ void ProcessContainer(midi::container_t & container, bool asStream)
                 {
                     const midi::metadata_item_t & Item = MetaData[j];
 
-                    ::printf("- %8d %s: \"%s\"\n", Item.Timestamp, Item.Name.c_str(), TextToUTF8(Item.Value.c_str()).c_str());
+                    ::printf("- %8d %s: \"%s\"\n", Item.Timestamp, Item.Name.c_str(), msc::TextToUTF8(Item.Value.c_str()).c_str());
                 }
             }
         }

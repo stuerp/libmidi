@@ -1,4 +1,4 @@
-﻿
+
 /** $VER: RCP.cpp (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
@@ -1061,7 +1061,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         Size = GetTrimmedLength((char *) Text.Data, Size, ' ', false);
 
                     #ifdef _RCP_VERBOSE
-                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), TextToUTF8((const char *) Text.Data, Size).c_str());
+                        ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Meta Data Text \"%s\"\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), msc::TextToUTF8((const char *) Text.Data, Size).c_str());
                     #endif
 
                         midiStream.WriteMetaEvent(midi::Text, Text.Data, Size);

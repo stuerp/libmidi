@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.07.22) **/
+/** $VER: MIDIContainer.h (2025.09.06) **/
 
 #pragma once
 
@@ -330,7 +330,7 @@ enum FileFormat
 class container_t
 {
 public:
-    container_t() : FileFormat(FileFormat::Unknown), _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u), _BankOffset(0)
+    container_t() : FileFormat(FileFormat::Unknown), BankOffset(0), _Format(), _TimeDivision(), _ExtraPercussionChannel(~0u)
     {
         _DeviceNames.resize(16);
     }
@@ -351,9 +351,6 @@ public:
     void MergeTracks(const container_t & source);
     void SetTrackCount(uint32_t count);
     void SetExtraMetaData(const metadata_table_t & data);
-
-    void SetSoundFontData(const std::vector<uint8_t> & data) noexcept;
-    const std::vector<uint8_t> & GetSoundfontData() const noexcept;
 
     void ApplyHack(uint32_t hack);
 
@@ -388,9 +385,6 @@ public:
     const std::vector<uint8_t> & GetArtwork() const noexcept { return _Artwork; }
     void SetArtwork(const std::vector<uint8_t> & artwork) noexcept { _Artwork = artwork; }
 
-    int GetBankOffset() const noexcept { return _BankOffset; }
-    void SetBankOffset(int bankOffset) noexcept { _BankOffset = bankOffset; }
-
     void GetMetaData(size_t subSongIndex, metadata_table_t & data);
 
     void SetExtraPercussionChannel(uint32_t channelNumber) noexcept { _ExtraPercussionChannel = channelNumber; }
@@ -424,6 +418,9 @@ public:
     };
 
     FileFormat FileFormat;
+
+    std::vector<uint8_t> SoundFont;
+    int BankOffset;                 // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
 
 private:
     void TrimRange(size_t start, size_t end);
@@ -479,7 +476,6 @@ private:
     uint32_t _TimeDivision;             // 0x0000 - 0x7FFF: "Ticks per Beat" or "Pulses per Quarter Note (PPQ)" / 0x8000 - 0xFFFF: Frames per Second
 
     uint32_t _ExtraPercussionChannel;
-    int _BankOffset;                    // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
 
     const size_t MaxChannels = 48;
 
@@ -492,7 +488,6 @@ private:
     std::vector<std::vector<std::string>> _DeviceNames;
 
     metadata_table_t _ExtraMetaData;
-    std::vector<uint8_t> _SoundFontData;
 
     std::vector<uint32_t> _EndTimestamps;   // Largest timestamp for each track.
 

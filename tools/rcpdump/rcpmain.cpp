@@ -1,11 +1,10 @@
 
-/** $VER: rcpmain.cpp (2025.03.21) P. Stuer **/
+/** $VER: rcpmain.cpp (2025.09.06) P. Stuer **/
 
 #include "pch.h"
 
 #include "MIDIProcessor.h"
 #include "Recomposer\RCP.h"
-#include "Encoding.h"
 
 using namespace rcp;
 
@@ -108,7 +107,7 @@ int rcpmain(int argc, wchar_t * argv[])
 
         if (argv[argbase + 1] != nullptr)
         {
-            std::filesystem::path Path(argv[argbase + 1]);
+            fs::path Path(argv[argbase + 1]);
 
             FileExtension = Path.extension().wstring();
 
@@ -126,7 +125,7 @@ int rcpmain(int argc, wchar_t * argv[])
             {
                 ::printf("Src: %d bytes, Dst: %d bytes\n", SrcData.Size, DstData.Size);
 
-                std::filesystem::path RefFilePath(FilePath);
+                fs::path RefFilePath(FilePath);
 
                 RefFilePath.replace_extension(L".mid");
 
@@ -139,16 +138,16 @@ int rcpmain(int argc, wchar_t * argv[])
                     }
                     catch (std::runtime_error & e)
                     {
-                        std::string Text(FormatText("Reference file \"%s\" not found: ", ::WideToUTF8(RefFilePath).c_str()));
+                        std::string Text(msc::FormatText("Reference file \"%s\" not found: ", msc::WideToUTF8(RefFilePath).c_str()));
 
                         throw std::runtime_error(Text + e.what());
                     }
     
                     if (RefFile.Size != DstData.Size)
-                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File size mismatch (%u != %u)", ::WideToUTF8(FilePath).c_str(), RefFile.Size, DstData.Size));
+                        throw std::runtime_error(msc::FormatText("Conversion error in \"%s\". File size mismatch (%u != %u)", msc::WideToUTF8(FilePath).c_str(), RefFile.Size, DstData.Size));
 
                     if (::memcmp(RefFile.Data, DstData.Data, RefFile.Size) != 0)
-                        throw std::runtime_error(FormatText("Conversion error in \"%s\". File content mismatch", ::WideToUTF8(FilePath).c_str()));
+                        throw std::runtime_error(msc::FormatText("Conversion error in \"%s\". File content mismatch", msc::WideToUTF8(FilePath).c_str()));
                 }
 
                 midi::container_t Container;
@@ -158,7 +157,7 @@ int rcpmain(int argc, wchar_t * argv[])
                 Data.insert(Data.end(), DstData.Data, DstData.Data + DstData.Size);
 
                 if (!midi::processor_t::Process(Data, FilePath.c_str(), Container))
-                    throw std::runtime_error(FormatText("MIDIProcesser failed: \"%s\"", ::WideToUTF8(FilePath).c_str()));
+                    throw std::runtime_error(msc::FormatText("MIDIProcesser failed: \"%s\"", msc::WideToUTF8(FilePath).c_str()));
             }
             #endif
         }

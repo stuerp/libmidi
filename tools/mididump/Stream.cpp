@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 #include "Messages.h"
 #include "SysEx.h"

@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Encoding.h"
 
 namespace midi
 {
@@ -87,7 +86,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
             Size = (uint32_t) data.size() - Offs;
 
         if ((Size < 13) || (Offs >= data.size()) || ((size_t) (Offs + Size) > data.size()))
-            throw midi::exception(FormatText("Insufficient data for track %d", i + 1));
+            throw midi::exception(msc::FormatText("Insufficient data for track %d", i + 1));
 
         auto Data = data.begin() + (int) Offs;
         auto Tail = Data + (int) Size;
@@ -95,7 +94,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
         const char Id[] = { 'H', 'M', 'I', '-', 'M', 'I', 'D', 'I', 'T', 'R', 'A', 'C', 'K' };
 
         if (::memcmp(&Data[0], Id, _countof(Id)) != 0)
-            throw midi::exception(FormatText("Invalid data for track %d", i + 1));
+            throw midi::exception(msc::FormatText("Invalid data for track %d", i + 1));
 
         track_t Track;
 

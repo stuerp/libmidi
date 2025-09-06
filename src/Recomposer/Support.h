@@ -7,8 +7,6 @@
 
 #include "MIDI.h"
 
-#include "Encoding.h"
-
 namespace rcp
 {
 
@@ -75,7 +73,7 @@ struct buffer_t
         FILE * fp = nullptr;
 
         if (::_wfopen_s(&fp, filePath, L"rb") != 0)
-            throw std::runtime_error(std::format("Failed to open \"{}\" for reading: error {}", ::WideToUTF8(filePath).c_str(), errno));
+            throw std::runtime_error(std::format("Failed to open \"{}\" for reading: error {}", msc::WideToUTF8(filePath).c_str(), errno));
 
         if (fp != nullptr)
         {
@@ -99,7 +97,7 @@ struct buffer_t
         FILE * fp = nullptr;
 
         if (::_wfopen_s(&fp, filePath, L"wb") != 0)
-            throw std::runtime_error(std::format("Failed to open \"{}\" for writing: error {}", ::WideToUTF8(filePath).c_str(), errno));
+            throw std::runtime_error(std::format("Failed to open \"{}\" for writing: error {}", msc::WideToUTF8(filePath).c_str(), errno));
 
         if (fp != nullptr)
         {
