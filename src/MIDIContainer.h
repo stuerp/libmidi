@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.09.06) **/
+/** $VER: MIDIContainer.h (2025.09.07) **/
 
 #pragma once
 
@@ -420,7 +420,7 @@ public:
     FileFormat FileFormat;
 
     std::vector<uint8_t> SoundFont;
-    int BankOffset;                 // Bank offset for MIDI files that contain an embedded sound font. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
+    int BankOffset;                 // Bank offset for MIDI files that contain an embedded soundfont. See https://github.com/spessasus/sf2-rmidi-specification?tab=readme-ov-file#dbnk-chunk
 
 private:
     void TrimRange(size_t start, size_t end);

@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessorRMI.cpp (2025.07.22) **/
+/** $VER: MIDIProcessorRMI.cpp (2025.09.07) **/
 
 #include "pch.h"
 
@@ -147,7 +147,7 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
                 HasINFOChunk = ProcessList(it + 12, ChunkSize - 4, container, MetaData);
         }
         else
-        // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded SoundFonts are implemented. Sloppy design...
+        // Is it a "RIFF" chunk? According to the standard this should not be possible but it is how embedded soundfonts are implemented. Sloppy design...
         if (ChunkId == "RIFF")
         {
             const auto ChunkTail = it + 8 + ChunkSize;
@@ -173,7 +173,7 @@ bool processor_t::ProcessRMI(std::vector<uint8_t> const & data, container_t & co
             ++it;
     }
 
-    // If an embedded DLS sound font was found: assume bank offset 0 unless any bank change (CC0) is detected to a bank that is not 0 and not 127 (Drums).
+    // If an embedded DLS soundfont was found: assume bank offset 0 unless any bank change (CC0) is detected to a bank that is not 0 and not 127 (Drums).
     if (IsDLS)
     {
         container.BankOffset = 0;
