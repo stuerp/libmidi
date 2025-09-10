@@ -597,6 +597,33 @@ void sysex_t::IdentifyRoland() noexcept
             break;
         }
 
+        // Display data.
+        case 0x10:
+        {
+            if (msc::InRange(Address, 0x100000u, 0x10001Fu))
+                Description = msc::FormatText("Display data %06Xh. Letter '%c'", Address, (char) _Iter[3]);
+            else
+            if (msc::InRange(Address, 0x100100u, 0x10013Fu))
+                Description = msc::FormatText("Display data %06Xh. Dot data %02Xh", Address, _Iter[3]);
+            else
+                Description = msc::FormatText("Display data %06Xh. Unknown address", Address);
+            break;
+        }
+
+        // User instrument.
+        case 0x20:
+        {
+            Description = msc::FormatText("User instrument %06Xh", Address);
+            break;
+        }
+
+        // User drum set.
+        case 0x21:
+        {
+            Description = msc::FormatText("User drum set %06Xh", Address);
+            break;
+        }
+
         // Patch Common Parameters A. Parameters common to all Parts in each module (Block A 00-0F)
         case 0x40:
         // Patch Common Parameters B. Parameters common to all Parts in each module (Block B 10-1F)
