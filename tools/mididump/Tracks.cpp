@@ -1,5 +1,5 @@
 
-/** $VER: Tracks.cpp (2025.07.18) P. Stuer **/
+/** $VER: Tracks.cpp (2025.09.10) P. Stuer **/
 
 #include "pch.h"
 
@@ -162,7 +162,7 @@ static void ProcessMetaData(const midi::event_t & me) noexcept
 
         case midi::MetaDataType::SequencerSpecific:
         {
-            ::printf(" Sequencer Specific");
+            ::printf(" Sequencer Specific (%d bytes)", (int) me.Data.size() - 2);
             break;
         }
 

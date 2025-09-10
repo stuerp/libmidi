@@ -1,5 +1,5 @@
 
-/** $VER: SysEx.cpp (2025.08.22) P. Stuer **/
+/** $VER: SysEx.cpp (2025.09.10) P. Stuer **/
 
 #include "pch.h"
 
@@ -553,7 +553,7 @@ void sysex_t::IdentifyRoland() noexcept
         return;
     }
 
-    const uint32_t Address = (uint32_t) (_Iter[0] << 16) | (_Iter[1] << 8) | _Iter[2];
+    uint32_t Address = (uint32_t) (_Iter[0] << 16) | (_Iter[1] << 8) | _Iter[2];
 
     Description = "Unknown";
 
@@ -564,8 +564,14 @@ void sysex_t::IdentifyRoland() noexcept
         {
             switch (Address)
             {
-                case 0x00007F: Description = msc::FormatText("System Mode Set %02X %s", _Iter[3], "Mode 1"); break;
-                default: Description = msc::FormatText("System Parameter. Unknown address %06Xh", Address);
+                case 0x00007F: // SYSTEM MODE SET
+                    Description = msc::FormatText("System Parameter %06Xh \"System Mode Set %02Xh\" (%s)", Address, _Iter[3], (_Iter[3] == 0) ? "Mode 1" : "Unknown Mode"); break;
+
+                default:
+                    if (msc::InRange(Address, 0x000100u, 0x00011Fu)) // CHANNEL MSG RX PORT
+                        Description = msc::FormatText("System Parameter %06Xh \"Channel Message Receive Port %02Xh\"", Address, _Iter[3]);
+                    else
+                        Description = msc::FormatText("System Parameter %06Xh \"Unknown\"", Address);
             }
             break;
         }
@@ -593,7 +599,11 @@ void sysex_t::IdentifyRoland() noexcept
 
         // Patch Common Parameters A. Parameters common to all Parts in each module (Block A 00-0F)
         case 0x40:
+        // Patch Common Parameters B. Parameters common to all Parts in each module (Block B 10-1F)
+        case 0x50:
         {
+            Address = (Address & 0x00FFFF) | 0x400000; // Threat Patch Common Parameters B the same as Patch Common Parameters A.
+
             switch (Address)
             {
                 case 0x400000: Description = msc::FormatText("Master Tune %02Xh (%d cents)",               _Iter[3], (int) _Iter[3]); break;
@@ -893,12 +903,6 @@ void sysex_t::IdentifyRoland() noexcept
                 if ((_Iter[1] == 0x09 || _Iter[1] == 0x19))
                     Description = msc::FormatText("Drum Delay Send Level");
             }
-            break;
-        }
-
-        // Patch Common Parameters B. Parameters common to all Parts in each module (Block B 10-1F)
-        case 0x50:
-        {
             break;
         }
 
