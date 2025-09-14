@@ -1,5 +1,5 @@
 
-/** $VER: main.cpp (2025.09.06) P. Stuer **/
+/** $VER: main.cpp (2025.09.10) P. Stuer **/
 
 #include "pch.h"
 
@@ -8,8 +8,7 @@ void ExamineFile(const fs::path & filePath, const std::map<std::string, std::str
 static void ProcessDirectory(const fs::path & directoryPath);
 static void ProcessFile(const fs::path & filePath);
 
-//const std::vector<fs::path> Filters = { ".mid", /*".g36",*/ ".rmi", /*".mxmf", ".xmf",*/ ".mmf", ".tst" };
-const std::vector<fs::path> Filters = { ".mxmf", ".xmf" };
+const std::vector<fs::path> Filters = { ".mid", ".g36", ".rmi", ".mxmf", ".xmf", ".mmf", ".tst" };
 
 std::map<std::string, std::string> Arguments;
 
