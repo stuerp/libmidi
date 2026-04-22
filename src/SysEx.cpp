@@ -1,10 +1,12 @@
 
-/** $VER: SysEx.cpp (2025.09.10) P. Stuer **/
+/** $VER: SysEx.cpp (2026.04.10) P. Stuer **/
 
 #include "pch.h"
 
 #include "SysEx.h"
 #include "Tables.h"
+
+#include <Encoding.h>
 
 namespace midi
 {
@@ -1056,10 +1058,68 @@ void sysex_t::IdentifyYamaha() noexcept
     {
         case 0x1A:
         {
+            Model = "S-YXG2006LE / S-YXG50 Soft Synth";
+
             const uint8_t Data[] =  { 0x10, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xF7 };
 
-            if ((_Data.size() == 14) && ::memcmp(&_Iter[0], Data, 10) == 0)
+            if ((_Data.size() == 14) && ::memcmp(&_Iter[0], Data, _countof(Data)) == 0)
                 Description = "XG Works On";
+            else
+            {
+                uint32_t Address = (uint32_t) (_Iter[0] << 8) | _Iter[1];
+
+                switch (Address)
+                {
+                    // Engine Initialization / State Control: Sent by Yamaha’s driver before any XG data is transmitted.
+                    case 0x0000: Description = "Disable synth engine"; break;
+                    case 0x0001: Description = "Enable synth engine"; break;
+                    case 0x0002: Description = "Reinitialize internal buffers"; break;
+                    case 0x007F: Description = "Full internal reset"; break;
+
+                    // Audio Rendering Mode: These modes affect CPU usage and quality. Offline mode is used by some DAWs when exporting audio.
+                    case 0x1000: Description = "Switch to real-time rendering"; break;
+                    case 0x1001: Description = "Switch to high-precision offline rendering"; break;
+                    case 0x1002: Description = "Switch to low-latency mode"; break;
+
+                    // Effect Engine Control: These are not the same as XG effect parameter changes — they control the DSP engine itself.
+                    case 0x2000: Description = "Disable all effects"; break;
+                    case 0x2001: Description = "Enable effects engine"; break;
+                    case 0x2002: Description = "Reinitialize effect DSP"; break;
+
+                    case 0x2100: Description = "Set effect processing quality to Low"; break;
+                    case 0x2101: Description = "Set effect processing quality to Normal"; break;
+                    case 0x2102: Description = "Set effect processing quality to High"; break;
+
+                    // Voice Engine / Polyphony Control: The S‑YXG2006LE can exceed the hardware XG modules’ polyphony, so this matters.
+                    case 0x3000: Description = "Limit polyphony to low mode"; break;
+                    case 0x3001: Description = "Normal polyphony"; break;
+                    case 0x3002: Description = "High polyphony (CPU-heavy)"; break;
+
+                    case 0x3100: Description = "Set max. polyphony to xx voices"; break;
+
+                    // Internal Debug / Diagnostic Commands
+                    case 0x4000: Description = "Query engine status"; break;
+                    case 0x4001: Description = "Query DSP load"; break;
+                    case 0x4002: Description = "Query voice allocation table"; break;
+
+                    case 0x4100: Description = "Enable/disable debug logging"; break;
+
+                    // Hidden XG Compatibility Controls: These override the engine mode without sending the usual GM/XG/GS reset sequences.
+                    case 0x5000: Description = "Force GM mode (not GM reset)"; break;
+                    case 0x5001: Description = "Force XG mode (not XG reset)"; break;
+                    case 0x5002: Description = "Force TG300B mode"; break;
+
+                    // Sample / Wave ROM Handling: The S‑YXG2006LE has multiple internal ROM banks for different quality levels.
+                    case 0x6000: Description = "Reload wave ROM"; break;
+                    case 0x6001: Description = "Flush sample cache"; break;
+                    case 0x6002: Description = "Switch to alternate ROM set (if available)"; break;
+
+                    // Licensing / DRM (Observed but not recommended): Should not be used. Used by the installer and VST wrapper.
+                    case 0x7000: Description = "Query license state"; break;
+                    case 0x7001: Description = "Trigger license refresh"; break;
+                    case 0x707F: Description = "Force license check"; break;
+                }
+            }
 
             break;
         }

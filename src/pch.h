@@ -1,11 +1,16 @@
 
-/** $VER: pch.h (2025.06.21) P. Stuer **/
+/** $VER: pch.h (2026.10.04) P. Stuer **/
 
 #pragma once
 
 #include <CppCoreCheck/Warnings.h>
 
 #pragma warning(disable: 4100 4625 4626 4710 4711 4738 5045 ALL_CPPCORECHECK_WARNINGS)
+
+// UTF-8 Everywhere recommendation
+#ifndef _UNICODE
+#error Unicode character set compilation not enabled.
+#endif
 
 #include <SDKDDKVer.h>
 
@@ -15,19 +20,15 @@
 #include <Windows.h>
 #include <wincodec.h>
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <strsafe.h>
-#include <string.h>
-#include <inttypes.h>
-#include <io.h>
-
 #pragma warning(disable: 4242)
 #include <algorithm>
 #pragma warning(default: 4242)
-#include <cmath>
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <format>
 #include <fstream>
 #include <functional>

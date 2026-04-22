@@ -1,13 +1,13 @@
 
-/** $VER: Stream.cpp (2025.07.18) P. Stuer **/
+/** $VER: Stream.cpp (2026.04.10) P. Stuer **/
 
 #include "pch.h"
 
-#include "MIDIProcessor.h"
+#include "MIDI.h"
+#include "MIDIContainer.h"
 
 #include "Messages.h"
 #include "SysEx.h"
-#include "Tables.h"
 
 using namespace midi;
 

@@ -1,9 +1,16 @@
 
-/** $VER: MIDIProcessorSMF.cpp (2025.07.22) Standard MIDI File **/
+/** $VER: MIDIProcessorSMF.cpp (2026.04.10) Standard MIDI File **/
 
 #include "pch.h"
 
 #include "MIDIProcessor.h"
+
+#include "MIDI.h"
+#include "MIDIContainer.h"
+
+#include "Exception.h"
+
+#include <Encoding.h>
 
 namespace midi
 {

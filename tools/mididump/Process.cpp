@@ -1,15 +1,12 @@
 
-/** $VER: mididump.cpp (2025.07.26) P. Stuer **/
+/** $VER: Process.cpp (2026.04.10) P. Stuer **/
 
 #include "pch.h"
 
+#include "MIDIContainer.h"
 #include "MIDIProcessor.h"
 
-#include "Messages.h"
-#include "SysEx.h"
-#include "Tables.h"
-
-#include "Cakewalk.h"
+#include <Encoding.h>
 
 void ProcessContainer(midi::container_t & container, bool asStream);
 void ProcessStream(const midi::container_t & container, const std::vector<midi::message_t> & stream, const midi::sysex_table_t & sysExMap, const std::vector<uint8_t> & portNumbers, bool skipNormalEvents = false);
