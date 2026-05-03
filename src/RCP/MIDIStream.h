@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <CppCoreCheck/Warnings.h>
-
 #include "pch.h"
 
 #include <MIDI.h>

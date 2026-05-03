@@ -47,7 +47,7 @@ std::vector<uint8_t> ReadFile(const fs::path & filePath)
     if (!Stream.is_open())
         throw std::runtime_error(std::format("Failed to open \"{}\" for reading)", filePath.string().c_str()));
 
-    std::streamsize Size = Stream.tellg();
+    const std::streamsize Size = Stream.tellg();
 
     Stream.seekg(0, std::ios::beg);
 

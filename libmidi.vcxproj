@@ -20,7 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\libmidi.cpp" />
+    <ClCompile Include="src\MIDIProcessorMMD.cpp" />
     <ClCompile Include="src\MIDIProcessorTST.cpp" />
+    <ClCompile Include="src\MMD\MMD.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -42,13 +44,13 @@
     <ClCompile Include="src\MIDIProcessorSMF.cpp" />
     <ClCompile Include="src\MIDIProcessorXMF.cpp" />
     <ClCompile Include="src\MIDIProcessorXMI.cpp" />
-    <ClCompile Include="src\Recomposer\CM6File.cpp" />
-    <ClCompile Include="src\Recomposer\GSDFile.cpp" />
-    <ClCompile Include="src\Recomposer\MIDIStream.cpp" />
-    <ClCompile Include="src\Recomposer\RCP.cpp" />
-    <ClCompile Include="src\Recomposer\RCPConverter.cpp" />
-    <ClCompile Include="src\Recomposer\RunningNotes.cpp" />
-    <ClCompile Include="src\Recomposer\Support.cpp" />
+    <ClCompile Include="src\RCP\CM6File.cpp" />
+    <ClCompile Include="src\RCP\GSDFile.cpp" />
+    <ClCompile Include="src\RCP\MIDIStream.cpp" />
+    <ClCompile Include="src\RCP\RCP.cpp" />
+    <ClCompile Include="src\RCP\RCPConverter.cpp" />
+    <ClCompile Include="src\RCP\RunningNotes.cpp" />
+    <ClCompile Include="src\RCP\Support.cpp" />
     <ClCompile Include="src\SMAF\MMF.cpp" />
     <ClCompile Include="src\SysEx.cpp" />
     <ClCompile Include="src\Tables.cpp" />
@@ -56,16 +58,19 @@
   <ItemGroup>
     <ClInclude Include="include\libmidi.h" />
     <ClInclude Include="src\Exception.h" />
+    <ClInclude Include="src\MMD\MemoryStream.h" />
+    <ClInclude Include="src\MMD\MMD.h" />
+    <ClInclude Include="src\MMD\RunningNotes.h" />
     <ClInclude Include="src\pch.h" />
     <ClInclude Include="src\IFF.h" />
     <ClInclude Include="src\MIDI.h" />
     <ClInclude Include="src\MIDIContainer.h" />
     <ClInclude Include="src\Range.h" />
     <ClInclude Include="src\MIDIProcessor.h" />
-    <ClInclude Include="src\Recomposer\MIDIStream.h" />
-    <ClInclude Include="src\Recomposer\RCP.h" />
-    <ClInclude Include="src\Recomposer\RunningNotes.h" />
-    <ClInclude Include="src\Recomposer\Support.h" />
+    <ClInclude Include="src\RCP\MIDIStream.h" />
+    <ClInclude Include="src\RCP\RCP.h" />
+    <ClInclude Include="src\RCP\RunningNotes.h" />
+    <ClInclude Include="src\RCP\Support.h" />
     <ClInclude Include="src\SMAF\MMF.h" />
     <ClInclude Include="src\SysEx.h" />
     <ClInclude Include="src\Tables.h" />
@@ -154,7 +159,7 @@
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
       <SDLCheck>true</SDLCheck>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\Recomposer;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\RCP;$(ProjectDir)src\MMD;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ConformanceMode>true</ConformanceMode>
@@ -175,7 +180,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <WarningLevel>EnableAllWarnings</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\Recomposer;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\RCP;$(ProjectDir)src\MMD;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ConformanceMode>true</ConformanceMode>
@@ -201,7 +206,7 @@
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\Recomposer;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\RCP;$(ProjectDir)src\MMD;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -227,7 +232,7 @@
       <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\Recomposer;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)include;$(ProjectDir)src;$(ProjectDir)src\RCP;$(ProjectDir)src\MMD;$(ProjectDir)src\SMAF;$(ProjectDir)src\3rdParty\zlib;$(ProjectDir)..\libmsc\include</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
     </ClCompile>

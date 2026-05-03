@@ -5,6 +5,7 @@
 
 #include "MIDIProcessor.h"
 #include "Encoding.h"
+#include "Exception.h"
 
 #undef WINAPI
 

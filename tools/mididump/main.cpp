@@ -1,5 +1,5 @@
 
-/** $VER: main.cpp (2025.09.10) P. Stuer **/
+/** $VER: main.cpp (2026.05.03) P. Stuer **/
 
 #include "pch.h"
 
@@ -8,7 +8,7 @@ void ExamineFile(const fs::path & filePath, const std::map<std::string, std::str
 static void ProcessDirectory(const fs::path & directoryPath);
 static void ProcessFile(const fs::path & filePath);
 
-const std::vector<fs::path> Filters = { ".mid", ".g36", ".rmi", ".mxmf", ".xmf", ".mmf", ".tst" };
+const std::vector<fs::path> Filters = { ".mmd", ".mid", ".g36", ".rmi", ".mxmf", ".xmf", ".mmf", ".tst" };
 
 std::map<std::string, std::string> Arguments;
 
@@ -65,6 +65,9 @@ static bool IsOneOf(const fs::path & item, const std::vector<fs::path> & list) n
     return false;
 }
 
+/// <summary>
+///
+/// </summary>
 static void ProcessDirectory(const fs::path & directoryPath)
 {
     ::printf("\"%s\"\n", directoryPath.string().c_str());
@@ -83,17 +86,20 @@ static void ProcessDirectory(const fs::path & directoryPath)
     }
 }
 
+/// <summary>
+///
+/// </summary>
 static void ProcessFile(const fs::path & filePath)
 {
-//    HANDLE OldStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    fs::path FilePath = filePath;
+
+    FilePath.replace_extension(".log");
+
+    (void) _chmod(FilePath.string().c_str(), _S_IWRITE | _S_IREAD);
 
     FILE * fp = nullptr;
 
-    fs::path StdOut = filePath; StdOut.replace_extension(".log");
-
-    (void) _chmod(StdOut.string().c_str(), _S_IWRITE | _S_IREAD);
-
-    if ((::freopen_s(&fp, StdOut.string().c_str(), "w", stdout) != 0) || (fp == nullptr))
+    if ((::freopen_s(&fp, FilePath.string().c_str(), "w", stdout) != 0) || (fp == nullptr))
         return;
 
     ::printf("\xEF\xBB\xBF"); // UTF-8 BOM

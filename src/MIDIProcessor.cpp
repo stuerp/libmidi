@@ -1,5 +1,5 @@
 
-/** $VER: MIDIProcessor.cpp (2025.07.22) **/
+/** $VER: MIDIProcessor.cpp (2026.05.01) **/
 
 #include "pch.h"
 
@@ -73,6 +73,11 @@ bool processor_t::Process(std::vector<uint8_t> const & data, const wchar_t * fil
     // .MMF
     if (IsMMF(data))
         return ProcessMMF(data, container);
+
+    // .MMD
+   if (IsMMD(data, FileExtension))
+        return ProcessMMD(data, filePath, container);
+
 #ifdef _DEBUG
     // .TST
     if (IsTST(data, FileExtension))

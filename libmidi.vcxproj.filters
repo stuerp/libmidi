@@ -17,17 +17,19 @@
     <ClCompile Include="src\MIDIProcessorSMF.cpp" />
     <ClCompile Include="src\MIDIProcessorXMF.cpp" />
     <ClCompile Include="src\MIDIProcessorXMI.cpp" />
-    <ClCompile Include="src\Recomposer\CM6File.cpp" />
-    <ClCompile Include="src\Recomposer\GSDFile.cpp" />
-    <ClCompile Include="src\Recomposer\MIDIStream.cpp" />
-    <ClCompile Include="src\Recomposer\RCP.cpp" />
-    <ClCompile Include="src\Recomposer\RCPConverter.cpp" />
-    <ClCompile Include="src\Recomposer\RunningNotes.cpp" />
-    <ClCompile Include="src\Recomposer\Support.cpp" />
+    <ClCompile Include="src\RCP\CM6File.cpp" />
+    <ClCompile Include="src\RCP\GSDFile.cpp" />
+    <ClCompile Include="src\RCP\MIDIStream.cpp" />
+    <ClCompile Include="src\RCP\RCP.cpp" />
+    <ClCompile Include="src\RCP\RCPConverter.cpp" />
+    <ClCompile Include="src\RCP\RunningNotes.cpp" />
+    <ClCompile Include="src\RCP\Support.cpp" />
     <ClCompile Include="src\SMAF\MMF.cpp" />
     <ClCompile Include="src\SysEx.cpp" />
     <ClCompile Include="src\Tables.cpp" />
     <ClCompile Include="src\libmidi.cpp" />
+    <ClCompile Include="src\MIDIProcessorMMD.cpp" />
+    <ClCompile Include="src\MMD\MMD.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Exception.h" />
@@ -37,14 +39,17 @@
     <ClInclude Include="src\MIDIContainer.h" />
     <ClInclude Include="src\Range.h" />
     <ClInclude Include="src\MIDIProcessor.h" />
-    <ClInclude Include="src\Recomposer\MIDIStream.h" />
-    <ClInclude Include="src\Recomposer\RCP.h" />
-    <ClInclude Include="src\Recomposer\RunningNotes.h" />
-    <ClInclude Include="src\Recomposer\Support.h" />
+    <ClInclude Include="src\RCP\MIDIStream.h" />
+    <ClInclude Include="src\RCP\RCP.h" />
+    <ClInclude Include="src\RCP\RunningNotes.h" />
+    <ClInclude Include="src\RCP\Support.h" />
     <ClInclude Include="src\SMAF\MMF.h" />
     <ClInclude Include="src\SysEx.h" />
     <ClInclude Include="src\Tables.h" />
     <ClInclude Include="include\libmidi.h" />
+    <ClInclude Include="src\MMD\MemoryStream.h" />
+    <ClInclude Include="src\MMD\RunningNotes.h" />
+    <ClInclude Include="src\MMD\MMD.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />

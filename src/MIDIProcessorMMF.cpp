@@ -4,6 +4,7 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
+#include "Exception.h"
 
 #include <span>
 

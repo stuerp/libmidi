@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2025.09.07) **/
+/** $VER: MIDIContainer.h (2026.05.01) **/
 
 #pragma once
 
@@ -315,6 +315,7 @@ enum FileFormat
     RCP,
     XMF,
     MMF,
+    MMD,
     SYX,
 
 #ifdef _DEBUG

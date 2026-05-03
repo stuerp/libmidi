@@ -4,7 +4,7 @@
 #include "pch.h"
 
 #include "MIDIProcessor.h"
-#include "Recomposer\RCP.h"
+#include "RCP\RCP.h"
 
 using namespace rcp;
 

@@ -1,12 +1,11 @@
 
-/** $VER: MIDIProcessor.h (2025.09.06) **/
+/** $VER: MIDIProcessor.h (2026.05.03) **/
 
 #pragma once
 
 #include "pch.h"
 
 #include "MIDIContainer.h"
-#include "Exception.h"
 #include "IFF.h"
 
 #include <string>
@@ -56,6 +55,7 @@ private:
     static bool IsRCP(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
     static bool IsXMF(std::vector<uint8_t> const & data) noexcept;
     static bool IsMMF(std::vector<uint8_t> const & data) noexcept;
+    static bool IsMMD(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
 #ifdef _DEBUG
     static bool IsTST(std::vector<uint8_t> const & data, const std::wstring & fileExtension) noexcept;
 #endif
@@ -73,6 +73,7 @@ private:
     static bool ProcessRCP(std::vector<uint8_t> const & data, const std::wstring & filePath, container_t & container);
     static bool ProcessXMF(std::vector<uint8_t> const & data, container_t & container);
     static bool ProcessMMF(std::vector<uint8_t> const & data, container_t & container);
+    static bool ProcessMMD(std::vector<uint8_t> const & data, const std::wstring & filePath, container_t & container);
 #ifdef _DEBUG
     static bool ProcessTST(std::vector<uint8_t> const & data, container_t & container);
 #endif
