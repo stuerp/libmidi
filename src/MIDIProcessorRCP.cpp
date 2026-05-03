@@ -58,16 +58,16 @@ bool processor_t::ProcessRCP(std::vector<uint8_t> const & data, const std::wstri
 
     RCPConverter.SetFilePath(filePath);
 
-    rcp::converter_options_t & Options = RCPConverter._Options;
+    auto & Options = RCPConverter._Options;
 
-    Options._RCPLoopCount       = _Options._LoopExpansion;
+    Options.MaxLoopExpansions  = _Options.MaxLoopExpansions;
 
-    Options._WriteBarMarkers    = _Options._WriteBarMarkers;
-    Options._WriteSysExNames    = _Options._WriteSysExNames;
-    Options._ExtendLoops        = _Options._ExtendLoops;
-    Options._WolfteamLoopMode   = _Options._WolfteamLoopMode;
-    Options._KeepMutedChannels  = _Options._KeepMutedChannels;
-    Options._IncludeControlData = _Options._IncludeControlData;
+    Options.WriteCueMarkers    = _Options.WriteCueMarkers;
+    Options.WriteSysExNames    = _Options.WriteSysExNames;
+    Options.ExpandLoops        = _Options.ExpandLoops;
+    Options.WolfteamLoopMode   = _Options.WolfteamLoopMode;
+    Options.IgnoreMutedTracks  = _Options.IgnoreMutedTracks;
+    Options.IncludeControlData = _Options.IncludeControlData;
 
     rcp::buffer_t SrcData;
 

@@ -15,24 +15,43 @@ namespace midi
 
 struct processor_options_t
 {
-    // RCP
-    uint16_t _LoopExpansion = 0;
-    bool _WriteBarMarkers = false;
-    bool _WriteSysExNames = false;
-    bool _ExtendLoops = true;
-    bool _WolfteamLoopMode = false;
-    bool _KeepMutedChannels = false;
-    bool _IncludeControlData = true;
+    // RCP / MMD
+    uint16_t MaxLoopExpansions;
+
+    bool WriteCueMarkers;
+    bool WriteSysExNames;
+    bool ExpandLoops;
+    bool WolfteamLoopMode;
+    bool IgnoreMutedTracks;
+    bool IncludeControlData;
 
     // HMI / HMP
-    uint16_t _DefaultTempo = 160; // in bpm
+    uint16_t DefaultTempo;      // in bpm
 
     // SMF
-    bool _IsEndOfTrackRequired = true;
-    bool _DetectExtraPercussionChannel = true;
+    bool IsEndOfTrackRequired;
+    bool DetectExtraPercussionChannel;
 };
 
-const processor_options_t DefaultOptions(0, false, false, true, false, false, true, 160, true, true);
+const processor_options_t DefaultOptions
+{
+    // RCP / MMD
+    .MaxLoopExpansions = 2,
+
+    .WriteCueMarkers = false,
+    .WriteSysExNames = false,
+    .ExpandLoops = false,
+    .WolfteamLoopMode = false,
+    .IgnoreMutedTracks = true,
+    .IncludeControlData = true,
+
+    // HMI / HMP
+    .DefaultTempo = 160, // in bpm
+
+    // SMF
+    .IsEndOfTrackRequired = true,
+    .DetectExtraPercussionChannel = true,
+};
 
 class processor_t
 {

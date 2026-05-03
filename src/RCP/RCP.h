@@ -11,17 +11,16 @@
 namespace rcp
 {
 
-class converter_options_t
+struct rcp_options_t
 {
-public:
-    uint16_t _RCPLoopCount = 2;
+    uint16_t MaxLoopExpansions = 2;
 
-    bool _WriteBarMarkers = false;
-    bool _WriteSysExNames = false;
-    bool _ExtendLoops = true;
-    bool _WolfteamLoopMode = false;
-    bool _KeepMutedChannels = false;
-    bool _IncludeControlData = true;
+    bool WriteCueMarkers = false;
+    bool WriteSysExNames = false;
+    bool ExpandLoops = false;
+    bool WolfteamLoopMode = false;
+    bool IgnoreMutedTracks = true;
+    bool IncludeControlData = true;
 };
 
 class rcp_string_t
@@ -89,7 +88,7 @@ public:
 class rcp_file_t
 {
 public:
-    rcp_file_t(const converter_options_t & options) : _Options(options)
+    rcp_file_t(const rcp_options_t & options) : _Options(options)
     {
         _Version = 0;
         _TrackCount = 0;
@@ -132,7 +131,7 @@ public:
     rcp_user_sysex_t _SysEx[8];
 
 private:
-    const converter_options_t & _Options;
+    const rcp_options_t & _Options;
 };
 
 class cm6_file_t
@@ -228,7 +227,7 @@ private:
     static uint8_t HandleDuration(midi_stream_t * fileInfo, uint32_t & duration);
 
 public:
-    converter_options_t _Options;
+    rcp_options_t _Options;
 
     std::wstring _FilePath;
 };

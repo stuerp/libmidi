@@ -57,7 +57,7 @@ bool processor_t::ProcessHMI(std::vector<uint8_t> const & data, container_t & co
         uint8_t Data[] = { StatusCode::MetaData, MetaDataType::SetTempo, 0, 0, 0 };
 
         {
-            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options._DefaultTempo; // Convert from bpm to µs / quarter note.
+            uint32_t us = (uint32_t) (60 * 1000 * 1000) / _Options.DefaultTempo; // Convert from bpm to µs / quarter note.
 
             Data[4] = us & 0x7F; us >>= 7;
 

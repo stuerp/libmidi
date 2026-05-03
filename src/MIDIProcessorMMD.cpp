@@ -21,10 +21,24 @@ bool processor_t::IsMMD(std::vector<uint8_t> const & data, const std::wstring & 
     if (::_wcsicmp(fileExtension.c_str(), L"mmd"))
         return false;
 
-    const size_t HeaderSize = 2 + (18 * 4);
+    const size_t TrackCount = 18;
+    const size_t HeaderSize = 2 + (TrackCount * 4);
 
     if (data.size() < HeaderSize)
         return false;
+
+    // Verify the track offsets.
+    const uint8_t * Data = data.data() + 2;
+
+    for (size_t i = 0; i < TrackCount; ++i)
+    {
+        uint16_t TrackOffset = (uint16_t) ((Data[0x01] << 8) | (Data[0x00] << 0));
+
+        if (TrackOffset >= data.size())
+            return false;
+
+        Data += 4;
+    }
 
     return true;
 }

@@ -1,5 +1,5 @@
 
-/** $VER: RCP.cpp (2025.06.09) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RCP.cpp (2026.05.03) P. Stuer - Based on Valley Bell's rpc2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -8,6 +8,14 @@
 
 namespace rcp
 {
+
+struct loop_t
+{
+    uint32_t ParentOffs;
+    uint32_t StartOffs;
+    uint32_t StartTick;
+    uint16_t Counter;
+};
 
 extern running_notes_t RunningNotes;
 
@@ -49,9 +57,10 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
 
     offset += 0x2A; // Skip the track header.
 
-    track->Offs = TrackHead;
-    track->Size = TrackSize;
+    track->Offs     = TrackHead;
+    track->Size     = TrackSize;
     track->Duration = 0;
+
     track->LoopStartOffs = 0;
     track->LoopStartTick = 0;
 
@@ -69,19 +78,11 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
 
     uint32_t ParentOffs = 0;
 
-    struct loop_t
-    {
-        uint32_t ParentOffs;
-        uint32_t StartOffs;
-        uint32_t StartTick;
-        uint16_t Counter;
-    };
-
     std::vector<loop_t> Loops;
 
     Loops.reserve(8);
 
-    uint8_t LoopCount = 0;
+    size_t LoopIndex = 0;
 
     uint32_t LoopParentOffs[8] = { };
     uint32_t LoopStartOffs[8] = { };
@@ -122,27 +123,27 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
         {
             case 0xF8: // Loop End
             {
-                if (LoopCount > 0)
+                if (LoopIndex != 0)
                 {
-                    LoopCount--;
+                    LoopIndex--;
 
-                    LoopCounter[LoopCount]++;
+                    LoopCounter[LoopIndex]++;
 
                     if (CmdP0 == 0)
                     {
-                        track->LoopStartOffs = LoopStartOffs[LoopCount];
-                        track->LoopStartTick = LoopStartTick[LoopCount];
+                        track->LoopStartOffs = LoopStartOffs[LoopIndex];
+                        track->LoopStartTick = LoopStartTick[LoopIndex];
 
                         EndOfTrack = 1;
                     }
                     else
                     {
-                        if (LoopCounter[LoopCount] < CmdP0)
+                        if (LoopCounter[LoopIndex] < CmdP0)
                         {
-                            ParentOffs = LoopParentOffs[LoopCount];
-                            offset = LoopStartOffs[LoopCount];
+                            ParentOffs = LoopParentOffs[LoopIndex];
+                            offset = LoopStartOffs[LoopIndex];
 
-                            LoopCount++;
+                            LoopIndex++;
                         }
                     }
                 }
@@ -153,17 +154,23 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
 
             case 0xF9: // Loop Begin
             {
-                if (LoopCount < 8)
+                if (LoopIndex < _countof(LoopCounter))
                 {
-                    LoopParentOffs[LoopCount] = ParentOffs;
-                    LoopStartOffs[LoopCount] = offset;
-                    LoopStartTick[LoopCount] = track->Duration;
-                    LoopCounter[LoopCount] = 0;
+                    LoopParentOffs[LoopIndex] = ParentOffs;
+                    LoopStartOffs[LoopIndex] = offset;
+                    LoopStartTick[LoopIndex] = track->Duration;
+                    LoopCounter[LoopIndex] = 0;
 
-                    LoopCount++;
+                    LoopIndex++;
                 }
 
-                Loops.push_back({ ParentOffs, offset, track->Duration, 0 });
+                Loops.push_back
+                ({
+                    .ParentOffs = ParentOffs,
+                    .StartOffs = offset,
+                    .StartTick = track->Duration,
+                    .Counter = 0
+                });
 
                 CmdP0 = 0;
                 break;
@@ -248,20 +255,29 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
 
                 CmdP0 = 0;
 
-                if (_Options._WolfteamLoopMode && MeasureOffsets.size() == 2)
+                if (_Options.WolfteamLoopMode && MeasureOffsets.size() == 2)
                 {
-                    LoopCount = 0;
+                    {
+                        LoopIndex = 0;
 
-                    LoopParentOffs[LoopCount] = ParentOffs;
-                    LoopStartOffs[LoopCount] = offset;
-                    LoopStartTick[LoopCount] = track->Duration;
-                    LoopCounter[LoopCount] = 0;
+                        LoopParentOffs[LoopIndex] = ParentOffs;
+                        LoopStartOffs[LoopIndex] = offset;
+                        LoopStartTick[LoopIndex] = track->Duration;
+                        LoopCounter[LoopIndex] = 0;
 
-                    LoopCount++;
+                        LoopIndex++;
+                    }
+                    {
+                        Loops.clear();
 
-                    Loops.clear();
-
-                    Loops.push_back({ ParentOffs, offset, track->Duration, 0 });
+                        Loops.push_back
+                        ({
+                            .ParentOffs = ParentOffs,
+                            .StartOffs = offset,
+                            .StartTick = track->Duration,
+                            .Counter = 0
+                         });
+                    }
                 }
                 break;
             }
@@ -271,12 +287,12 @@ void rcp_file_t::ParseTrack(const uint8_t * data, uint32_t size, uint32_t offset
                 EndOfTrack = true;
                 CmdP0 = 0;
 
-                if (_Options._WolfteamLoopMode && (LoopCount > 0))
+                if (_Options.WolfteamLoopMode && (LoopIndex != 0))
                 {
-                    LoopCount = 0;
+                    LoopIndex = 0;
 
-                    track->LoopStartOffs = LoopStartOffs[LoopCount];
-                    track->LoopStartTick = LoopStartTick[LoopCount];
+                    track->LoopStartOffs = LoopStartOffs[LoopIndex];
+                    track->LoopStartTick = LoopStartTick[LoopIndex];
 
                     Loops.clear();
                 }
@@ -332,22 +348,21 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
     if (Offset + 0x2A > size)
         throw std::runtime_error("Insufficient data to read track header");
 
-    uint8_t TrackId    = data[Offset + 0x00]; // Track ID (1-based)
-    uint8_t RhythmMode = data[Offset + 0x01]; // Rhythm mode (0x00 - off, 0x80 - on, others undefined / fall back to off)
-    uint8_t SrcChannel = data[Offset + 0x02]; // MIDI channel (0xFF = null device (Don't play), 0x00..0x0F = port A ch 0..15, 0x10..0x1F = port B ch 0..15)
+    uint8_t TrackId       = data[Offset + 0x00]; // Track ID (1-based)
+    uint8_t RhythmMode    = data[Offset + 0x01]; // Rhythm mode (0x00 - off, 0x80 - on, others undefined / fall back to off)
+    uint8_t ChannelNumber = data[Offset + 0x02]; // Channel (0xFF = null device (Don't play), 0x00..0x0F = port A ch 0..15, 0x10..0x1F = port B ch 0..15)
 
-    uint8_t DstChannel = 0x00;
+    uint8_t PortNumber = 0x00;
 
-    if (SrcChannel & 0x80)
+    if (ChannelNumber & 0x80)
     {
-        // When the KeepMutedChannels option is off, prevent events from being written to the MIDI file by setting DstChannel to 0xFF.
-        DstChannel = _Options._KeepMutedChannels ? (uint8_t) 0x00 : (uint8_t) 0xFF;
-        SrcChannel = 0x00;
+        PortNumber = _Options.IgnoreMutedTracks ? (uint8_t) 0xFF : (uint8_t) 0x00;
+        ChannelNumber = 0x00;
     }
     else
     {
-        DstChannel = (uint8_t) (SrcChannel >> 4);
-        SrcChannel &= 0x0F;
+        PortNumber = (uint8_t) (ChannelNumber >> 4);
+        ChannelNumber &= 0x0F;
     }
 
     int8_t Transposition = (int8_t) data[Offset + 0x03]; // Key Offset
@@ -362,7 +377,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
 #ifdef _RCP_VERBOSE
     ::printf("Track %02X, \"%.*s\"\n", TrackId, TrackName.Len, TrackName.Data);
-    ::printf("    Rhythm Mode: %02X, Src Channel: %02X, Dst Channel: %02X, Transposition: %4d, Start Tick: %6d, Mute Mode: %02X \n", RhythmMode, SrcChannel, DstChannel, Transposition, StartTick, MuteMode);
+    ::printf("    Rhythm Mode: %02X, Port: %02X, Channel: %02X, Transposition: %4d, Start Tick: %6d, Mute Mode: %02X \n", RhythmMode, PortNumber, ChannelNumber, Transposition, StartTick, MuteMode);
 
     // For MuteMode, 0x00 == off, 0x01 == on. Others are undefined.
     if ((MuteMode != 0x00) && (MuteMode != 0x01))
@@ -382,18 +397,17 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         if (TrackName.Len > 0)
             midiStream.WriteMetaEvent(midi::TrackName, TrackName.Data, TrackName.Len);
 
-        if ((MuteMode == 0x01) && !_Options._KeepMutedChannels)
+        if ((MuteMode == 0x01) && _Options.IgnoreMutedTracks)
         {
-            // Ignore muted tracks.
             *offset = TrackHead + TrackSize;
 
             return;
         }
 
-        if (DstChannel != 0xFF)
+        if (PortNumber != 0xFF)
         {
-            midiStream.WriteMetaEvent(midi::MIDIPort,      &DstChannel, 1);
-            midiStream.WriteMetaEvent(midi::ChannelPrefix, &SrcChannel, 1);
+            midiStream.WriteMetaEvent(midi::MIDIPort,      &PortNumber, 1);
+            midiStream.WriteMetaEvent(midi::ChannelPrefix, &ChannelNumber, 1);
         }
 
         // Transposition in semitones, 7-bit signed: 0 = no transposition, 0x0C = +1 octave, 0x74 = -1 octave, added together with global transposition, 0x80..0xFF = rhythm track (no per-track transposition, ignores global transposition as well).
@@ -412,7 +426,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         RunningNotes.Reset();
     }
 
-    midiStream.SetChannel(SrcChannel);
+    midiStream.SetChannel(ChannelNumber);
 
     // Add "StartTick" offset to the initial timestamp.
     {
@@ -451,7 +465,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         buffer_t Text;
         bool EndOfTrack = false;
 
-        uint8_t LoopCount = 0;
+        size_t LoopIndex = 0;
     
         uint32_t LoopParentOffs[8] = { };
         uint32_t LoopStartOffs[8] = { };
@@ -508,7 +522,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (RunningNotes._Notes[i].Code == Code)
                         {
                             // The note is already playing. Increase its duration.
-                            RunningNotes._Notes[i].Duration = midiStream.GetDuration() + CmdDuration;
+                            RunningNotes._Notes[i].DeltaTime = midiStream.GetDuration() + CmdDuration;
 
                             CmdDuration = 0; // Prevents the note from being added to the MIDI stream yet.
                             break;
@@ -517,7 +531,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                 }
 
                 // Should we add the note to the stream?
-                if ((CmdDuration > 0) && (DstChannel != 0xFF))
+                if ((CmdDuration > 0) && (PortNumber != 0xFF))
                 {
                 #ifdef _RCP_VERBOSE
                     ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Note On %02X %02X\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), Code, CmdP2);
@@ -539,12 +553,12 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                 {
                     case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95: case 0x96: case 0x97: // send User SysEx (defined via header)
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         const rcp_user_sysex_t & us = _SysEx[CmdType & 0x07];
 
-                        uint16_t Size = ConvertRCPSysExToMIDISysEx(us.Data, (uint16_t) us.Size, Temp, CmdP1, CmdP2, SrcChannel);
+                        uint16_t Size = ConvertRCPSysExToMIDISysEx(us.Data, (uint16_t) us.Size, Temp, CmdP1, CmdP2, ChannelNumber);
 
                         // Append 0xF7 byte. It may be omitted with 24-byte User SysExes.
                         if ((Size > 0) && Temp[Size - 1] != 0xF7)
@@ -561,7 +575,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         }
                         #endif
 
-                        if ((us.Name.Len > 0) && _Options._WriteSysExNames)
+                        if ((us.Name.Len > 0) && _Options.WriteSysExNames)
                             midiStream.WriteMetaEvent(midi::Text, us.Name.Data, us.Name.Len);
 
                         if (Size > 1)
@@ -582,10 +596,10 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         Size = ReadMultiCmdData(data, size, &Offset, Text.Data, Text.Size, MCMD_INI_EXCLUDE);
 
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
-                        Size = ConvertRCPSysExToMIDISysEx(Text.Data, Size, Temp, CmdP1, CmdP2, SrcChannel);
+                        Size = ConvertRCPSysExToMIDISysEx(Text.Data, Size, Temp, CmdP1, CmdP2, ChannelNumber);
 
                         #ifdef _RCP_VERBOSE
                         {
@@ -617,7 +631,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     case 0xCE: // DX7-2 P PCED
                     case 0xCF: // TX802 P PCED
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         static const uint8_t DXParameters[0x10] = { 0x08, 0x00, 0x04, 0x11, 0xFF, 0x15, 0xFF, 0x12, 0x13, 0x10, 0xFF, 0xFF, 0x1B, 0x18, 0x19, 0x1A, };
@@ -646,7 +660,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xC6: // FB-01 S System
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x43; // Yamaha ID
@@ -675,7 +689,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                     case 0xCA: // TX81Z S System
                     case 0xCB: // TX81Z E Effect
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x43; // Yamaha ID
@@ -728,7 +742,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         XGParameters[4] = CmdP1;
                         XGParameters[5] = CmdP2;
 
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x43; // Yamaha ID
@@ -755,7 +769,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         XGParameters[4] = CmdP1;
                         XGParameters[5] = CmdP2;
 
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x43; // Yamaha ID
@@ -781,7 +795,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xDC: // Roland MKS-7
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x41; // Roland ID
@@ -822,7 +836,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         GSParameters[4] = CmdP1;
                         GSParameters[5] = CmdP2;
 
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         Temp[0] = 0x41; // Roland ID
@@ -869,7 +883,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xE1: // Control Change / Program Change (LSB)
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -883,7 +897,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xE2: // Control Change / Program Change (MSB)
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -908,26 +922,26 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         if (CmdP1 & 0x80)
                         {
                             // Ignore the message when the KeepMutedChannels option is off. Else set destination channel to 0xFF to prevent events from being written.
-                            if (!_Options._KeepMutedChannels)
+                            if (_Options.IgnoreMutedTracks)
                             {
-                                DstChannel = 0xFF;
-                                SrcChannel = 0x00;
+                                PortNumber    = 0xFF;
+                                ChannelNumber = 0x00;
                             }
                         }
                         else
                         {
-                            DstChannel = (uint8_t) (CmdP1 >> 4); // port ID
-                            SrcChannel = (uint8_t) (CmdP1 & 0x0F); // channel ID
+                            PortNumber    = (uint8_t) (CmdP1 >> 4); // port ID
+                            ChannelNumber = (uint8_t) (CmdP1 & 0x0F); // channel ID
 
                         #ifdef _RCP_VERBOSE
-                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set MIDI channel (MIDI Port %02X, Channel Prefix %02X)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), DstChannel, SrcChannel);
+                            ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Set MIDI channel (Port %02X, Channel %02X)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration(), PortNumber, ChannelNumber);
                         #endif
 
-                            midiStream.WriteMetaEvent(midi::MIDIPort,      &DstChannel, 1);
-                            midiStream.WriteMetaEvent(midi::ChannelPrefix, &SrcChannel, 1);
+                            midiStream.WriteMetaEvent(midi::MIDIPort,      &PortNumber, 1);
+                            midiStream.WriteMetaEvent(midi::ChannelPrefix, &ChannelNumber, 1);
                         }
 
-                        midiStream.SetChannel(SrcChannel);
+                        midiStream.SetChannel(ChannelNumber);
                         break;
                     }
 
@@ -953,7 +967,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xEA: // Channel Pressure (Channel Aftertouch)
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -966,7 +980,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xEB: // Control Change
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -979,7 +993,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xEC: // Program Change
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                         if (CmdP1 < 0x80)
@@ -991,14 +1005,14 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             midiStream.WriteEvent(midi::ProgramChange, CmdP1, 0);
                         }
                         else
-                        if ((CmdP1 < 0xC0) && (SrcChannel >= 1 && SrcChannel < 9))
+                        if ((CmdP1 < 0xC0) && (ChannelNumber >= 1 && ChannelNumber < 9))
                         {
                         #ifdef _RCP_VERBOSE
                             ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: MT-32 instrument change\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                         #endif
 
                             // Set MT-32 instrument from user bank used by RCP files from Granada X68000.
-                            uint8_t PartMemOffset = (uint8_t) ((SrcChannel - 1) << 4);
+                            uint8_t PartMemOffset = (uint8_t) ((ChannelNumber - 1) << 4);
 
                             ::memcpy(Temp, MT32PatchChange, 0x07);
 
@@ -1012,7 +1026,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xED: // Note Aftertouch
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -1025,7 +1039,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xEE: // Pitch Bend
                     {
-                        if (DstChannel == 0xFF)
+                        if (PortNumber == 0xFF)
                             break;
 
                     #ifdef _RCP_VERBOSE
@@ -1080,11 +1094,11 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xF8: // Loop End
                     {
-                        if (LoopCount != 0)
+                        if (LoopIndex != 0)
                         {
-                            LoopCount--;
+                            LoopIndex--;
 
-                            LoopCounter[LoopCount]++;
+                            LoopCounter[LoopIndex]++;
 
                             bool TakeLoop = false;
 
@@ -1092,37 +1106,37 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             if (CmdP0 == 0 || CmdP0 >= 0x7F)
                             {
                                 // Infinite loop
-                                if (LoopCounter[LoopCount] < 0x80 && (DstChannel != 0xFF))
+                                if ((LoopCounter[LoopIndex] < 0x80) && (PortNumber != 0xFF))
                                 {
                                 #ifdef _RCP_VERBOSE
                                     ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                                 #endif
 
-                                    midiStream.WriteEvent(midi::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
+                                    midiStream.WriteEvent(midi::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopIndex]); // Set an RPG Maker Loop marker.
                                 }
 
-                                if (LoopCounter[LoopCount] < track->LoopCount)
+                                if (LoopCounter[LoopIndex] < track->LoopCount)
                                     TakeLoop = true;
                             }
                             else
                             {
-                                if (LoopCounter[LoopCount] < CmdP0)
+                                if (LoopCounter[LoopIndex] < CmdP0)
                                     TakeLoop = true;
                             }
 
-                            if (_Options._WriteBarMarkers)
+                            if (_Options.WriteCueMarkers)
                             {
-                                int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u End (%u/%u)", 1 + LoopCount, LoopCounter[LoopCount], CmdP0);
+                                int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u End (%u/%u)", (uint32_t) (LoopIndex + 1), LoopCounter[LoopIndex], CmdP0);
 
                                 midiStream.WriteMetaEvent(midi::CueMarker, Temp, (uint32_t) Length);
                             }
 
                             if (TakeLoop)
                             {
-                                ParentOffs = LoopParentOffs[LoopCount];
-                                Offset = LoopStartOffs[LoopCount];
+                                ParentOffs = LoopParentOffs[LoopIndex];
+                                Offset = LoopStartOffs[LoopIndex];
 
-                                LoopCount++;
+                                LoopIndex++;
                             }
                         }
                         else
@@ -1131,7 +1145,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                             ::printf("Warning: Track %2u, 0x%04X: Loop End without Loop Start.\n", TrackId, CmdOffset);
                         #endif
 
-                            if (_Options._WriteBarMarkers)
+                            if (_Options.WriteCueMarkers)
                                 midiStream.WriteMetaEvent(midi::CueMarker, "Bad Loop End");
                         }
 
@@ -1141,16 +1155,16 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                     case 0xF9: // Loop Begin
                     {
-                        if (_Options._WriteBarMarkers)
+                        if (_Options.WriteCueMarkers)
                         {
-                            int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u Start", LoopCount + 1);
+                            int Length = ::sprintf_s((char*) Temp, _countof(Temp), "Loop %u Start", (uint32_t) (LoopIndex + 1));
 
                             midiStream.WriteMetaEvent(midi::CueMarker, Temp, (uint32_t) Length);
                         }
 
-                        if (LoopCount < 8)
+                        if (LoopIndex < _countof(LoopCounter))
                         {
-                            if (Offset == track->LoopStartOffs && DstChannel != 0xFF)
+                            if (Offset == track->LoopStartOffs && PortNumber != 0xFF)
                             {
                             #ifdef _RCP_VERBOSE
                                 ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
@@ -1159,15 +1173,15 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                 midiStream.WriteEvent(midi::ControlChange, 0x6F, 0);
                             }
 
-                            LoopParentOffs[LoopCount] = ParentOffs; // required by YS-2･018.RCP
-                            LoopStartOffs[LoopCount] = Offset;
-                            LoopCounter[LoopCount] = 0;
+                            LoopParentOffs[LoopIndex] = ParentOffs; // required by YS-2･018.RCP
+                            LoopStartOffs[LoopIndex] = Offset;
+                            LoopCounter[LoopIndex] = 0;
 
-                            LoopCount++;
+                            LoopIndex++;
                         }
                     #ifdef _RCP_VERBOSE
                         else
-                            ::printf("Error: Track %u, 0x%04X: Trying to do more than 8 nested loops.\n", TrackId, CmdOffset);
+                            ::printf("Error: Track %u, 0x%04X: Too many nested loops.\n", TrackId, CmdOffset);
                     #endif
 
                         CmdP0 = 0;
@@ -1218,7 +1232,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                                     Offset += 6;
                                 }
 
-                                if (_Options._WriteBarMarkers)
+                                if (_Options.WriteCueMarkers)
                                 {
                                     int Length = ::sprintf_s((char *) Temp, _countof(Temp), "Repeat Bar %u", 1 + BarID);
 
@@ -1287,25 +1301,25 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
 
                         CmdP0 = 0;
 
-                        if (_Options._WriteBarMarkers)
+                        if (_Options.WriteCueMarkers)
                         {
                             int Length = ::sprintf_s((char *) Temp, _countof(Temp), "Bar %u", 1 + BarCount);
 
                             midiStream.WriteMetaEvent(midi::CueMarker, Temp, (uint32_t) Length);
                         }
 
-                        if (_Options._WolfteamLoopMode && (BarOffsets.size() == 2))
+                        if (_Options.WolfteamLoopMode && (BarOffsets.size() == 2))
                         {
-                            LoopCount = 0;
+                            LoopIndex = 0;
 
-                            if (DstChannel != 0xFF)
+                            if (PortNumber != 0xFF)
                                 midiStream.WriteEvent(midi::ControlChange, 0x6F, 0);
 
-                            LoopParentOffs[LoopCount] = ParentOffs;
-                            LoopStartOffs[LoopCount] = Offset;
-                            LoopCounter[LoopCount] = 0;
+                            LoopParentOffs[LoopIndex] = ParentOffs;
+                            LoopStartOffs[LoopIndex] = Offset;
+                            LoopCounter[LoopIndex] = 0;
 
-                            LoopCount++;
+                            LoopIndex++;
                         }
                         break;
                     }
@@ -1315,25 +1329,25 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
                         EndOfTrack = true;
                         CmdP0 = 0;
 
-                        if (_Options._WolfteamLoopMode)
+                        if (_Options.WolfteamLoopMode)
                         {
-                            LoopCount = 0;
-                            LoopCounter[LoopCount]++;
+                            LoopIndex = 0;
+                            LoopCounter[LoopIndex]++;
 
-                            if (LoopCounter[LoopCount] < 0x80 && DstChannel != 0xFF)
+                            if ((LoopCounter[LoopIndex] < 0x80) && (PortNumber != 0xFF))
                             {
-                                midiStream.WriteEvent(midi::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopCount]);
+                                midiStream.WriteEvent(midi::ControlChange, 0x6F, (uint8_t) LoopCounter[LoopIndex]);
 
                             #ifdef _RCP_VERBOSE
                                 ::printf("    %04X: %02X %04X %02X %02X %04X | %08X: Loop Begin (RPG Maker)\n", CmdOffset, CmdType, CmdP0, CmdP1, CmdP2, CmdDuration, midiStream.GetDuration());
                             #endif
                             }
 
-                            if (LoopCounter[LoopCount] < _Options._RCPLoopCount)
+                            if (LoopCounter[LoopIndex] < _Options.MaxLoopExpansions)
                             {
-                                ParentOffs = LoopParentOffs[LoopCount];
-                                Offset = LoopStartOffs[LoopCount];
-                                LoopCount++;
+                                ParentOffs = LoopParentOffs[LoopIndex];
+                                Offset = LoopStartOffs[LoopIndex];
+                                LoopIndex++;
                                 EndOfTrack = false;
                             }
                         }
@@ -1369,7 +1383,7 @@ void rcp_file_t::ConvertTrack(const uint8_t * data, uint32_t size, uint32_t * of
         }
     }
 
-    if (DstChannel == 0xFF)
+    if (PortNumber == 0xFF)
         midiStream.SetDuration(0);
 
     midiStream.SetDuration(RunningNotes.Flush(midiStream, false));

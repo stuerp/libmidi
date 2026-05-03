@@ -12,6 +12,8 @@
 
 #include "MemoryStream.h"
 
+#include <MIDI.h>
+
 namespace mmd
 {
 
@@ -29,8 +31,8 @@ public:
     running_notes_t() : _Count() { }
 
     running_note_t * Add(uint8_t channel, uint8_t note, uint8_t velocity, uint32_t length) noexcept;
-    size_t Check(memory_stream_t * file, uint32_t * delay) noexcept;
-    void Flush(memory_stream_t * file, uint32_t * delay) noexcept;
+    size_t Check(memory_stream_t * stream, uint32_t & deltaTime) noexcept;
+    void Flush(memory_stream_t * stream, uint32_t & deltaTime) noexcept;
 
 public:
     static const size_t MaxItems = 32;
@@ -61,36 +63,36 @@ running_note_t * running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t vel
 }
 
 /// <summary>
-/// Checks if any note expires within the N ticks specified by the "delay" parameter and
-/// insert Note Off events when they do. In that case, the value of "delay" will be reduced.
-/// Call this function from the delay handler and before extending notes.
+/// Checks if any note expires within the N ticks specified by the "deltaTime" parameter and
+/// insert Note Off events when they do. In that case, the value of "deltaTime" will be reduced.
+/// Call this function from the delta time handler and before extending notes.
 /// Returns the number of expired notes.
 /// </summary>
-size_t running_notes_t::Check(memory_stream_t * file, uint32_t * delay) noexcept
+size_t running_notes_t::Check(memory_stream_t * stream, uint32_t & deltaTime) noexcept
 {
     size_t ExpiredNotes = 0;
 
     while (_Count > 0)
     {
         // 1. Check if we're going beyond a note's timeout.
-        uint32_t Delay = *delay + 1;
+        uint32_t NewDeltaTime = deltaTime + 1;
 
         for (size_t i = 0; i < _Count; ++i)
         {
             running_note_t * tn = &_Items[i];
 
-            if (tn->Length < Delay)
-                Delay = tn->Length;
+            if (tn->Length < NewDeltaTime)
+                NewDeltaTime = tn->Length;
         }
 
-        if (Delay > *delay)
+        if (NewDeltaTime > deltaTime)
             break; // Not timed-out. Do the event.
 
         // 2. Reduce the remaining length of each note.
         for (size_t i = 0; i < _Count; ++i)
-            _Items[i].Length -= (uint32_t) Delay;
+            _Items[i].Length -= (uint32_t) NewDeltaTime;
 
-        (*delay) -= Delay;
+        deltaTime -= NewDeltaTime;
 
         // 3. Add a Note Off event for expired notes.
         for (size_t i = 0; i < _Count; ++i)
@@ -100,26 +102,28 @@ size_t running_notes_t::Check(memory_stream_t * file, uint32_t * delay) noexcept
             if (tn->Length > 0)
                 continue;
 
-            file->WriteVariableLengthValue(Delay);
-            Delay = 0;
+            stream->WriteVariableLengthQuantity(NewDeltaTime), NewDeltaTime = 0;
 
-            file->Grow(3u);
+            stream->Grow(3u);
 
             if (tn->Velocity < 0x80)
             {
-                file->Data[file->Offset++] = 0x80u | tn->Channel;
-                file->Data[file->Offset++] = tn->Note;
-                file->Data[file->Offset++] = tn->Velocity;
+                stream->Data[stream->Offset++] = (uint8_t) (midi::StatusCode::NoteOff | tn->Channel);
+                stream->Data[stream->Offset++] = tn->Note;
+                stream->Data[stream->Offset++] = tn->Velocity;
             }
             else
             {
-                file->Data[file->Offset++] = 0x90u | tn->Channel;
-                file->Data[file->Offset++] = tn->Note;
-                file->Data[file->Offset++] = 0x00u;
+                stream->Data[stream->Offset++] = (uint8_t) (midi::StatusCode::NoteOn | tn->Channel);
+                stream->Data[stream->Offset++] = tn->Note;
+                stream->Data[stream->Offset++] = 0u;
             }
 
             _Count--;
-            ::memmove(tn, &_Items[i + 1], (_Count - i) * sizeof(_Items[0]));
+
+            if (_Count != 0)
+                ::memmove(tn, &_Items[i + 1], (_Count - i) * sizeof(_Items[0]));
+
             i--;
 
             ExpiredNotes++;
@@ -132,15 +136,15 @@ size_t running_notes_t::Check(memory_stream_t * file, uint32_t * delay) noexcept
 /// <summary>
 /// Writes Note Off events for all running notes.
 /// </summary>
-void running_notes_t::Flush(memory_stream_t * file, uint32_t * delay) noexcept
+void running_notes_t::Flush(memory_stream_t * stream, uint32_t & deltaTime) noexcept
 {
     for (size_t i = 0; i < _Count; ++i)
     {
-        if (_Items[i].Length > *delay)
-            *delay = _Items[i].Length; // Set "delay" to longest note.
+        if (_Items[i].Length > deltaTime)
+            deltaTime = _Items[i].Length; // Set "deltaTime" to longest note.
     }
 
-    Check(file, delay);
+    Check(stream, deltaTime);
 }
 
 /// <summary>
@@ -159,11 +163,11 @@ static uint16_t AdjustTracks(track_t * tracks, uint16_t trackCount, uint32_t min
 
         uint32_t TrackLength = Track->Length;
 
-        if (Track->LoopCount != 0)
+        if (Track->MaxLoopExpansions != 0)
         {
             const uint32_t LoopLength = Track->Length - Track->LoopLength;
 
-            TrackLength += (LoopLength * (Track->LoopCount - 1));
+            TrackLength += (LoopLength * (Track->MaxLoopExpansions - 1));
         }
 
         if (MaxLength < TrackLength)
@@ -176,19 +180,19 @@ static uint16_t AdjustTracks(track_t * tracks, uint16_t trackCount, uint32_t min
     {
         track_t * Track = &tracks[TrackIndex];
 
-        const uint32_t LoopLength = (Track->LoopCount != 0) ? (Track->Length - Track->LoopCount) : 0;
+        const uint32_t LoopLength = (Track->MaxLoopExpansions != 0) ? (Track->Length - Track->MaxLoopExpansions) : 0;
 
         if (LoopLength < minLoopTicks)
             continue; // Ignore tracks with very short loops
 
         // heuristic: The track needs additional loops, if the longest track is longer than the current track + 1/4 loop.
-        uint32_t TrackLength = Track->Length + LoopLength * (Track->LoopCount - 1);
+        uint32_t TrackLength = Track->Length + LoopLength * (Track->MaxLoopExpansions - 1);
 
         if (TrackLength + LoopLength / 4 < MaxLength)
         {
             TrackLength = MaxLength - Track->LoopLength; // desired length of the loop
 
-            Track->LoopCount = (uint16_t)((TrackLength + LoopLength / 3) / LoopLength);
+            Track->MaxLoopExpansions = (uint16_t)((TrackLength + LoopLength / 3) / LoopLength);
 
             ++AdjustedTrackCount;
         }

@@ -77,9 +77,9 @@ public:
         WriteBE32(0x4D54726B); // write 'MTrk'
         WriteBE32(0x00000000); // The correct timestamp will be written later.
 
-        _State.Offs      = _Offs;
-        _State.Duration = 0;
-        _State.RunningStatus    = 0x00;
+        _State.Offs          = _Offs;
+        _State.Duration      = 0;
+        _State.RunningStatus = 0x00;
     }
 
     void EndWriteMIDITrack()

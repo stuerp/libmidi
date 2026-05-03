@@ -16,6 +16,9 @@
 
 #include "MMD.h"
 
+#include <MIDI.h>
+#include <Support.h>
+
 namespace mmd
 {
 
@@ -34,10 +37,18 @@ struct track_t
 
     uint32_t LoopOffset;
     uint32_t LoopLength;
-    uint16_t LoopCount;
+    uint16_t MaxLoopExpansions;     // Number of times to take the loops of this track
 
     int8_t Transpose;
     uint8_t Channel;
+};
+
+struct loop_t
+{
+    uint8_t Command[4];
+    uint32_t Offset;
+    uint32_t Length;
+    uint16_t Count;
 };
 
 }
@@ -48,7 +59,7 @@ struct track_t
 namespace mmd
 {
 
-static uint8_t GetDelay(memory_stream_t * ms, uint32_t * delay);
+static uint8_t GetDeltaTime(memory_stream_t * stream, uint32_t & deltaTime);
 
 static running_notes_t _RunningNotes;
 
@@ -60,17 +71,19 @@ static void GetSysEx(const uint8_t * srcData, uint8_t param1, uint8_t param2, ui
 inline uint32_t MMDTempo2MIDITemp(uint16_t bpm, uint8_t scale) noexcept;
 static uint16_t ReadLE16(const uint8_t * data) noexcept;
 
-static uint16_t MIDI_RES = 48u;
-static uint16_t NUM_LOOPS = 2u;
-static uint8_t NO_LOOP_EXT = 0u;
-static uint8_t KEEP_DUMMY_CH = 0u;
+const uint16_t MIDIResolution = 48u;
+
+// Options
+const uint16_t MaxLoopExpansions = 2u;  // Expand loops this many times.
+const bool ExpandLoops = false;
+const bool IgnoreMutedTracks = true;
 
 /// <summary>
 /// Converts the MMD data.
 /// </summary>
 uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> & dstData) noexcept
 {
-    memory_stream_t ms(0x20000, GetDelay); // 128 KB
+    memory_stream_t ms(0x20000, GetDeltaTime); // 128 KB
 
     uint32_t Offset = 2;
 
@@ -80,9 +93,19 @@ uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> 
     {
         track_t * Track = &Tracks[i];
 
-        Track->Offset    = ReadLE16(&srcData[Offset]);
-        Track->Transpose = (int8_t) srcData[Offset + 2];
-        Track->Channel   = srcData[Offset + 3];
+        Track->Offset     = ReadLE16(&srcData[Offset]);
+        Track->Length     = 0;
+
+        Track->LoopOffset = 0;
+        Track->LoopLength = 0;
+        Track->MaxLoopExpansions  = 0;
+
+        Track->Transpose  = (int8_t) srcData[Offset + 2];
+        Track->Channel    = srcData[Offset + 3];
+
+
+        if (Track->Offset >= srcSize)
+            return 1; // Invalid track offset
     }
 
     Offset = ReadLE16(&srcData[0x4A]);
@@ -117,34 +140,31 @@ uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> 
     {
         track_t * Track = &Tracks[i];
 
-        Track->LoopOffset = 0x0000;
-        Track->Length     = 0;
-        Track->LoopLength = 0;
-
         ParseTrack(srcData, srcSize, &MMD, Track);
 
-        Track->LoopCount = Track->LoopOffset ? NUM_LOOPS : 0u;
+        Track->MaxLoopExpansions = (Track->LoopOffset != 0) ? MaxLoopExpansions : 0u;
     }
 
-    if (!NO_LOOP_EXT)
-        AdjustTracks(Tracks, _countof(Tracks), (uint32_t) (MIDI_RES / 4));
+    if (ExpandLoops)
+        AdjustTracks(Tracks, _countof(Tracks), (uint32_t) (MIDIResolution / 4));
 
-    ms.WriteHeader(0x0001, _countof(Tracks), MIDI_RES);
+    // Write the MIDI header with default values.
+    ms.WriteHeader(0x0001, 0, MIDIResolution);
 
     uint8_t Result = 0;
 
     {
         midi_state_t State;
-        uint8_t TrackIndex;
+        uint8_t TrackNumber;
 
-        for (TrackIndex = 0; TrackIndex < _countof(Tracks); ++TrackIndex)
+        for (TrackNumber = 0; TrackNumber < _countof(Tracks); ++TrackNumber)
         {
             ms.WriteTrackBegin(&State);
 
-            if (TrackIndex == 0)
+            if (TrackNumber == 0)
             {
                 if ((MMD.Title != nullptr) && (MMD.Title[0] != '\0'))
-                    ms.WriteMetaEvent(&State, 0x03, MMD.Title, (uint32_t) ::strlen(MMD.Title));
+                    ms.WriteMetaEvent(&State, midi::MetaDataType::TrackName, MMD.Title, (uint32_t) ::strlen(MMD.Title));
 
                 const uint32_t Tempo = MMDTempo2MIDITemp(MMD.Tempo, 64);
 
@@ -152,12 +172,12 @@ uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> 
 
                 WriteBE32(Data, Tempo);
 
-                ms.WriteMetaEvent(&State, 0x51, Data + 1, 3);
+                ms.WriteMetaEvent(&State, midi::MetaDataType::SetTempo, Data + 1, 3);
             }
 
-            Result = ConvertTrack(srcData, srcSize, &MMD, &Tracks[TrackIndex], &ms, &State, TrackIndex);
+            Result = ConvertTrack(srcData, srcSize, &MMD, &Tracks[TrackNumber], &ms, &State, TrackNumber);
 
-            ms.WriteEvent(&State, 0xFF, 0x2F, 0x00);
+            ms.WriteEvent(&State, midi::StatusCode::MetaData, midi::MetaDataType::EndOfTrack, 0x00);
 
             ms.WriteTrackEnd(&State);
 
@@ -165,11 +185,12 @@ uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> 
                 break;
         }
 
+        // Update the MIDI header with the actual track count and length.
         {
             Offset = (uint32_t) ms.Offset;
 
             ms.Offset = 0;
-            ms.WriteHeader(0x0001, TrackIndex, MIDI_RES);
+            ms.WriteHeader(0x0001, TrackNumber, MIDIResolution);
 
             dstData.assign(ms.Data, ms.Data + Offset);
         }
@@ -177,14 +198,6 @@ uint8_t Convert(const uint8_t * srcData, uint32_t srcSize, std::vector<uint8_t> 
 
     return Result;
 }
-
-struct loop_t
-{
-    uint8_t Command[4];
-    uint32_t Offset;
-    uint32_t Length;
-    uint16_t Count;
-};
 
 /// <summary>
 /// 
@@ -211,7 +224,7 @@ static uint8_t ParseTrack(const uint8_t * data, uint32_t size, const mmd_t * mmd
     {
         uint8_t CommandType = data[Offset];
 
-        if (CommandType >= 0x80 && CommandType <= 0x8F)
+        if (msc::InRange((int) CommandType, 0x80, 0x8F))
         {
             uint8_t CommandMask = (uint8_t) (CommandType & 0x0F);
 
@@ -247,7 +260,7 @@ static uint8_t ParseTrack(const uint8_t * data, uint32_t size, const mmd_t * mmd
                 {
                     Loops[--LoopIndex].Count++;
 
-                    if (Command[1] == 0 || Command[1] >= 0x7F)
+                    if ((Command[1] == 0) || (Command[1] >= 0x7F))
                     {
                         track->LoopOffset = Loops[LoopIndex].Offset;
                         track->LoopLength = Loops[LoopIndex].Length;
@@ -304,27 +317,26 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
     if (track->Offset >= size)
         return 1;
 
-    uint8_t MIDIDevice  = 0;
-    uint8_t Channel = 0;
+    uint8_t PortNumber = 0;
+    uint8_t ChannelNumber = 0;
 
     if (track->Channel == 0xFF)
     {
-        // When the KeepDummyCh option is off, prevent events from being written to the MIDI by setting midiDev to 0xFF.
-        MIDIDevice  = KEEP_DUMMY_CH ? 0x00 : 0xFF;
-        Channel = 0;
+        PortNumber = IgnoreMutedTracks ? 0xFF : 0x00;
+        ChannelNumber = 0;
 
         track->Channel = 0x00;
     }
     else
     {
-        MIDIDevice  = (uint8_t) (track->Channel >> 4); // the driver doesn't support multiple devices, but let's keep it because RCP can do it
-        Channel = track->Channel & 0x0Fu;
+        PortNumber = (uint8_t) (track->Channel >> 4);
+        ChannelNumber = track->Channel & 0x0Fu;
     }
 
-    if (MIDIDevice != 0xFF)
+    if (PortNumber != 0xFF)
     {
-    //  file->WriteMetaEvent(state, 0x21, &MIDIDevice, 1);  // Meta Event: MIDI Port Prefix
-        ms->WriteMetaEvent(state, 0x20, &Channel, 1); // Meta Event: MIDI Channel Prefix
+        ms->WriteMetaEvent(state, midi::MetaDataType::MIDIPort, &PortNumber, 1);
+        ms->WriteMetaEvent(state, midi::MetaDataType::ChannelPrefix, &ChannelNumber, 1);
     }
 
     int8_t Transpose = track->Transpose;
@@ -344,8 +356,8 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
     _RunningNotes._Count = 0;
 
-    state->Channel = Channel;
-    state->Delay = 0;
+    state->Channel = ChannelNumber;
+    state->DeltaTime = 0;
 
     size_t Offset = track->Offset;
     size_t LoopIndex = 0;
@@ -358,7 +370,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
     {
         uint8_t CommandType = data[Offset];
 
-        if (CommandType >= 0x80 && CommandType <= 0x8F)
+        if (msc::InRange((int) CommandType, 0x80, 0x8F))
         {
             uint8_t CommandMask = CommandType & 0x0Fu;
 
@@ -391,7 +403,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
             if (EmitNote)
             {
-                _RunningNotes.Check(ms, &state->Delay);
+                _RunningNotes.Check(ms, state->DeltaTime);
 
                 Note = (CommandType + Transpose) & 0x7Fu;
 
@@ -400,7 +412,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     if (_RunningNotes._Items[i].Note == Note)
                     {
                         // The note is already playing. Set a new length.
-                        _RunningNotes._Items[i].Length = (uint32_t) state->Delay + Duration;
+                        _RunningNotes._Items[i].Length = (uint32_t) state->DeltaTime + Duration;
 
                         EmitNote = false; // Don't emit a new note.
                         break;
@@ -408,9 +420,9 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 }
             }
 
-            if (EmitNote && (MIDIDevice != 0xFF))
+            if (EmitNote && (PortNumber != 0xFF))
             {
-                ms->WriteEvent(state, 0x90, Note, Command[3]);
+                ms->WriteEvent(state, midi::StatusCode::NoteOn, Note, Command[3]);
 
                 _RunningNotes.Add(state->Channel, Note, 0x80, Duration);
             }
@@ -422,7 +434,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 case 0x90: case 0x91: case 0x92: case 0x93: // Send User SysEx
                 case 0x94: case 0x95: case 0x96: case 0x97:
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     const uint8_t * UserSysEx = mmd->SysEx[CommandType & 0x07];
@@ -432,10 +444,10 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
                     std::vector<uint8_t> SysEx;
 
-                    GetSysEx(UserSysEx, Command[2], Command[3], Channel, SysEx);
+                    GetSysEx(UserSysEx, Command[2], Command[3], ChannelNumber, SysEx);
 
                     if (SysEx.size() > 1)
-                        ms->WriteEvent(state, 0xF0, SysEx.data(), (uint32_t) SysEx.size());
+                        ms->WriteEvent(state, midi::StatusCode::SysEx, SysEx.data(), (uint32_t) SysEx.size());
                     break;
                 }
 
@@ -443,14 +455,14 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 {
                     const size_t SrcSize = GetSysExSize(data, size, Offset);
 
-                    if (MIDIDevice != 0xFF)
+                    if (PortNumber != 0xFF)
                     {
                         std::vector<uint8_t> SysEx;
 
-                        GetSysEx(&data[Offset], Command[2], Command[3], Channel, SysEx);
+                        GetSysEx(&data[Offset], Command[2], Command[3], ChannelNumber, SysEx);
 
                         if (SysEx.size() > 1)
-                            ms->WriteEvent(state, 0xF0, SysEx.data(), (uint32_t) SysEx.size());
+                            ms->WriteEvent(state, midi::StatusCode::SysEx, SysEx.data(), (uint32_t) SysEx.size());
                     }
 
                     Offset += SrcSize;
@@ -470,7 +482,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 case 0xCD: // DX7-2 A ACED
                 case 0xCE: // DX7-2 P PCED
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     static const uint8_t DXParameters[16] =
@@ -488,13 +500,13 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     Data[4] = Command[3];
                     Data[5] = 0xF7u;
 
-                    ms->WriteEvent(state, 0xF0, Data, 6);
+                    ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 6);
                     break;
                 }
 
                 case 0xC5: // FB-01 P Parameter
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -511,7 +523,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                         Data[6] = (uint8_t) (Command[3] >> 4);
                         Data[7] = 0xF7u;
 
-                        ms->WriteEvent(state, 0xF0, Data, 8);
+                        ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 8);
                     }
                     else
                     {
@@ -519,14 +531,14 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                         Data[5] = (uint8_t) (Command[3] >> 4);
                         Data[6] = 0xF7u;
 
-                        ms->WriteEvent(state, 0xF0, Data, 7);
+                        ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 7);
                     }
                     break;
                 }
 
                 case 0xC6: // FB-01 S System
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -539,14 +551,14 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     Data[5] = Command[3];
                     Data[6] = 0xF7;
 
-                    ms->WriteEvent(state, 0xF0, Data, 7);
+                    ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 7);
                     break;
                 }
 
                 case 0xCA: // TX81Z S System
                 case 0xCB: // TX81Z E EFFECT
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -564,7 +576,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
                 case 0xCF: // TX802 P PCED
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -574,12 +586,12 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     Data[2] = 0x1A;
                     Data[3] = Command[2];
 
-                    if (Command[2] < 0x1B || Command[2] >= 0x60)
+                    if ((Command[2] < 0x1B) || (Command[2] >= 0x60))
                     {
                         Data[4] = Command[3];
                         Data[5] = 0xF7;
 
-                        ms->WriteEvent(state, 0xF0, Data, 6);
+                        ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 6);
                     }
                     else
                     {
@@ -587,7 +599,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                         Data[5] = (uint8_t) (Command[3] & 0x7F);
                         Data[6] = 0xF7;
 
-                        ms->WriteEvent(state, 0xF0, Data, 7);
+                        ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 7);
                     }
                     break;
                 }
@@ -599,7 +611,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
                 case 0xDC: // MKS-7
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -611,7 +623,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     Data[4] = Command[3];
                     Data[5] = 0xF7;
 
-                    ms->WriteEvent(state, 0xF0, Data, 6);
+                    ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 6);
                     break;
                 }
 
@@ -627,7 +639,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     GSParameters[4] = Command[2];
                     GSParameters[5] = Command[3];
 
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
                     uint8_t Data[64] = { };
@@ -648,7 +660,7 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     Data[8] = (uint8_t) ((0x100 - Checksum) & 0x7F);
                     Data[9] = 0xF7;
 
-                    ms->WriteEvent(state, 0xF0, Data, 10);
+                    ms->WriteEvent(state, midi::StatusCode::SysEx, Data, 10);
                     break;
                 }
 
@@ -661,38 +673,37 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
                 case 0xE2: // Set GS instrument
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xB0, 0x00, Command[3]);
-                    ms->WriteEvent(state, 0xB0, 0x20, 0x00);
-                    ms->WriteEvent(state, 0xC0, Command[2], 0x00);
+                    ms->WriteEvent(state, midi::StatusCode::ControlChange, midi::Controller::BankSelect, Command[3]);
+                    ms->WriteEvent(state, midi::StatusCode::ControlChange, midi::Controller::BankSelectLSB, 0x00);
+                    ms->WriteEvent(state, midi::StatusCode::ProgramChange, Command[2], 0x00);
                     break;
                 }
 
-                case 0xE6: // MIDI channel
+                case 0xE6: // MIDI channel number
                 {
                     const uint8_t Byte = Command[2] - 1u; // It's same as in the track header, except 1 added.
 
                     if (Byte == 0xFF)
                     {
-                        // When the KeepDummyCh option is off, ignore the event else set midiDev to 0xFF to prevent events from being written.
-                        if (!KEEP_DUMMY_CH)
+                        if (IgnoreMutedTracks)
                         {
-                            MIDIDevice = 0xFF;
-                            Channel = 0x00;
+                            PortNumber = 0xFF;
+                            ChannelNumber = 0x00;
                         }
                     }
                     else
                     {
-                        MIDIDevice  = (uint8_t) (Byte >> 4); // port ID
-                        Channel = (uint8_t) (Byte & 0x0F); // channel ID
+                        PortNumber  = (uint8_t) (Byte >> 4); // port ID
+                        ChannelNumber = (uint8_t) (Byte & 0x0F); // channel ID
 
-                    //  file->WriteMetaEvent(state, 0x21, &Channel, 1); // Meta Event: MIDI Port Prefix
-                        ms->WriteMetaEvent(state, 0x20, &Channel, 1); // Meta Event: MIDI Channel Prefix
+                        ms->WriteMetaEvent(state, midi::MetaDataType::MIDIPort, &ChannelNumber, 1);
+                        ms->WriteMetaEvent(state, midi::MetaDataType::ChannelPrefix, &ChannelNumber, 1);
                     }
 
-                    state->Channel = Channel;
+                    state->Channel = ChannelNumber;
                     break;
                 }
 
@@ -707,52 +718,52 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
 
                     WriteBE32(Data, Tempo);
 
-                    ms->WriteMetaEvent(state, 0x51, Data + 1, 3);
+                    ms->WriteMetaEvent(state, midi::MetaDataType::SetTempo, Data + 1, 3);
                     break;
                 }
 
                 case 0xEA: // Channel Aftertouch
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xD0, Command[2], 0x00);
+                    ms->WriteEvent(state, midi::StatusCode::ChannelPressure, Command[2], 0x00);
                     break;
                 }
 
                 case 0xEB: // Control Change
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xB0, Command[2], Command[3]);
+                    ms->WriteEvent(state, midi::StatusCode::ControlChange, Command[2], Command[3]);
                     break;
                 }
 
                 case 0xEC: // Instrument
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xC0, Command[2], 0x00);
+                    ms->WriteEvent(state, midi::StatusCode::ProgramChange, Command[2], 0x00);
                     break;
                 }
 
                 case 0xED: // Note Aftertouch
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xA0, Command[2], Command[3]);
+                    ms->WriteEvent(state, midi::StatusCode::KeyPressure, Command[2], Command[3]);
                     break;
                 }
 
                 case 0xEE: // Pitch Bend
                 {
-                    if (MIDIDevice == 0xFF)
+                    if (PortNumber == 0xFF)
                         break;
 
-                    ms->WriteEvent(state, 0xE0, Command[2], Command[3]);
+                    ms->WriteEvent(state, midi::StatusCode::PitchBendChange, Command[2], Command[3]);
                     break;
                 }
 
@@ -762,34 +773,34 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 case 0xF8: // Loop End
                 {
                     if (LoopIndex == 0)
-                        break; //Loop End without Loop Begin
-
-                    uint8_t takeLoop = 0;
+                        break; // Loop End without Loop Begin
 
                     LoopIndex--;
 
                     Loops[LoopIndex].Count++;
 
-                    if (Command[1] == 0 || Command[1] >= 0x7F)
-                    {
-                        // infinite loop
-                        if (Loops[LoopIndex].Count < 0x80 && MIDIDevice != 0xFF)
-                            ms->WriteEvent(state, 0xB0, 0x6F, (uint8_t) Loops[LoopIndex].Count);
+                    bool TakeLoop = false;
 
-                        if (Loops[LoopIndex].Count < track->LoopCount)
-                            takeLoop = 1;
+                    if ((Command[1] == 0) || (Command[1] >= 0x7F))
+                    {
+                        // Infinite loop
+                        if ((Loops[LoopIndex].Count < 0x80) && (PortNumber != 0xFF))
+                            ms->WriteEvent(state, midi::StatusCode::ControlChange, 0x6F, (uint8_t) Loops[LoopIndex].Count); // Set an RPG Maker Loop marker.
+
+                        if (Loops[LoopIndex].Count < track->MaxLoopExpansions)
+                            TakeLoop = true;
                     }
                     else
                     {
                         if (Loops[LoopIndex].Count < Command[1])
-                            takeLoop = 1;
+                            TakeLoop = true;
                     }
 
-                    if (takeLoop)
+                    if (TakeLoop)
                     {
                         ::memcpy(Command, Loops[LoopIndex].Command, sizeof(Command));
-                        Offset = Loops[LoopIndex].Offset;
-                        LoopIndex++;
+
+                        Offset = Loops[LoopIndex++].Offset;
                     }
 
                     break;
@@ -800,10 +811,10 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                     if (LoopIndex >= _countof(Loops))
                         break; // Too many nested loops
 
-                    if (Offset == track->LoopOffset && MIDIDevice != 0xFF)
-                        ms->WriteEvent(state, 0xB0, 0x6F, 0);
+                    if ((Offset == track->LoopOffset) && (PortNumber != 0xFF))
+                        ms->WriteEvent(state, midi::StatusCode::ControlChange, 0x6F, 0); // Set an RPG Maker Loop marker.
 
-                    ::memcpy(Loops[LoopIndex].Command, Command, 4);
+                    ::memcpy(Loops[LoopIndex].Command, Command, sizeof(Command));
 
                     Loops[LoopIndex].Offset = (uint32_t) Offset;
                     Loops[LoopIndex].Count = 0;
@@ -825,19 +836,19 @@ static uint8_t ConvertTrack(const uint8_t * data, uint32_t size, const mmd_t * m
                 default:
                 {
                     // Unknown MMD command
-                    ms->WriteEvent(state, 0xB0, 0x70, CommandType & 0x7Fu);
+                    ms->WriteEvent(state, midi::StatusCode::ControlChange, 0x70, CommandType & 0x7Fu);
                     break;
                 }
             }
         }
 
-        state->Delay += CommandDelay;
+        state->DeltaTime += CommandDelay;
     }
 
-    _RunningNotes.Flush(ms, &state->Delay);
+    _RunningNotes.Flush(ms, state->DeltaTime);
 
-    if (MIDIDevice == 0xFF)
-        state->Delay = 0;
+    if (PortNumber == 0xFF)
+        state->DeltaTime = 0;
 
     return 0;
 }
@@ -917,14 +928,14 @@ static void GetSysEx(const uint8_t * srcData, uint8_t param1, uint8_t param2, ui
 /// <summary>
 /// 
 /// </summary>
-static uint8_t GetDelay(memory_stream_t * ms, uint32_t * delay)
+static uint8_t GetDeltaTime(memory_stream_t * ms, uint32_t & deltaTime)
 {
-    _RunningNotes.Check(ms, delay);
+    _RunningNotes.Check(ms, deltaTime);
 
-    if (*delay != 0)
+    if (deltaTime != 0)
     {
         for (size_t i = 0; i < _RunningNotes._Count; ++i)
-            _RunningNotes._Items[i].Length -= (uint16_t) *delay;
+            _RunningNotes._Items[i].Length -= (uint16_t) deltaTime;
     }
 
     return 0;
@@ -940,6 +951,9 @@ inline uint32_t MMDTempo2MIDITemp(uint16_t bpm, uint8_t scale) noexcept
     return (60000000u * 64u) / Denominator;
 }
 
+/// <summary>
+/// Reads a little-endian 16-bit unsigned integer from the given data.
+/// </summary>
 inline uint16_t ReadLE16(const uint8_t * data) noexcept
 {
     return (uint16_t) ((data[0x01] << 8) | (data[0x00] << 0));

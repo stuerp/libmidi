@@ -163,14 +163,14 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
 
             RCPFile.ParseTrack(rcpData.Data, rcpData.Size, TrackOffset, &Track);
 
-            Track.LoopCount = (uint16_t) ((Track.LoopStartOffs != 0) ? _Options._RCPLoopCount : 0);
+            Track.LoopCount = (uint16_t) ((Track.LoopStartOffs != 0) ? _Options.MaxLoopExpansions : 0);
             TrackOffset += Track.Size;
 
             ++n;
         }
     }
 
-    if (_Options._ExtendLoops)
+    if (_Options.ExpandLoops)
         BalanceTrackTimes(RCPTracks, (uint32_t) (RCPFile._TicksPerQuarter / 4), 0xFF);
 
     uint8_t ControlTrackCount = 0; // Number of tracks that contain control sequences.
@@ -179,7 +179,7 @@ void converter_t::ConvertSequence(const buffer_t & rcpData, buffer_t & midData)
     gsd_file_t GSD1File;
     gsd_file_t GSD2File;
 
-    if (_Options._IncludeControlData)
+    if (_Options.IncludeControlData)
     {
         wchar_t FilePath[260];
 
@@ -672,9 +672,9 @@ uint8_t converter_t::HandleDuration(midi_stream_t * midiStream, uint32_t & durat
     {
         for (uint16_t i = 0; i < RunningNotes._Count; ++i)
         {
-            assert(RunningNotes._Notes[i].Duration > duration);
+            assert(RunningNotes._Notes[i].DeltaTime > duration);
 
-            RunningNotes._Notes[i].Duration -= duration;
+            RunningNotes._Notes[i].DeltaTime -= duration;
         }
     }
 

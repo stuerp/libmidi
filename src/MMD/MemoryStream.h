@@ -21,7 +21,7 @@ inline void WriteBE16(uint8_t * buffer, uint16_t value);
 struct midi_state_t
 {
     uint32_t TrackOffset;
-    uint32_t Delay;         // Delay until next event
+    uint32_t DeltaTime;
     uint8_t Channel;
     uint8_t RunningStatus;
 };
@@ -29,11 +29,11 @@ struct midi_state_t
 class memory_stream_t
 {
 public:
-    typedef uint8_t (* GetDelayCallback)(memory_stream_t * file, uint32_t * delay);
+    typedef uint8_t (* GetDeltaTimeCallback)(memory_stream_t * stream, uint32_t & deltaTime);
 
-    memory_stream_t() : Data(), Size(), Offset(), _GetDelay() {}
+    memory_stream_t() : Data(), Size(), Offset(), _GetDeltaTime() {}
 
-    memory_stream_t(size_t initialSize, GetDelayCallback callback) : Data((uint8_t *) ::malloc(initialSize)), Size(initialSize), Offset(), _GetDelay(callback) {}
+    memory_stream_t(size_t initialSize, GetDeltaTimeCallback callback) : Data((uint8_t *) ::malloc(initialSize)), Size(initialSize), Offset(), _GetDeltaTime(callback) {}
 
     void WriteHeader(uint16_t format, uint16_t tracks, uint16_t resolution) noexcept;
     void WriteTrackBegin(midi_state_t * state) noexcept;
@@ -45,8 +45,8 @@ public:
 
     void WriteEventOpt(midi_state_t * state, uint8_t event, uint8_t param1, uint8_t param2) noexcept;
 
-    void WriteDelay(uint32_t * delay) noexcept;
-    void WriteVariableLengthValue(uint32_t value) noexcept;
+    void WriteDeltaTime(uint32_t & deltaTime) noexcept;
+    void WriteVariableLengthQuantity(uint32_t value) noexcept;
 
     void Grow(uint32_t bytesNeeded) noexcept;
 
@@ -55,11 +55,14 @@ public:
     size_t Size;
     size_t Offset;
 
-    // Note: _GetDelay can be used to inject additional events. IMPORTANT: You must not call any of the Write*Event() functions or WriteDelay() within this function.
+    // Note: _GetDeltaTime can be used to inject additional events. IMPORTANT: You must not call any of the Write*Event() functions or WriteDeltaTime() within this function.
     // Optional callback for injecting raw data before writing delays. Returning non-zero makes it skip writing the delay.
-    GetDelayCallback _GetDelay = nullptr;
+    GetDeltaTimeCallback _GetDeltaTime = nullptr;
 };
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteHeader(uint16_t format, uint16_t trackCount, uint16_t resolution) noexcept
 {
     Grow(0x08 + 0x06);
@@ -74,6 +77,9 @@ void memory_stream_t::WriteHeader(uint16_t format, uint16_t trackCount, uint16_t
     Offset += 0x06;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteTrackBegin(midi_state_t * state) noexcept
 {
     Grow(0x08);
@@ -83,10 +89,13 @@ void memory_stream_t::WriteTrackBegin(midi_state_t * state) noexcept
     Offset += 0x08;
 
     state->TrackOffset   = (uint32_t) Offset;
-    state->Delay         = 0;
+    state->DeltaTime     = 0;
     state->RunningStatus = 0x00;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteTrackEnd(midi_state_t * state) noexcept
 {
     const uint32_t n = (uint32_t) (Offset - state->TrackOffset);
@@ -94,6 +103,9 @@ void memory_stream_t::WriteTrackEnd(midi_state_t * state) noexcept
     WriteBE32(&Data[state->TrackOffset - 0x04], n);
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteEvent(midi_state_t * state, uint8_t event, uint8_t param1, uint8_t param2) noexcept
 {
     state->RunningStatus = 0x00;
@@ -101,9 +113,12 @@ void memory_stream_t::WriteEvent(midi_state_t * state, uint8_t event, uint8_t pa
     WriteEventOpt(state, event, param1, param2);
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteEvent(midi_state_t * state, uint8_t event, const void * data, uint32_t size) noexcept
 {
-    WriteDelay(&state->Delay);
+    WriteDeltaTime(state->DeltaTime);
 
     Grow(0x01 + 0x04 + size); // Worst case
 
@@ -111,15 +126,18 @@ void memory_stream_t::WriteEvent(midi_state_t * state, uint8_t event, const void
 
     Data[Offset++] = event;
 
-    WriteVariableLengthValue(size);
+    WriteVariableLengthQuantity(size);
 
     ::memcpy(&Data[Offset], data, size);
     Offset += size;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteMetaEvent(midi_state_t * state, uint8_t metaType, const void * data, uint32_t size) noexcept
 {
-    WriteDelay(&state->Delay);
+    WriteDeltaTime(state->DeltaTime);
 
     Grow(0x02 + 0x05 + size); // worst case
 
@@ -128,15 +146,18 @@ void memory_stream_t::WriteMetaEvent(midi_state_t * state, uint8_t metaType, con
     Data[Offset++] = 0xFF;
     Data[Offset++] = metaType;
 
-    WriteVariableLengthValue(size);
+    WriteVariableLengthQuantity(size);
 
     ::memcpy(&Data[Offset], data, size);
     Offset += size;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::WriteEventOpt(midi_state_t * state, uint8_t event, uint8_t param1, uint8_t param2) noexcept
 {
-    WriteDelay(&state->Delay);
+    WriteDeltaTime(state->DeltaTime);
 
     const uint8_t Status = (uint8_t) (event | state->Channel);
 
@@ -197,18 +218,22 @@ void memory_stream_t::WriteEventOpt(midi_state_t * state, uint8_t event, uint8_t
     }
 }
 
-void memory_stream_t::WriteDelay(uint32_t * delay) noexcept
+/// <summary>
+/// 
+/// </summary>
+void memory_stream_t::WriteDeltaTime(uint32_t & deltaTime) noexcept
 {
-    if ((_GetDelay != nullptr) && _GetDelay(this, delay))
+    if ((_GetDeltaTime != nullptr) && _GetDeltaTime(this, deltaTime))
         return;
 
-    WriteVariableLengthValue(*delay);
-    *delay = 0;
-
-    return;
+    WriteVariableLengthQuantity(deltaTime);
+    deltaTime = 0;
 }
 
-void memory_stream_t::WriteVariableLengthValue(uint32_t value) noexcept
+/// <summary>
+/// 
+/// </summary>
+void memory_stream_t::WriteVariableLengthQuantity(uint32_t value) noexcept
 {
     uint8_t ByteCount = 0;
 
@@ -244,6 +269,9 @@ void memory_stream_t::WriteVariableLengthValue(uint32_t value) noexcept
     Offset += ByteCount;
 }
 
+/// <summary>
+/// 
+/// </summary>
 void memory_stream_t::Grow(uint32_t bytesNeeded) noexcept
 {
     const size_t NewOffset = Offset + bytesNeeded;
@@ -276,8 +304,6 @@ inline void WriteBE32(uint8_t * data, uint32_t value)
 /// <summary>
 /// Writes a 16-bit unsigned integer in big-endian format to the specified buffer.
 /// </summary>
-/// <param name="data"></param>
-/// <param name="value"></param>
 inline void WriteBE16(uint8_t * data, uint16_t value)
 {
     data[0x00] = (value >> 8) & 0xFFu;

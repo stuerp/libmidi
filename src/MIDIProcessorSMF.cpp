@@ -139,7 +139,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
     for (;;)
     {
         // Workaround for invalid SMF files that have tracks without an End of Track message.
-        if (!_Options._IsEndOfTrackRequired && (data == tail))
+        if (!_Options.IsEndOfTrackRequired && (data == tail))
             break;
 
         int DeltaTime = DecodeVariableLengthQuantity(data, tail);
@@ -311,7 +311,7 @@ bool processor_t::ProcessSMFTrack(std::vector<uint8_t>::const_iterator & data, s
                     throw midi::exception("Insufficient data for meta data event");
 
                 // Remember when the track or instrument name contains the word "drum". We'll need it later.
-                if (_Options._DetectExtraPercussionChannel && ((MetaDataType == MetaDataType::Text) || (MetaDataType == MetaDataType::TrackName) || (MetaDataType == MetaDataType::InstrumentName)))
+                if (_Options.DetectExtraPercussionChannel && ((MetaDataType == MetaDataType::Text) || (MetaDataType == MetaDataType::TrackName) || (MetaDataType == MetaDataType::InstrumentName)))
                 {
                     const char * p = (const char *) &data[0];
 
