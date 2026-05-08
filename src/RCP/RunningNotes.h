@@ -10,17 +10,15 @@
 namespace rcp
 {
 
-#define MAX_RUN_NOTES 32 // Should be more than enough even for the MIDI sequences
-
 struct running_note_t
 {
-    running_note_t() : Channel(), Code(), NoteOffVelocity(), Duration()
+    running_note_t() : Channel(), Code(), Velocity(), Duration()
     {
     }
 
     uint8_t Channel;
     uint8_t Code;
-    uint8_t NoteOffVelocity;
+    uint8_t Velocity;
     uint32_t Duration;
 };
 
@@ -38,7 +36,7 @@ public:
 
         _Notes.clear();
 
-        for (size_t i = 0; i < MAX_RUN_NOTES; ++i)
+        for (size_t i = 0; i < MaxItems; ++i)
             _Notes.push_back(running_note_t());
     }
 
@@ -47,6 +45,8 @@ public:
     uint32_t Flush(midi_stream_t & midiStream, bool shorten);
 
 public:
+    static const size_t MaxItems = 32;
+
     size_t _Count;
     std::vector<running_note_t> _Notes;
 };

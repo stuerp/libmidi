@@ -3,28 +3,34 @@
 
 #include "pch.h"
 
+#include <CppCoreCheck\Warnings.h>
+
+#pragma warning(disable: 4100 4625 4626 4710 4711 4738 4820 5045 ALL_CPPCORECHECK_WARNINGS)
+
 #include "RunningNotes.h"
+
+#include <MIDI.h>
 
 namespace rcp
 {
 
-// Adds a note event to the "runNotes" list, so that NoteOff events can be inserted automatically by Check() while processing delays.
-// "length" specifies the number of ticks after which the note is turned off.
-// "velOff" specifies the velocity for the Note Off event. A value of 0x80 results in Note On with velocity 0.
-// Returns a pointer to the inserted struct or NULL if (NoteCnt >= NoteMax).
-void running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t velocityOff, uint32_t duration)
+/// <summary>
+/// Adds a note event to the "running notes" list, so that Note Off events can be inserted automatically by Check() while processing delays.
+/// "length" specifies the number of ticks after which the note is turned off.
+/// "velocity" specifies the velocity for the Note Off event. A value of 0x80 results in Note On with velocity 0.
+/// Returns a pointer to the inserted struct or NULL if (NoteCnt >= NoteMax).
+/// </summary>
+void running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t velocity, uint32_t duration)
 {
-    if (_Count >= MAX_RUN_NOTES)
+    if (_Count >= MaxItems)
         return;
 
-    running_note_t & rn = _Notes[_Count];
+    running_note_t & rn = _Notes[_Count++];
 
-    rn.Channel = channel;
-    rn.Code = note;
-    rn.NoteOffVelocity = velocityOff;
+    rn.Channel  = channel;
+    rn.Code     = note;
+    rn.Velocity = velocity;
     rn.Duration = duration;
-
-    _Count++;
 }
 
 // Checks, if any note expires within the N ticks specified by the "duration" parameter and
@@ -72,11 +78,11 @@ size_t running_notes_t::Update(midi_stream_t & stream, uint32_t & duration)
 
                 stream.Ensure(3);
 
-                if (rn.NoteOffVelocity < 0x80)
+                if (rn.Velocity < 0x80)
                 {
                     stream.Add((uint8_t) (midi::NoteOff | rn.Channel));
                     stream.Add(rn.Code);
-                    stream.Add(rn.NoteOffVelocity);
+                    stream.Add(rn.Velocity);
                 }
                 else
                 {

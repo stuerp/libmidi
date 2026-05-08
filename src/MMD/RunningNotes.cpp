@@ -1,5 +1,5 @@
 
-/** $VER: RunningNotesMMD.cpp (2026.05.07) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.cpp (2026.05.07) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -41,12 +41,12 @@ bool running_notes_t::EmitNote(stream_t & stream, uint8_t note, uint8_t duration
 {
     Update(stream, stream.DeltaTime);
 
-    for (auto & Item : _Items)
+    for (size_t i = 0; i < _Count; ++i)
     {
-        if (Item.Note == note)
+        if (_Items[i].Note == note)
         {
             // The note is already playing. Set its new duration.
-            Item.Duration = stream.DeltaTime + duration;
+            _Items[i].Duration = stream.DeltaTime + duration;
 
             return false; // Don't emit a new note.
         }
@@ -61,10 +61,10 @@ bool running_notes_t::EmitNote(stream_t & stream, uint8_t note, uint8_t duration
 void running_notes_t::Flush(stream_t & stream, uint32_t & deltaTime) noexcept
 {
     // Set deltaTime to the longest note duration.
-    for (auto & Item : _Items)
+    for (size_t i = 0; i < _Count; ++i)
     {
-        if (Item.Duration > deltaTime)
-            deltaTime = Item.Duration;
+        if (_Items[i].Duration > deltaTime)
+            deltaTime = _Items[i].Duration;
     }
 
     Update(stream, deltaTime);
