@@ -1,5 +1,5 @@
 
-/** $VER: MIDIContainer.h (2026.05.01) **/
+/** $VER: MIDIContainer.h (2026.05.08) **/
 
 #pragma once
 
@@ -30,7 +30,7 @@ struct event_t
         Extended            // 0xF0
     };
 
-    uint32_t Time;              // Absolute time
+    uint32_t Time;              // Absolute time in ticks from the beginning of the track.
     event_type_t Type;
     uint32_t ChannelNumber;
     std::vector<uint8_t> Data;

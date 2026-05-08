@@ -1,5 +1,5 @@
 
-/** $VER: RunningNotes.cpp (2026.05.07) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.cpp (2026.05.08) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #include "pch.h"
 
@@ -16,10 +16,9 @@ namespace mmd
 {
 
 /// <summary>
-/// Adds a note event to the "running notes" list, so that Note Off events can be inserted automatically by Check() while processing delays.
-/// "length" specifies the number of ticks after which the note is turned off.
-/// "velocity" specifies the velocity for the Note Off event. A value of 0x80 results in Note On with velocity 0.
-/// Returns a pointer to the inserted struct or NULL if (NoteCnt >= NoteMax).
+/// Adds a note event to the "running notes" list, so that Note Off events can be inserted automatically by Update() while processing delays.
+/// "velocity" specifies the velocity for the Note Off event. A value of 0x80 results in Note On with velocity 0 (which is also interpreted as a Note Off).
+/// "duration" specifies the number of ticks after which the note is turned off.
 /// </summary>
 void running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t velocity, uint32_t duration) noexcept
 {
@@ -39,7 +38,7 @@ void running_notes_t::Add(uint8_t channel, uint8_t note, uint8_t velocity, uint3
 /// </summary>
 bool running_notes_t::EmitNote(stream_t & stream, uint8_t note, uint8_t duration) noexcept
 {
-    Update(stream, stream.DeltaTime);
+    Update(stream);
 
     for (size_t i = 0; i < _Count; ++i)
     {
@@ -58,25 +57,25 @@ bool running_notes_t::EmitNote(stream_t & stream, uint8_t note, uint8_t duration
 /// <summary>
 /// Writes Note Off events for all running notes.
 /// </summary>
-void running_notes_t::Flush(stream_t & stream, uint32_t & deltaTime) noexcept
+void running_notes_t::Flush(stream_t & stream) noexcept
 {
     // Set deltaTime to the longest note duration.
     for (size_t i = 0; i < _Count; ++i)
     {
-        if (_Items[i].Duration > deltaTime)
-            deltaTime = _Items[i].Duration;
+        if (_Items[i].Duration > stream.DeltaTime)
+            stream.DeltaTime = _Items[i].Duration;
     }
 
-    Update(stream, deltaTime);
+    Update(stream);
 }
 
 /// <summary>
-/// Checks if any note expires within the N ticks specified by the "deltaTime" parameter and
+/// Checks if any note expires within the N ticks specified by the "DeltaTime" parameter of the stream and
 /// insert Note Off events when they do. In that case, the value of "deltaTime" will be reduced.
 /// Call this function from the delta time handler and before extending notes.
 /// Returns the number of expired notes.
 /// </summary>
-size_t running_notes_t::Update(stream_t & stream, uint32_t & deltaTime) noexcept
+size_t running_notes_t::Update(stream_t & stream) noexcept
 {
     size_t ExpiredNotes = 0;
 
@@ -110,21 +109,24 @@ size_t running_notes_t::Update(stream_t & stream, uint32_t & deltaTime) noexcept
             if (rn.Duration != 0)
                 continue;
 
-            stream.WriteVariableLengthQuantity(NewDeltaTime);
-
-            stream.Grow(3u);
-
-            if (rn.Velocity < 0x80)
             {
-                stream.Data[stream.Offset++] = (uint8_t) (midi::StatusCode::NoteOff | rn.Channel);
-                stream.Data[stream.Offset++] = rn.Note;
-                stream.Data[stream.Offset++] = rn.Velocity;
-            }
-            else
-            {
-                stream.Data[stream.Offset++] = (uint8_t) (midi::StatusCode::NoteOn | rn.Channel);
-                stream.Data[stream.Offset++] = rn.Note;
-                stream.Data[stream.Offset++] = 0u;
+                stream.WriteVariableLengthQuantity(NewDeltaTime);
+                NewDeltaTime = 0; // Any other expired note will get a delta time of 0.
+
+                stream.Grow(3u);
+
+                if (rn.Velocity != 0x80)
+                {
+                    stream.Data[stream.Offset++] = (uint8_t) (midi::StatusCode::NoteOff | rn.Channel);
+                    stream.Data[stream.Offset++] = rn.Note;
+                    stream.Data[stream.Offset++] = rn.Velocity;
+                }
+                else
+                {
+                    stream.Data[stream.Offset++] = (uint8_t) (midi::StatusCode::NoteOn | rn.Channel);
+                    stream.Data[stream.Offset++] = rn.Note;
+                    stream.Data[stream.Offset++] = 0u;
+                }
             }
 
             ExpiredNotes++;
@@ -135,8 +137,6 @@ size_t running_notes_t::Update(stream_t & stream, uint32_t & deltaTime) noexcept
 
             ::memmove(&rn, &_Items[i + 1], (_Count - i) * sizeof(_Items[0]));
             i--;
-
-            NewDeltaTime = 0; // Any other expired note will get a delta time of 0.
         }
     }
 

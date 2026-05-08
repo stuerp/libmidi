@@ -1,5 +1,5 @@
 
-/** $VER: RunningNotes.h (2026.05.07) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
+/** $VER: RunningNotes.h (2026.05.08) P. Stuer - Based on Valley Bell's mmd2mid (https://github.com/ValleyBell/MidiConverters). **/
 
 #pragma once
 
@@ -31,8 +31,8 @@ public:
 
     bool EmitNote(stream_t & stream, uint8_t note, uint8_t duration) noexcept;
 
-    void Flush(stream_t & stream, uint32_t & deltaTime) noexcept;
-    size_t Update(stream_t & stream, uint32_t & deltaTime) noexcept;
+    void Flush(stream_t & stream) noexcept;
+    size_t Update(stream_t & stream) noexcept;
 
 public:
     static const size_t MaxItems = 32;
