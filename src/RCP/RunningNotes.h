@@ -14,14 +14,14 @@ namespace rcp
 
 struct running_note_t
 {
-    running_note_t() : Channel(), Code(), NoteOffVelocity(), DeltaTime()
+    running_note_t() : Channel(), Code(), NoteOffVelocity(), Duration()
     {
     }
 
     uint8_t Channel;
     uint8_t Code;
     uint8_t NoteOffVelocity;
-    uint32_t DeltaTime;
+    uint32_t Duration;
 };
 
 class running_notes_t
@@ -42,9 +42,9 @@ public:
             _Notes.push_back(running_note_t());
     }
 
-    void Add(uint8_t channel, uint8_t note, uint8_t velocity, uint32_t length);
-    size_t Check(midi_stream_t & stream, uint32_t & deltaTime);
-    uint32_t Flush(midi_stream_t & stream, bool cutNotes);
+    void Add(uint8_t channel, uint8_t note, uint8_t velOff, uint32_t length);
+    size_t Update(midi_stream_t & midiStream, uint32_t & timestamp);
+    uint32_t Flush(midi_stream_t & midiStream, bool shorten);
 
 public:
     size_t _Count;

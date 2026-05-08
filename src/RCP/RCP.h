@@ -11,16 +11,17 @@
 namespace rcp
 {
 
-struct rcp_options_t
+class converter_options_t
 {
-    uint16_t MaxLoopExpansions = 2;
+public:
+    uint16_t _RCPLoopCount = 2;
 
-    bool WriteCueMarkers = false;
-    bool WriteSysExNames = false;
-    bool ExpandLoops = false;
-    bool WolfteamLoopMode = false;
-    bool IgnoreMutedTracks = true;
-    bool IncludeControlData = true;
+    bool _WriteBarMarkers = false;
+    bool _WriteSysExNames = false;
+    bool _ExtendLoops = true;
+    bool _WolfteamLoopMode = false;
+    bool _KeepMutedChannels = false;
+    bool _IncludeControlData = true;
 };
 
 class rcp_string_t
@@ -88,7 +89,7 @@ public:
 class rcp_file_t
 {
 public:
-    rcp_file_t(const rcp_options_t & options) : _Options(options)
+    rcp_file_t(const converter_options_t & options) : _Options(options)
     {
         _Version = 0;
         _TrackCount = 0;
@@ -131,7 +132,7 @@ public:
     rcp_user_sysex_t _SysEx[8];
 
 private:
-    const rcp_options_t & _Options;
+    const converter_options_t & _Options;
 };
 
 class cm6_file_t
@@ -212,7 +213,7 @@ class converter_t
 public:
     void SetFilePath(const std::wstring & filePath) noexcept { _FilePath = filePath; }
 
-    void Convert(const buffer_t & srcData, buffer_t & dstData, const std::wstring & dstType = L"mid");
+    void ToSMF(const buffer_t & srcData, buffer_t & dstData, const std::wstring & dstType = L"mid");
 
     void ConvertSequence(const buffer_t & rcpData, buffer_t & midData);
     void ConvertControl(const buffer_t & rcpData, buffer_t & midData, uint8_t fileType, uint8_t outMode);
@@ -227,7 +228,7 @@ private:
     static uint8_t HandleDuration(midi_stream_t * fileInfo, uint32_t & duration);
 
 public:
-    rcp_options_t _Options;
+    converter_options_t _Options;
 
     std::wstring _FilePath;
 };
