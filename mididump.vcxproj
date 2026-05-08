@@ -192,6 +192,9 @@
     <ClInclude Include="tools\mididump\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="3rdParty\libmsc\libmsc.vcxproj">
+      <Project>{30271063-52c9-4151-b200-444990da01e0}</Project>
+    </ProjectReference>
     <ProjectReference Include="libmidi.vcxproj">
       <Project>{4573e081-973b-47f0-a67d-551761ba1678}</Project>
     </ProjectReference>

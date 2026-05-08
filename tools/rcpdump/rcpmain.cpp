@@ -115,7 +115,7 @@ int rcpmain(int argc, wchar_t * argv[])
                 FileExtension = FileExtension.substr(1);
         }
 
-        RCPConverter.Convert(SrcData, DstData, FileExtension);
+        RCPConverter.ToSMF(SrcData, DstData, FileExtension);
 
         if (argc >= argbase + 2)
         {

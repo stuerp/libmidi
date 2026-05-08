@@ -34,7 +34,7 @@
     <None Include="tools\rcpdump\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\libmsc\libmsc.vcxproj">
+    <ProjectReference Include="3rdParty\libmsc\libmsc.vcxproj">
       <Project>{30271063-52c9-4151-b200-444990da01e0}</Project>
     </ProjectReference>
     <ProjectReference Include="libmidi.vcxproj">

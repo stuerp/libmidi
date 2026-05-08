@@ -22,8 +22,18 @@
     <ClCompile Include="src\libmidi.cpp" />
     <ClCompile Include="src\MIDIProcessorMMD.cpp" />
     <ClCompile Include="src\MIDIProcessorTST.cpp" />
-    <ClCompile Include="src\MMD\Converter.cpp" />
-    <ClCompile Include="src\MMD\RunningNotes.cpp" />
+    <ClCompile Include="src\MMD\Converter.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)ConverterMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)ConverterMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)ConverterMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)ConverterMMD.o</ObjectFileName>
+    </ClCompile>
+    <ClCompile Include="src\MMD\RunningNotes.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)RunningNotesMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)RunningNotesMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)RunningNotesMMD.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)RunningNotesMMD.o</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="src\MMD\Stream.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -47,11 +57,21 @@
     <ClCompile Include="src\MIDIProcessorXMF.cpp" />
     <ClCompile Include="src\MIDIProcessorXMI.cpp" />
     <ClCompile Include="src\RCP\CM6File.cpp" />
-    <ClCompile Include="src\RCP\Converter.cpp" />
+    <ClCompile Include="src\RCP\Converter.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)ConverterRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)ConverterRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)ConverterRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)ConverterRCP.o</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="src\RCP\GSDFile.cpp" />
     <ClCompile Include="src\RCP\MIDIStream.cpp" />
     <ClCompile Include="src\RCP\RCP.cpp" />
-    <ClCompile Include="src\RCP\RunningNotes.cpp" />
+    <ClCompile Include="src\RCP\RunningNotes.cpp">
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)RunningNotesRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)RunningNotesRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)RunningNotesRCP.o</ObjectFileName>
+      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IntDir)RunningNotesRCP.o</ObjectFileName>
+    </ClCompile>
     <ClCompile Include="src\RCP\Support.cpp" />
     <ClCompile Include="src\SMAF\MMF.cpp" />
     <ClCompile Include="src\SysEx.cpp" />
