@@ -69,6 +69,8 @@ struct event_t
     bool IsMarker() const noexcept      { return (Type == event_t::Extended) && (Data.size() >= 9) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::Marker); }
     bool IsPort() const noexcept        { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::MIDIPort); }
     bool IsEndOfTrack() const noexcept  { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCode::MetaData) && (Data[1] == MetaDataType::EndOfTrack); }
+
+    bool IsSysEx() const noexcept       { return (Type == event_t::Extended) && (Data.size() >= 2) && (Data[0] == StatusCode::SysEx); }
 };
 
 /// <summary>
