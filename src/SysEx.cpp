@@ -1,10 +1,11 @@
 
-/** $VER: SysEx.cpp (2026.05.10) P. Stuer **/
+/** $VER: SysEx.cpp (2026.05.17) P. Stuer **/
 
 #include "pch.h"
 
 #include "SysEx.h"
 #include "Tables.h"
+#include "MIDI.h"
 
 #include <Encoding.h>
 

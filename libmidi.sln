@@ -18,6 +18,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "3rdParty\zlib\zlib.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libmsc", "3rdParty\libmsc\libmsc.vcxproj", "{30271063-52C9-4151-B200-444990DA01E0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "midi2dump", "tools\midi2dump\midi2dump.vcxproj", "{952DBA94-FD67-4F48-B826-87366AD6FAA5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -66,6 +68,14 @@ Global
 		{30271063-52C9-4151-B200-444990DA01E0}.Release|x64.Build.0 = Release|x64
 		{30271063-52C9-4151-B200-444990DA01E0}.Release|x86.ActiveCfg = Release|Win32
 		{30271063-52C9-4151-B200-444990DA01E0}.Release|x86.Build.0 = Release|Win32
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Debug|x64.ActiveCfg = Debug|x64
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Debug|x64.Build.0 = Debug|x64
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Debug|x86.ActiveCfg = Debug|Win32
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Debug|x86.Build.0 = Debug|Win32
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Release|x64.ActiveCfg = Release|x64
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Release|x64.Build.0 = Release|x64
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Release|x86.ActiveCfg = Release|Win32
+		{952DBA94-FD67-4F48-B826-87366AD6FAA5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
